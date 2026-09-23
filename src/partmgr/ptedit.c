@@ -406,9 +406,9 @@ const char *pt_can_wipe(PtTable *t, int num)
     if (!p)
         return "there is no such partition";
     if (t->changed)
-        return "the table has changes not written: write them or leave the disk first";
+        return "unwritten changes: write or discard them first";
     if (p->role == PT_EXTENDED)
-        return "the extended partition holds the logical partitions: wipe them one by one";
+        return "wipe the logical partitions one by one";
     return NULL;
 }
 

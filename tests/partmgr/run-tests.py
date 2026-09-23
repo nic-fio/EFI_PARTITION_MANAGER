@@ -521,14 +521,14 @@ try:
 
     # refusals: changes not written, the extended partition
     msg = subprocess.run([PTTOOL, wp, "name", "1", "x", "wipe", "1"], capture_output=True, text=True).stdout
-    check("refuse wipe with changes", "changes not written" in msg, msg)
+    check("refuse wipe with changes", "unwritten changes" in msg, msg)
     wm2 = os.path.join(WORK, "wipe-mbr.img")
     copy(me, wm2)
     for p in ptdump(wm2)["parts"]:
         fill(wm2, int(p["start"]) + (1 if p["role"] == "extended" else 0), 8, 0x44)  # something in each
     mtable = sfdisk_json(wm2)
     msg = wipe(wm2, 2).get("error", "")
-    check("refuse wipe of the extended partition", "extended partition" in msg, msg)
+    check("refuse wipe of the extended partition", "logical partitions one by one" in msg, msg)
 
     # a logical partition: its range only; the chain of records stays
     log5 = next(p for p in ptdump(wm2)["parts"] if p["num"] == "5")

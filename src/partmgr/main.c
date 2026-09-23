@@ -40,7 +40,7 @@ static void draw(PmDisk *d, int n, int sel)
         bool hl = i == sel;
         ui_text(0, 3 + i, ui_cols, hl ? BLACK : LIGHTGRAY, hl ? CYAN : BLACK, line);
     }
-    ui_keys(1, " Select a disk and press Enter to see and change its partitions.");
+    ui_keys(1, "");
     UiKey k[] = { { "Enter", "Open", n > 0 }, { "R", "Rescan", true }, { "Q", "Quit", true } };
     ui_keybar(0, NULL, 0, k, (int)ARRAY_SIZE(k));
 }

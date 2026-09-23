@@ -134,7 +134,7 @@ static void draw(View *v)
         v->top = v->sel - visible + 1;
     if (!v->nrows)
         ui_text(2, first, ui_cols - 2, LIGHTGRAY, BLACK,
-                v->t.kind == PT_NONE ? "No partition table. Z makes a new one." : "No free space.");
+                v->t.kind == PT_NONE ? "No partition table." : "No free space.");
     for (int i = v->top; i < v->nrows && i < v->top + visible; i++) {
         const Row *r = &v->rows[i];
         char st[32], sz[32], line[300];
@@ -176,7 +176,7 @@ static void draw(View *v)
     UiKey pk[] = {
         { "N", "New", rw && fr }, { "D", "Delete", rw && part }, { "T", "Type", rw && plain },
         { "R", "Rename", rw && part && gpt }, { "A", "Active", rw && plain && v->t.kind == PT_MBR },
-        { "W", "Wipe", rw && plain },
+        { "W", "Wipe", rw && plain && !v->t.changed },
     };
     UiKey dk[] = {
         { "Enter", "Write", rw && v->t.changed }, { "Z", "New table", rw }, { "X", "Delete table", rw },
@@ -192,12 +192,11 @@ static void draw(View *v)
 static bool may_change(View *v)
 {
     if (v->d->boot) {
-        ui_message(false, "Read only",
-                   "partmgr was started from this disk, so it is only shown: it cannot be changed.");
+        ui_message(false, "Read only", "partmgr was started from this disk: it cannot be changed.");
         return false;
     }
     if (v->d->readonly) {
-        ui_message(false, "Read only", "This disk is write-protected.");
+        ui_message(false, "Read only", "The disk is write-protected.");
         return false;
     }
     return true;
@@ -215,7 +214,7 @@ static bool choose_type(View *v, uint8_t *mbr, uint8_t guid[16], int current)
     while (n < 62 && pt_type_at(v->t.kind, n, &items[n], &types[n], guids[n]))
         n++;
     items[n++] = v->t.kind == PT_GPT ? "Other (type GUID)..." : "Other (type byte)...";
-    int c = ui_menu("Partition type", items, n, current);
+    int c = ui_menu("Type", items, n, current);
     if (c < 0)
         return false;
     if (c < n - 1) {
@@ -226,21 +225,21 @@ static bool choose_type(View *v, uint8_t *mbr, uint8_t guid[16], int current)
     char buf[64] = "";
     draw(v);
     if (v->t.kind == PT_GPT) {
-        if (!ui_input(false, "Partition type", "The type GUID, e.g. 0FC63DAF-8483-4772-8E79-3D69D8477DE4:", buf,
+        if (!ui_input(false, "Type", "Type GUID:", buf,
                       sizeof(buf)))
             return false;
         if (!pt_guid_parse(buf, guid)) {
-            ui_message(true, "Partition type", "That is not a GUID.");
+            ui_message(true, "Type", "Not a GUID.");
             return false;
         }
         return true;
     }
-    if (!ui_input(false, "Partition type", "The type byte in hexadecimal, e.g. 83:", buf, sizeof(buf)))
+    if (!ui_input(false, "Type", "Type byte (hex):", buf, sizeof(buf)))
         return false;
     char *end;
     unsigned long b = strtoul(buf, &end, 16);
     if (!buf[0] || *end || b == 0 || b > 0xFF) {
-        ui_message(true, "Partition type", "Write a byte between 01 and FF.");
+        ui_message(true, "Type", "A byte from 01 to FF.");
         return false;
     }
     *mbr = (uint8_t)b;
@@ -271,8 +270,7 @@ static void new_partition(View *v, const PtFree *f)
         if (f->logical)
             req.role = PT_LOGICAL;
         else if (!ext) {
-            static const char *const kinds[] = { "Primary partition",
-                                                 "Logical partition (creates the extended partition)" };
+            static const char *const kinds[] = { "Primary", "Logical (creates the extended partition)" };
             int c = ui_menu("New partition", kinds, 2, 0);
             if (c < 0)
                 return;
@@ -282,17 +280,16 @@ static void new_partition(View *v, const PtFree *f)
     /* a logical partition that creates the extended one leaves room for its record */
     uint64_t first = f->start + (req.role == PT_LOGICAL && !f->logical ? al : 0);
     if (first > f_end) {
-        ui_message(true, "New partition", "This free area is too small.");
+        ui_message(true, "New partition", "The free area is too small.");
         return;
     }
     char fs[32], fe[32], buf[64], text[300];
     pm_fmt_exact(fs, sizeof(fs), first * b);
     pm_fmt_size(fe, sizeof(fe), (f_end + 1) * b);
-    snprintf(text, sizeof(text), "Where the partition starts, counted from the beginning of the disk. "
-                                 "This free area goes from %s to %s.", fs, fe);
+    snprintf(text, sizeof(text), "Start (free: %s to %s):", fs, fe);
     snprintf(buf, sizeof(buf), "%s", fs);
     draw(v);
-    if (!ui_input(false, "New partition: start", text, buf, sizeof(buf)))
+    if (!ui_input(false, "New partition", text, buf, sizeof(buf)))
         return;
     uint64_t bytes;
     bool rest;
@@ -306,17 +303,16 @@ static void new_partition(View *v, const PtFree *f)
     uint64_t start = (bytes + b - 1) / b;
     start = (start + al - 1) / al * al; /* partitions start on 1 MiB boundaries */
     if (start < first || start > f_end) {
-        snprintf(text, sizeof(text), "The start must be inside the free area, from %s.", fs);
+        snprintf(text, sizeof(text), "The start must be in the free area, from %s.", fs);
         ui_message(true, "New partition", text);
         return;
     }
     char avail[32];
     pm_fmt_size(avail, sizeof(avail), (f_end - start + 1) * b);
-    snprintf(text, sizeof(text), "The size of the partition, e.g. 512M or 20G (binary units: 1G = 1024M), "
-                                 "or rest for all the free space after the start (%s).", avail);
+    snprintf(text, sizeof(text), "Size (512M, 20G..., rest = %s):", avail);
     snprintf(buf, sizeof(buf), "rest");
     draw(v);
-    if (!ui_input(false, "New partition: size", text, buf, sizeof(buf)))
+    if (!ui_input(false, "New partition", text, buf, sizeof(buf)))
         return;
     err = pm_parse_size(buf, (uint32_t)b, &bytes, &rest);
     if (err) {
@@ -329,7 +325,7 @@ static void new_partition(View *v, const PtFree *f)
         return;
     }
     if (size > f_end - start + 1) {
-        snprintf(text, sizeof(text), "Too big: at most %s fit here.", avail);
+        snprintf(text, sizeof(text), "Too big: at most %s.", avail);
         ui_message(true, "New partition", text);
         return;
     }
@@ -340,7 +336,7 @@ static void new_partition(View *v, const PtFree *f)
     if (v->t.kind == PT_GPT) {
         buf[0] = 0;
         draw(v);
-        if (!ui_input(false, "New partition: name", "A name for the partition (up to 36 characters), or empty:",
+        if (!ui_input(false, "New partition", "Name (optional, 36 characters):",
                       buf, sizeof(buf)))
             return;
         snprintf(req.name, sizeof(req.name), "%s", buf);
@@ -353,7 +349,7 @@ static void new_partition(View *v, const PtFree *f)
     build_rows(v);
     select_start(v, start, false);
     PtPart *p = selected_part(v);
-    say(v, false, "Partition %d added. Enter writes the changes.", p ? p->num : 0);
+    say(v, false, "Partition %d added.", p ? p->num : 0);
 }
 
 static void delete_partition(View *v, PtPart *p)
@@ -366,8 +362,8 @@ static void delete_partition(View *v, PtPart *p)
         for (int i = 0; i < v->t.nparts; i++)
             logs += v->t.parts[i].role == PT_LOGICAL;
         char text[200];
-        snprintf(text, sizeof(text), "Deleting the extended partition deletes its %d logical partition%s too.",
-                 logs, logs == 1 ? "" : "s");
+        snprintf(text, sizeof(text), "Delete the extended partition and its %d logical partition%s? (Y/N)", logs,
+                 logs == 1 ? "" : "s");
         if (logs && !ui_yesno(true, "Delete partition", text))
             return;
     }
@@ -377,7 +373,7 @@ static void delete_partition(View *v, PtPart *p)
         return;
     }
     build_rows(v);
-    say(v, false, "Partition %d deleted. Enter writes the changes.", num);
+    say(v, false, "Partition %d deleted.", num);
 }
 
 static void change_type(View *v, PtPart *p)
@@ -385,7 +381,7 @@ static void change_type(View *v, PtPart *p)
     if (!may_change(v))
         return;
     if (p->role == PT_EXTENDED) {
-        ui_message(false, "Partition type", "The extended partition keeps its type.");
+        ui_message(false, "Type", "The extended partition keeps its type.");
         return;
     }
     uint8_t mbr = 0, guid[16] = { 0 };
@@ -394,9 +390,9 @@ static void change_type(View *v, PtPart *p)
     int num = p->num;
     const char *err = pt_set_type(&v->t, num, mbr, guid);
     if (err)
-        ui_message(true, "Partition type", err);
+        ui_message(true, "Type", err);
     else
-        say(v, false, "Type of partition %d changed. Enter writes the changes.", num);
+        say(v, false, "Partition %d: type changed.", num);
 }
 
 static void rename_partition(View *v, PtPart *p)
@@ -405,14 +401,14 @@ static void rename_partition(View *v, PtPart *p)
         return;
     char buf[112];
     snprintf(buf, sizeof(buf), "%s", p->name);
-    if (!ui_input(false, "Rename", "The name of the partition (up to 36 characters), or empty:", buf, sizeof(buf)))
+    if (!ui_input(false, "Rename", "Name (36 characters):", buf, sizeof(buf)))
         return;
     int num = p->num;
     const char *err = pt_set_name(&v->t, num, buf);
     if (err)
         ui_message(true, "Rename", err);
     else
-        say(v, false, "Partition %d renamed. Enter writes the changes.", num);
+        say(v, false, "Partition %d renamed.", num);
 }
 
 static void toggle_active(View *v, PtPart *p)
@@ -425,23 +421,21 @@ static void toggle_active(View *v, PtPart *p)
     if (err)
         ui_message(true, "Active", err);
     else
-        say(v, false, on ? "Partition %d is the active one. Enter writes the changes."
-                         : "Partition %d is no longer active. Enter writes the changes.", num);
+        say(v, false, on ? "Partition %d active." : "Partition %d no longer active.", num);
 }
 
 static void new_table(View *v)
 {
     if (!may_change(v))
         return;
-    static const char *const kinds[] = { "GPT (for UEFI; up to 128 partitions)",
-                                         "MBR (also for old BIOS systems; up to 2 TiB)" };
+    static const char *const kinds[] = { "GPT", "MBR" };
     int c = ui_menu("New partition table", kinds, 2, 0);
     if (c < 0)
         return;
     pt_new(&v->t, &v->d->dev, c ? PT_MBR : PT_GPT);
     v->sel = 0;
     build_rows(v);
-    say(v, false, "New empty %s table: every partition of the disk goes. Enter writes it.", c ? "MBR" : "GPT");
+    say(v, false, "New empty %s table.", c ? "MBR" : "GPT");
 }
 
 static void delete_table(View *v)
@@ -451,22 +445,18 @@ static void delete_table(View *v)
     pt_new(&v->t, &v->d->dev, PT_NONE);
     v->sel = 0;
     build_rows(v);
-    say(v, false, "The partition table is gone. Enter writes the change.");
+    say(v, false, "Partition table deleted.");
 }
 
 /* ---- writing ---- */
 
-/* The big red warning of every operation that destroys data, answered with
- * Y or N (Enter does nothing, so a key pressed twice cannot write). HINT
- * follows the warning. */
-#define BACKUP_HINT "There is no automatic copy: to keep one, press Esc and use B Backup first."
-
-static bool confirm_destroy(View *v, const char *title, const char *what, const char *hint)
+/* The red confirmation of every operation that writes to the disk: one line
+ * ending in (Y/N). Enter does nothing there, so a key pressed twice cannot
+ * write. */
+static bool confirm_destroy(View *v, const char *title, const char *question)
 {
-    char text[900];
-    snprintf(text, sizeof(text), "%s\n\n%s\n\nConfirm? (Y/N)", what, hint);
     draw(v);
-    if (ui_yesno(true, title, text))
+    if (ui_yesno(true, title, question))
         return true;
     say(v, false, "Nothing was written.");
     return false;
@@ -475,26 +465,23 @@ static bool confirm_destroy(View *v, const char *title, const char *what, const 
 static void write_table(View *v)
 {
     if (!v->t.changed) {
-        say(v, false, "There are no changes to write.");
+        say(v, false, "No changes to write.");
         return;
     }
     if (!may_change(v))
         return;
-    char size[32], what[400];
+    char size[32], q[200];
     pm_fmt_size(size, sizeof(size), v->d->size);
     if (v->t.kind == PT_NONE)
-        snprintf(what, sizeof(what), "WARNING: the partition table of %s (%s, %s) will be deleted. None of its "
-                                     "partitions will be reachable any more.", v->d->name, v->d->kind, size);
+        snprintf(q, sizeof(q), "Delete the partition table of %s (%s)? (Y/N)", v->d->name, size);
     else
-        snprintf(what, sizeof(what), "WARNING: the partition table of %s (%s, %s) will be replaced by the one on "
-                                     "the screen. Partitions deleted or changed lose access to their data.",
-                 v->d->name, v->d->kind, size);
-    if (!confirm_destroy(v, "Write the partition table", what, BACKUP_HINT))
+        snprintf(q, sizeof(q), "Write the %s table to %s (%s)? (Y/N)", pm_table_name(v->t.kind), v->d->name, size);
+    if (!confirm_destroy(v, "Write", q))
         return;
     int rc = pt_write(&v->d->dev, &v->t);
     if (rc) {
         ui_message(true, "Write", pal_strerror(rc));
-        say(v, true, "The table was not written: %s.", pal_strerror(rc));
+        say(v, true, "Not written: %s.", pal_strerror(rc));
         return;
     }
     load(v);
@@ -563,8 +550,7 @@ static bool wipe_progress(void *ctx, int pass, uint64_t done, uint64_t total)
     WipeUi *w = ctx;
     PalKey k;
     if (pal_con_read_key(&k, 0) && ui_is_esc(&k)) {
-        if (ui_yesno(true, "Stop the wipe", "The partition is partly overwritten already: its old data is "
-                                            "damaged either way. Stop now?"))
+        if (ui_yesno(true, "Wipe", "Stop the wipe? (Y/N)"))
             return false;
         w->drawn = 0; /* the box is drawn again below */
     }
@@ -584,28 +570,23 @@ static void wipe_partition(View *v, PtPart *p)
         ui_message(false, "Wipe", err);
         return;
     }
-    char size[32], type[48], what[700];
+    char size[32], type[48], q[300];
     pm_fmt_size(size, sizeof(size), p->size * bs(v));
     type_text(v, p, type, sizeof(type));
-    snprintf(what, sizeof(what),
-             "WARNING: every byte of partition %d of %s (%s, %s%s%s%s) will be overwritten now, first with random "
-             "data and then with zeros. Its data cannot be recovered.",
-             p->num, v->d->name, type, size, p->name[0] ? ", \"" : "", p->name, p->name[0] ? "\"" : "");
-    if (!confirm_destroy(v, "Wipe partition", what,
-                         "On SSD, NVMe and USB flash drives overwriting does not guarantee that every copy of the "
-                         "old data is gone."))
+    snprintf(q, sizeof(q), "Wipe partition %d of %s (%s, %s%s%s%s)? (Y/N)", p->num, v->d->name, type, size,
+             p->name[0] ? ", \"" : "", p->name, p->name[0] ? "\"" : "");
+    if (!confirm_destroy(v, "Wipe", q))
         return;
     WipeUi w = { v, p->num, p->size * bs(v), pal_ticks_ms(), 0, 0 };
     draw(v);
     int rc = pt_wipe(&v->d->dev, p->start, p->size, wipe_progress, &w);
     uint64_t secs = (pal_ticks_ms() - w.t0 + 500) / 1000;
     if (rc == PAL_EABORT)
-        say(v, true, "The wipe of partition %d was stopped during pass %d: the partition is partly overwritten.",
-            w.num, w.pass);
+        say(v, true, "Wipe of partition %d stopped in pass %d: partly overwritten.", w.num, w.pass);
     else if (rc)
-        say(v, true, "The wipe of partition %d failed: %s.", w.num, pal_strerror(rc));
+        say(v, true, "Wipe of partition %d failed: %s.", w.num, pal_strerror(rc));
     else
-        say(v, false, "Partition %d wiped: %s overwritten twice in %llu s.", w.num, size, (unsigned long long)secs);
+        say(v, false, "Partition %d wiped (%s, 2 passes, %llu s).", w.num, size, (unsigned long long)secs);
 }
 
 /* ---- backup and restore ---- */
@@ -629,7 +610,7 @@ static void volumes_text(char *out, size_t n)
     Sbuf s;
     sb_init(&s);
     for (int i = 0; i < pal_volume_count(); i++)
-        sb_printf(&s, "%s%s%s", i ? ", " : "", pal_volume(i)->name, pal_volume(i)->readonly ? " (read-only)" : "");
+        sb_printf(&s, "%s%s%s", i ? ", " : "", pal_volume(i)->name, pal_volume(i)->readonly ? " (ro)" : "");
     snprintf(out, n, "%s", s.len ? s.s : "none");
     sb_free(&s);
 }
@@ -656,7 +637,7 @@ static bool ask_file(View *v, const char *title, const char *intro, char *buf, s
 {
     char vols[200], text[500];
     volumes_text(vols, sizeof(vols));
-    snprintf(text, sizeof(text), "%s\nVolumes: %s.", intro, vols);
+    snprintf(text, sizeof(text), "%s\nVolumes: %s", intro, vols);
     return ui_input(false, title, text, buf, n);
 }
 
@@ -670,16 +651,15 @@ static void backup(View *v)
         snprintf(buf, sizeof(buf), "%s:\\partmgr-%s.bin", pal_volume(vi)->name, v->d->name);
     else
         buf[0] = 0;
-    if (!ask_file(v, "Backup", "File for a copy of the partition table as it is on the disk now (changes not "
-                               "written yet are not in it):", buf, sizeof(buf)))
+    if (!ask_file(v, "Backup", "Backup of the table on the disk, to file:", buf, sizeof(buf)))
         return;
     char *path = canonical(buf);
     if (!path) {
-        ui_message(true, "Backup", "Write the file with its volume, e.g. fs1:\\table.bin.");
+        ui_message(true, "Backup", "The file needs its volume, e.g. fs1:\\table.bin.");
         return;
     }
     PalStat st;
-    if (!pal_stat(path, &st) && !ui_yesno(true, "Backup", "The file exists. Replace it?")) {
+    if (!pal_stat(path, &st) && !ui_yesno(true, "Backup", "The file exists. Replace it? (Y/N)")) {
         free(path);
         return;
     }
@@ -695,7 +675,7 @@ static void backup(View *v)
         pt_free(&disk);
     }
     if (rc == PAL_ENOENT) {
-        ui_message(true, "Backup", "The disk has no partition table: there is nothing to back up.");
+        ui_message(true, "Backup", "No partition table to back up.");
         free(path);
         return;
     }
@@ -711,11 +691,11 @@ static void backup(View *v)
     free(data);
     if (rc) {
         char text[300];
-        snprintf(text, sizeof(text), "The backup could not be saved in %s: %s.", path, pal_strerror(rc));
+        snprintf(text, sizeof(text), "%s: %s.", path, pal_strerror(rc));
         ui_message(true, "Backup", text);
     } else {
         snprintf(last_file, sizeof(last_file), "%s", path);
-        say(v, false, "The partition table of %s is saved in %s (%zu bytes).", v->d->name, path, len);
+        say(v, false, "Saved %s (%zu bytes).", path, len);
     }
     free(path);
 }
@@ -726,11 +706,11 @@ static void restore(View *v)
         return;
     char buf[200];
     snprintf(buf, sizeof(buf), "%s", last_file);
-    if (!ask_file(v, "Restore", "The backup file to write back to this disk:", buf, sizeof(buf)))
+    if (!ask_file(v, "Restore", "Restore from file:", buf, sizeof(buf)))
         return;
     char *path = canonical(buf);
     if (!path) {
-        ui_message(true, "Restore", "Write the file with its volume, e.g. fs1:\\table.bin.");
+        ui_message(true, "Restore", "The file needs its volume, e.g. fs1:\\table.bin.");
         return;
     }
     PalStat st;
@@ -757,17 +737,16 @@ static void restore(View *v)
         free(path);
         return;
     }
-    char what[400];
-    snprintf(what, sizeof(what), "WARNING: the partition table of %s will be replaced now by the one saved in %s.%s",
-             v->d->name, path, v->t.changed ? " The changes not written yet are lost." : "");
-    if (confirm_destroy(v, "Restore the partition table", what, BACKUP_HINT)) {
+    char q[400];
+    snprintf(q, sizeof(q), "Restore %s to %s?%s (Y/N)", path, v->d->name, v->t.changed ? " Unwritten changes are lost." : "");
+    if (confirm_destroy(v, "Restore", q)) {
         const char *err = pt_restore(&v->d->dev, data, st.size);
         if (err)
             ui_message(true, "Restore", err);
         load(v);
         if (!err) {
             snprintf(last_file, sizeof(last_file), "%s", path);
-            say(v, false, "The partition table was restored from %s.", path);
+            say(v, false, "Restored from %s.", path);
         }
     }
     free(data);
@@ -793,7 +772,7 @@ void pm_disk_screen(PmDisk *d)
         Row *r = v.nrows ? &v.rows[v.sel] : NULL;
         int ch = k.ch < 128 ? toupper((int)k.ch) : 0;
         if (ui_is_esc(&k)) {
-            if (!v.t.changed || ui_yesno(true, "Leave the disk", "The changes are not written. Throw them away?"))
+            if (!v.t.changed || ui_yesno(true, "Leave the disk", "Discard the unwritten changes? (Y/N)"))
                 break;
         } else if (k.scan == KEY_UP && v.sel > 0)
             v.sel--;
@@ -808,8 +787,7 @@ void pm_disk_screen(PmDisk *d)
         else if (ch == 'N' && r && r->free)
             new_partition(&v, &r->f);
         else if (ch == 'N')
-            say(&v, true, v.t.kind == PT_NONE ? "No partition table: Z makes a new one."
-                                              : "Select a free area to add a partition there.");
+            say(&v, true, v.t.kind == PT_NONE ? "No partition table: Z makes one." : "Select a free area.");
         else if (ch == 'D' && p)
             delete_partition(&v, p);
         else if (ch == 'T' && p)

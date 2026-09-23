@@ -33,7 +33,7 @@ bool ui_is_esc(const PalKey *k);
 /* Dialogs, drawn over the screen; the caller redraws it afterwards.
  * warn: white on red, for anything that destroys data. */
 void ui_message(bool warn, const char *title, const char *text); /* waits for a key */
-bool ui_yesno(bool warn, const char *title, const char *text);  /* y / n, Esc = no */
+bool ui_yesno(bool warn, const char *title, const char *text);  /* y / n, Esc = no; TEXT ends with (Y/N) */
 /* A text field prefilled with BUF (a key other than an editing one replaces
  * the text). Returns false on Esc. */
 bool ui_input(bool warn, const char *title, const char *text, char *buf, size_t n);

@@ -179,15 +179,19 @@ static Box draw_box(bool warn, const char *title, const char *text, int extra)
 
 void ui_message(bool warn, const char *title, const char *text)
 {
-    Box b = draw_box(warn, title, text, 1);
+    /* messages of the table code start in lower case: a sentence here */
+    char buf[400];
+    snprintf(buf, sizeof(buf), "%s", text);
+    if (buf[0] >= 'a' && buf[0] <= 'z')
+        buf[0] = (char)(buf[0] - 'a' + 'A');
+    Box b = draw_box(warn, title, buf, 1);
     ui_text(b.col + 2, b.row + b.h - 1, b.w - 4, b.fg, b.bg, "Press a key.");
     ui_key();
 }
 
 bool ui_yesno(bool warn, const char *title, const char *text)
 {
-    Box b = draw_box(warn, title, text, 1);
-    ui_text(b.col + 2, b.row + b.h - 1, b.w - 4, b.fg, b.bg, "Y Yes    N No");
+    draw_box(warn, title, text, 0);
     for (;;) {
         PalKey k = ui_key();
         if (k.ch == 'y' || k.ch == 'Y')

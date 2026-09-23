@@ -40,7 +40,7 @@
     <span><b>Version</b> 0.1.0</span>
     <span><b>Platform</b> UEFI x86-64</span>
     <span><b>File</b> partmgr.efi (one file)</span>
-    <span><b>Audience</b> users, technicians preparing disks</span>
+    <span><b>Audience</b> experienced users and technicians</span>
   </div>
 </header>
 
@@ -91,6 +91,11 @@ whole partition so that its data is gone.</p>
 <h3 id="names">Names</h3>
 <p><em>EFI Partition Manager</em> is the name of the project; <code>partmgr.efi</code> is the file, and <em>partmgr</em>
 the short name this manual uses for the program.</p>
+
+<h3 id="audience" data-index="audience">Who it is for</h3>
+<p>partmgr is made for people who know what a partition table is and how to reach a UEFI shell or the firmware boot
+menu. The screens are therefore terse: short questions, fields with just a label, no explanations. The explanations are
+in this manual. What partmgr never drops is the confirmation of every operation that writes to a disk.</p>
 
 <h3 id="conventions">Conventions used in this manual</h3>
 <table>
@@ -279,7 +284,7 @@ disks with 4096-byte sectors. A start you type is rounded up to the next MiB.</p
 </ol>
 <figure class="demo">
   <img src="assets/partmgr-start.png" width="816" height="608"
-       alt="The dialog New partition: start, proposing 317 MiB and saying the free area goes from 317 MiB to 511.9 MiB">
+       alt="The New partition dialog: Start (free: 317 MiB to 511.9 MiB), proposing 317 MiB">
   <figcaption>The start is proposed; the dialog says where the free area begins and ends.</figcaption>
 </figure>
 <ol class="steps" start="3">
@@ -292,7 +297,7 @@ disks with 4096-byte sectors. A start you type is rounded up to the next MiB.</p
 </ol>
 <figure class="demo">
   <img src="assets/partmgr-type.png" width="816" height="608"
-       alt="The Partition type list of a GPT disk, with Linux filesystem selected">
+       alt="The Type list of a GPT disk, with Linux filesystem selected">
   <figcaption>Types are chosen from a list: no codes to remember.</figcaption>
 </figure>
 <p><kbd>Esc</kbd> at any step cancels the new partition. On an MBR disk the new logical partitions are numbered in disk
@@ -329,11 +334,12 @@ partitions is not touched.</p>
 <p class="chapter-intro">The one moment the disk changes, and how partmgr protects it.</p>
 
 <h3 id="write" data-index="Enter;Write;confirmation">Write</h3>
-<p>When the screen shows the table you want, press <kbd>Enter</kbd>. partmgr shows a warning in red with the disk, its
-size and what will happen, and asks <strong>Confirm? (Y/N)</strong>:</p>
+<p>When the screen shows the table you want, press <kbd>Enter</kbd>. partmgr asks, in red, for example
+<strong>Write the GPT table to blk3 (512.0 MiB)? (Y/N)</strong> — or, after <kbd>X</kbd>, <strong>Delete the partition
+table of blk3 (512.0 MiB)? (Y/N)</strong>:</p>
 <figure class="demo">
   <img src="assets/partmgr-write.png" width="816" height="608"
-       alt="The red warning Write the partition table: the table of blk3 will be replaced; Confirm? (Y/N)">
+       alt="The red question: Write the GPT table to blk3 (512.0 MiB)? (Y/N)">
   <figcaption>Nothing is written until you press Y.</figcaption>
 </figure>
 <p>Press <kbd>Y</kbd>: the table is written, read back from the disk and shown again, and the message line says
@@ -355,7 +361,7 @@ a <a href="#backup">backup</a> first.</p>
 <p>Write never touches the data inside the partitions.</p>
 
 <h3 id="leaving" data-index="Esc;leaving with changes">Leaving without writing</h3>
-<p><kbd>Esc</kbd> goes back to the list of disks. If there are changes not written, partmgr asks <em>Throw them away?</em>:
+<p><kbd>Esc</kbd> goes back to the list of disks. If there are changes not written, partmgr asks <em>Discard the unwritten changes? (Y/N)</em>:
 <kbd>Y</kbd> leaves them, <kbd>N</kbd> stays. Leaving without writing leaves the disk exactly as it was.</p>
 
 <!-- ===================================================================== -->
@@ -378,7 +384,7 @@ It does <em>not</em> hold any data of the partitions.</p>
 <h3 id="restore" data-index="S;restore">Restore</h3>
 <p><kbd>S</kbd> writes a backup back. partmgr proposes the file of the last backup or restore since it was started, reads it and checks it before anything
 else: it must be a partmgr backup, undamaged, made on a disk of the <strong>same size and block size</strong>.
-Then it shows the red warning and asks <em>Confirm? (Y/N)</em>.</p>
+Then it asks, in red, <em>Restore fs1:\partmgr-blk7.bin to blk7? (Y/N)</em>.</p>
 <p>A restore is written <strong>at once</strong>, not with Write: it replaces the table on the disk, and the changes on the
 screen that were not written are lost. If the disk has a GPT now and the backup is of an MBR, the GPT is cleared too, so
 the disk comes back as it was.</p>
@@ -394,8 +400,8 @@ data was never touched.</p></div>
 come back.</p>
 
 <h3 id="wipe-how" data-index="W;wipe">Wipe</h3>
-<p>Select the partition and press <kbd>W</kbd>. partmgr shows a red warning with the partition's number, type, size and
-name, and asks <em>Confirm? (Y/N)</em>, as for Write. The wipe then starts <strong>at once</strong>: it is not a
+<p>Select the partition and press <kbd>W</kbd>. partmgr asks, in red, with the partition's number, type, size and name:
+<em>Wipe partition 3 of blk3 (Linux filesystem, 1.0 GiB, "Linux root")? (Y/N)</em>. The wipe then starts <strong>at once</strong>: it is not a
 change of the table, so it does not wait for Write.</p>
 <p>It makes <strong>two passes</strong> over every block of the partition: first <strong>random data</strong>, then
 <strong>zeros</strong>. The random pass leaves nothing of the old contents; the zeros make the partition read as empty

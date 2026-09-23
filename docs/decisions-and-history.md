@@ -153,6 +153,17 @@ Every operation that takes time shows its progress; for the wipe a **progress
 bar is mandatory**, with the pass, the percentage, the amount written, the
 speed and the time left.
 
+### P16. Terse screens for expert users
+
+Owner: "l'utente che usa partmgr e' un utente evoluto, che sa' come entrare in
+una shell efi e quindi sa' cosa sta' facendo". The screens drop every
+explanation: confirmations are one red line ending in (Y/N) (for example
+"Write the GPT table to blk3 (512.0 MiB)? (Y/N)"), fields have just a label
+("Size (512M, 20G..., rest = 194.9 MiB):"), messages are short, and the list of
+disks has no help line. The explanations live in the user manual. The Y/N
+confirmation of every write, and the question when leaving with unwritten
+changes, stay.
+
 ### P13. Two manuals of its own
 
 Owner: partmgr "merita 2 manuali dedicati a lui": a user manual and a
@@ -188,7 +199,7 @@ All the work took place on 2026-09-23.
 | **5. Interface** | Every change, Write, backup and restore on the screen; two manuals. |
 | **6. Wipe** | Two passes with a progress bar; tested on images and, with a slowed-down disk, in QEMU. |
 | **7. Own repository** | The history of partmgr's files carried into this repository, the project named EFI Partition Manager (P2, P3). |
-| **8. After the first try** | Release 0.1.0 as a pre-release. The owner tried it in QEMU: the key bar was reorganised in two fixed groups, and the typed disk name gave way to a Y/N confirmation (P8, P10). |
+| **8. After the first try** | Release 0.1.0 as a pre-release. The owner tried it in QEMU: the key bar was reorganised in two fixed groups, the typed disk name gave way to a Y/N confirmation, and the screens became terse for expert users (P8, P10, P16). |
 
 ---
 

@@ -31,6 +31,7 @@ The reasoning for each is in [docs/decisions-and-history.md](docs/decisions-and-
 | **GPT and MBR, MBR complete** | Extended and logical partitions, active flag, CHS fields. |
 | **A new table starts from zero** | New identifiers, no boot code: boot code belongs to boot loaders. |
 | **Changes are written together** | Nothing reaches the disk until Write; restore and wipe run at once, each after its own warning. |
+| **Terse screens for expert users** | One-line (Y/N) questions, fields with a label only, short messages; explanations belong in the manual. |
 | **Y/N confirmation, no dry run, no automatic backup** | A very readable red warning, "Confirm? (Y/N)"; Enter does nothing there. Backup is the user's choice. |
 | **The boot disk is read-only** | No override. |
 | **Writes allowed under Secure Boot** | A partition table is a disk write, not a way around the protection. |
