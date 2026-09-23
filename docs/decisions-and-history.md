@@ -106,8 +106,11 @@ once, each after its own warning.
 
 ### P8. Safety
 
-- Before every destructive operation a very readable warning, then the disk
-  name must be typed.
+- Before every destructive operation a very readable warning, answered with
+  **Y or N**. At first the disk name had to be typed; after trying it, the
+  owner found it strange and asked for something more immediate: "basterebbe
+  una semplice finestra di conferma con Confirm (Y/N)?". Enter does nothing
+  in that window, so a key pressed twice cannot write.
 - **No dry run**: the confirmation already shows what will be written.
 - **No automatic backup**: owner, "se uno vuole fa' prima il backup". Backup is
   an explicit function.
@@ -132,7 +135,10 @@ Screen 1 lists the disks; screen 2 shows the partitions and the free space in
 disk order, with a key bar at the bottom. Types are chosen from a list, never
 typed as codes. Disks are named `blkN`, N counting every block device of the
 firmware sorted by device path, so a disk keeps its name from one start to the
-next.
+next. After the owner tried the first release ("le voci sembrano un po'
+sparpagliate"), the key bar became two fixed rows: **Partition:** (N, D, T, R,
+A, W) and **Disk:** (Enter, Z, X, B, S, Esc), each key highlighted, the keys
+that do not apply now dimmed in place.
 
 ### P11. New partition: start and size
 
@@ -182,6 +188,7 @@ All the work took place on 2026-09-23.
 | **5. Interface** | Every change, Write, backup and restore on the screen; two manuals. |
 | **6. Wipe** | Two passes with a progress bar; tested on images and, with a slowed-down disk, in QEMU. |
 | **7. Own repository** | The history of partmgr's files carried into this repository, the project named EFI Partition Manager (P2, P3). |
+| **8. After the first try** | Release 0.1.0 as a pre-release. The owner tried it in QEMU: the key bar was reorganised in two fixed groups, and the typed disk name gave way to a Y/N confirmation (P8, P10). |
 
 ---
 

@@ -68,7 +68,7 @@ environment just to run a partitioning tool.</p>
   <div class="card"><div class="icon">[#]</div><h4>GPT and MBR</h4>
     <p>Both kinds of table, read and written in full: MBR with primary, extended and logical partitions.</p></div>
   <div class="card"><div class="icon">*</div><h4>See first, write later</h4>
-    <p>Changes are made on the screen; the disk changes only when you choose Write and type its name.</p></div>
+    <p>Changes are made on the screen; the disk changes only when you choose Write and confirm.</p></div>
   <div class="card"><div class="icon">&#8635;</div><h4>Backup and restore</h4>
     <p>The partition table of a disk saved to a file, and written back exactly as it was.</p></div>
   <div class="card"><div class="icon">&#9618;</div><h4>Wipe</h4>
@@ -214,9 +214,13 @@ areas, in the order they have on the disk</strong>:</p>
 when the area is inside the extended partition. Only areas of at least 1 MiB are shown, starting on a 1 MiB boundary.
 Changed rows are yellow, and the title says <em>* = changes not written</em> as long as there is something to write.</p>
 <p>Under the list, <em>Note:</em> lines explain anything unusual partmgr found in the table (see <a href="#notes">What the
-notes mean</a>), and a green or red line reports the result of the last action. The two bars at the bottom show the keys;
-the first one changes with the selected row: <kbd>N</kbd> on free space, <kbd>D</kbd> <kbd>T</kbd> <kbd>W</kbd> and
-<kbd>R</kbd> or <kbd>A</kbd> on a partition.</p>
+notes mean</a>), and a green or red line reports the result of the last action.</p>
+<p>The two bars at the bottom show the keys, each highlighted in blue with its action after it. <strong>Partition:</strong>
+the actions on the selected row — <kbd>N</kbd> New, <kbd>D</kbd> Delete, <kbd>T</kbd> Type, <kbd>R</kbd> Rename,
+<kbd>A</kbd> Active, <kbd>W</kbd> Wipe. <strong>Disk:</strong> the actions on the whole disk — <kbd>Enter</kbd> Write,
+<kbd>Z</kbd> New table, <kbd>X</kbd> Delete table, <kbd>B</kbd> Backup, <kbd>S</kbd> Restore, <kbd>Esc</kbd> Back. A key
+that does not apply now stays in its place, dimmed: <kbd>N</kbd> on a partition, <kbd>R</kbd> on an MBR disk,
+<kbd>Enter</kbd> when there is nothing to write, every change on a disk that can only be read.</p>
 
 <figure class="demo">
   <img src="assets/partmgr-mbr.png" width="816" height="608"
@@ -326,16 +330,17 @@ partitions is not touched.</p>
 
 <h3 id="write" data-index="Enter;Write;confirmation">Write</h3>
 <p>When the screen shows the table you want, press <kbd>Enter</kbd>. partmgr shows a warning in red with the disk, its
-size and what will happen, and asks you to <strong>type the name of the disk</strong>:</p>
+size and what will happen, and asks <strong>Confirm? (Y/N)</strong>:</p>
 <figure class="demo">
   <img src="assets/partmgr-write.png" width="816" height="608"
-       alt="The red warning Write the partition table: the table of blk3 will be replaced; type blk3 and press Enter to go on">
-  <figcaption>Nothing is written until the name of the disk is typed.</figcaption>
+       alt="The red warning Write the partition table: the table of blk3 will be replaced; Confirm? (Y/N)">
+  <figcaption>Nothing is written until you press Y.</figcaption>
 </figure>
-<p>Type it (<code>blk3</code> here) and press <kbd>Enter</kbd>: the table is written, read back from the disk and shown
-again, and the message line says <em>Written.</em> Anything else does nothing: <kbd>Esc</kbd> cancels, a wrong name
-says so and writes nothing. There is <strong>no automatic copy</strong> of the old table: if you want one, press
-<kbd>Esc</kbd> and make a <a href="#backup">backup</a> first.</p>
+<p>Press <kbd>Y</kbd>: the table is written, read back from the disk and shown again, and the message line says
+<em>Written.</em> <kbd>N</kbd> or <kbd>Esc</kbd> cancel, and the message line says <em>Nothing was written.</em>
+<kbd>Enter</kbd> does nothing in this window: you reach it with <kbd>Enter</kbd>, so pressing that key twice by mistake
+cannot write. There is <strong>no automatic copy</strong> of the old table: if you want one, press <kbd>N</kbd> and make
+a <a href="#backup">backup</a> first.</p>
 
 <h3 id="what-write-does" data-index="repair a GPT;boot code">What Write writes</h3>
 <ul>
@@ -373,7 +378,7 @@ It does <em>not</em> hold any data of the partitions.</p>
 <h3 id="restore" data-index="S;restore">Restore</h3>
 <p><kbd>S</kbd> writes a backup back. partmgr proposes the file of the last backup or restore since it was started, reads it and checks it before anything
 else: it must be a partmgr backup, undamaged, made on a disk of the <strong>same size and block size</strong>.
-Then it shows the red warning and asks for the name of the disk.</p>
+Then it shows the red warning and asks <em>Confirm? (Y/N)</em>.</p>
 <p>A restore is written <strong>at once</strong>, not with Write: it replaces the table on the disk, and the changes on the
 screen that were not written are lost. If the disk has a GPT now and the backup is of an MBR, the GPT is cleared too, so
 the disk comes back as it was.</p>
@@ -390,7 +395,7 @@ come back.</p>
 
 <h3 id="wipe-how" data-index="W;wipe">Wipe</h3>
 <p>Select the partition and press <kbd>W</kbd>. partmgr shows a red warning with the partition's number, type, size and
-name, and wants the name of the disk typed, as for Write. The wipe then starts <strong>at once</strong>: it is not a
+name, and asks <em>Confirm? (Y/N)</em>, as for Write. The wipe then starts <strong>at once</strong>: it is not a
 change of the table, so it does not wait for Write.</p>
 <p>It makes <strong>two passes</strong> over every block of the partition: first <strong>random data</strong>, then
 <strong>zeros</strong>. The random pass leaves nothing of the old contents; the zeros make the partition read as empty
@@ -400,7 +405,7 @@ name: only its contents are gone.</p>
 <h3 id="wipe-progress" data-index="progress bar;Esc (wipe)">Progress, and stopping</h3>
 <figure class="demo">
   <img src="assets/partmgr-wipe.png" width="816" height="608"
-       alt="Wiping blk3 partition 3 (1.0 GiB): pass 1 of 2, random data, the bar at 51 percent, 528.0 MiB of 1.0 GiB, 57.6 MiB/s, about 26 s left">
+       alt="Wiping blk3 partition 3 (1.0 GiB): pass 1 of 2, random data, the bar at 51 percent, 524.0 MiB of 1.0 GiB, 57.5 MiB/s, about 26 s left">
   <figcaption>The progress of a wipe: pass, bar, amount, speed and time left.</figcaption>
 </figure>
 <p>While it runs, partmgr shows which pass it is in, a bar with the percentage of the pass, how much of the partition

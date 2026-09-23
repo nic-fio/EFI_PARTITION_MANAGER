@@ -22,8 +22,8 @@ before any operating system is there.
 - **GPT and MBR**, read and written in full: MBR with primary, extended and
   logical partitions; GPT with both copies checked and, when written, repaired.
 - **See first, write later**: every change is shown on the screen, marked with
-  a star, and the disk changes only on **Write**, after a red warning that wants
-  the name of the disk typed.
+  a star, and the disk changes only on **Write**, after a red warning confirmed
+  with **Y**.
 - **Backup and restore** of the partition table to a small file, restored
   byte for byte.
 - **Wipe** a partition: random data, then zeros, with a progress bar, the speed

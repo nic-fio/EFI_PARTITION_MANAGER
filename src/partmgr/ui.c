@@ -61,6 +61,33 @@ void ui_keys(int line, const char *keys)
     ui_text(0, ui_rows - 1 - line, ui_cols - 1, BLACK, LIGHTGRAY, keys);
 }
 
+static int put_part(int col, int max, int fg, int bg, const char *s)
+{
+    size_t len = strlen(s), cut = utf8_offset(s, len, (size_t)(max > col ? max - col : 0));
+    pal_con_set_color(fg, bg);
+    pal_con_write(s, cut);
+    return col + (int)utf8_len(s, cut);
+}
+
+void ui_keybar(int line, const char *group, int group_width, const UiKey *keys, int n)
+{
+    int row = ui_rows - 1 - line, max = ui_cols - 1; /* the last cell cannot be written */
+    pal_con_set_cursor(0, row);
+    int col = put_part(0, max, BLACK, LIGHTGRAY, " ");
+    if (group) {
+        char g[40];
+        snprintf(g, sizeof(g), "%-*s", group_width, group);
+        col = put_part(col, max, BLACK, LIGHTGRAY, g);
+    }
+    for (int i = 0; i < n; i++) {
+        col = put_part(col, max, keys[i].on ? WHITE : DARKGRAY, keys[i].on ? BLUE : LIGHTGRAY, keys[i].key);
+        char l[48];
+        snprintf(l, sizeof(l), " %s%s", keys[i].label, i + 1 < n ? "  " : "");
+        col = put_part(col, max, keys[i].on ? BLACK : DARKGRAY, LIGHTGRAY, l);
+    }
+    ui_text(col, row, max - col, BLACK, LIGHTGRAY, "");
+}
+
 void ui_clear_body(void)
 {
     for (int r = 1; r < ui_rows - 2; r++)

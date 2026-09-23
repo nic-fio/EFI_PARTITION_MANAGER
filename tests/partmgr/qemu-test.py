@@ -12,8 +12,8 @@ waits there for the lines it expects.
    areas of each disk, the return to the firmware - and the disks unchanged,
    byte for byte.
 2. Changing: the boot disk refuses changes; on the GPT disk a new partition,
-   a rename and a delete, leaving with changes asks first, Write asks for the
-   disk name; then the new partition is wiped, and the wipe of a bigger one is
+   a rename and a delete, leaving with changes asks first, Write asks Y/N
+   (Enter does nothing there, N cancels); then the new partition is wiped, and the wipe of a bigger one is
    stopped with Esc (the GPT disk's writes are slowed down so that there is
    time); on the MBR disk a logical partition and the active flag, a backup
    to a file on a writable FAT disk, Write, delete the table, restore.
@@ -241,15 +241,15 @@ try:
         q.key("esc")
         check("leave asks", q.wait(r"Throw them away\?"), "")
         q.key("n")
-        # Write: a wrong name does nothing, the right one writes
+        # Write asks Y/N: Enter does nothing there, N cancels, Y writes
         q.key("ret")
-        check("write asks", q.wait(r"Type blk3 and press Enter"), "")
-        q.type("blk4\n")
-        check("wrong name refused", q.wait(r"not the name of this disk"), "")
-        q.key("spc")
+        check("write asks", q.wait(r"Confirm\? \(Y/N\)"), "")
         q.key("ret")
-        check("write asks again", q.wait(r"Type blk3 and press Enter"), "")
-        q.type("blk3\n")
+        q.key("n")
+        check("n cancels", q.wait(r"Nothing was written\."), "Enter or N wrote the table")
+        q.key("ret")
+        check("write asks again", q.wait(r"Confirm\? \(Y/N\)"), "")
+        q.key("y")
         check("written", q.wait(r"Written\."), "")
         # wipe partition 4 (rows: 1, free, 3, 4, free)
         q.key("home")
@@ -258,7 +258,8 @@ try:
         q.key("w")
         check("wipe warns", q.wait(r"every byte of partition 4 of blk3"), "")
         check("wipe warns about flash", q.wait(r"does not guarantee"), "")
-        q.type("blk3\n")
+        check("wipe asks", q.wait(r"Confirm\? \(Y/N\)"), "")
+        q.key("y")
         check("pass 1 shown", q.wait(r"Pass 1 of 2: random data"), "")
         check("pass 2 shown", q.wait(r"Pass 2 of 2: zeros"), "")
         check("progress shown", q.wait(r"\d+\.\d MiB of 20\.0 MiB"), "")
@@ -267,7 +268,7 @@ try:
         q.key("up")
         q.key("w")
         check("second wipe warns", q.wait(r"every byte of partition 3 of blk3"), "")
-        q.type("blk3\n")
+        q.key("y")
         check("second wipe runs", q.wait(r"Pass 1 of 2: random data"), "")
         q.key("esc")
         check("stop asks", q.wait(r"Stop the wipe"), "")
@@ -301,21 +302,22 @@ try:
         q.key("ret")
         check("backup saved", q.wait(r"is saved in fs1:\\partmgr-blk7\.bin \(\d+ bytes\)"), "")
         q.key("ret")
-        q.type("blk7\n")
+        check("mbr write asks", q.wait(r"Confirm\? \(Y/N\)"), "")
+        q.key("y")
         check("mbr written", q.wait(r"Written\."), "")
         # delete the table, write, then restore the backup
         q.key("x")
         check("table gone", q.wait(r"The partition table is gone"), "")
         q.key("ret")
         check("delete asks", q.wait(r"will be deleted"), "")
-        q.type("blk7\n")
+        q.key("y")
         check("no table shown", q.wait(r"No partition table"), "")
         check("deleted written", q.wait(r"Written\."), "")
         q.key("s")
         check("restore asks for the file", q.wait(r"The backup file to write back"), "")
         q.key("ret")
         check("restore warns", q.wait(r"will be replaced now"), "")
-        q.type("blk7\n")
+        q.key("y")
         check("restored", q.wait(r"restored from fs1:\\partmgr-blk7\.bin"), "")
         q.key("esc")
         q.key("q")

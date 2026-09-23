@@ -15,6 +15,15 @@ void ui_text(int col, int row, int width, int fg, int bg, const char *text);
 void ui_textf(int col, int row, int width, int fg, int bg, const char *fmt, ...) __attribute__((format(printf, 6, 7)));
 void ui_title(const char *left, const char *right);
 void ui_keys(int line, const char *keys); /* line 0: the last row, 1: the one above */
+
+/* A bar of keys on LINE (as ui_keys): GROUP (padded to GROUP_WIDTH), then
+ * every key highlighted with its label after it. A key that does not apply
+ * now is dimmed in place, so the bar never moves. */
+typedef struct {
+    const char *key, *label;
+    bool on;
+} UiKey;
+void ui_keybar(int line, const char *group, int group_width, const UiKey *keys, int n);
 void ui_clear_body(void);
 
 PalKey ui_key(void);

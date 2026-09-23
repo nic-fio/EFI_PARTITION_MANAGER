@@ -82,12 +82,12 @@ way it reads or writes tables without breaking a disk.</p>
 <table>
   <thead><tr><th>Area</th><th>Directory</th><th>Lines</th><th>Content</th></tr></thead>
   <tbody>
-    <tr><td>partmgr</td><td><code>src/partmgr</code></td><td>3,035</td><td>table code, the UEFI program, the screens</td></tr>
+    <tr><td>partmgr</td><td><code>src/partmgr</code></td><td>3,074</td><td>table code, the UEFI program, the screens</td></tr>
     <tr><td>Platform layer</td><td><code>src/pal</code></td><td>1,245</td><td>console, keys, time, files, volumes, entry point</td></tr>
     <tr><td>Runtime</td><td><code>src/lib</code></td><td>1,003</td><td>libc subset, printf, string buffer, UTF-8, CRC-32</td></tr>
     <tr><td>UEFI definitions</td><td><code>include</code></td><td>579</td><td>the UEFI types and protocols partmgr uses</td></tr>
     <tr><td>Tools</td><td><code>tools</code></td><td>375</td><td>ELF→PE converter, linker script, documentation tool, setup script</td></tr>
-    <tr><td>Tests</td><td><code>tests/partmgr</code></td><td>1,390</td><td>the Linux test tool, the table tests, the QEMU test</td></tr>
+    <tr><td>Tests</td><td><code>tests/partmgr</code></td><td>1,392</td><td>the Linux test tool, the table tests, the QEMU test</td></tr>
   </tbody>
 </table>
 <p><code>partmgr.efi</code> is about 70 KB. The line counts here and in the <a href="#file-map">source file map</a> are
@@ -310,7 +310,7 @@ sequenceDiagram
   E-->>V: NULL or a message
   V->>V: build_rows, draw (4*, "changes not written")
   K->>V: Enter
-  V->>V: red warning, disk name typed
+  V->>V: red warning, Confirm? (Y/N), Y
   V->>W: pt_write(dev, table)
   W->>D: blocks of the table
   V->>D: pt_read: the table as written
@@ -571,7 +571,9 @@ counter and the clock.</p>
 <p><code>ui_text</code> writes a UTF-8 text at a position, padded or cut to a width counted in characters; it never writes
 the last cell of the screen, which scrolls some consoles. Dialogs are boxes in the middle of the screen, drawn over it:
 the caller redraws the screen before the next dialog (<code>draw</code> in <code>diskview.c</code>).
-<code>ui_input</code> shows a field whose proposed text is replaced by the first character typed; <code>ui_menu</code> is a
+<code>ui_keybar</code> draws a bar of keys: a group name, then each key white on blue with its action after it, and the
+keys that do not apply now dimmed in place, so the bar never moves. <code>ui_input</code> shows a field whose proposed text
+is replaced by the first character typed; <code>ui_menu</code> is a
 scrolling list; <code>ui_yesno</code> takes <kbd>Y</kbd>, <kbd>N</kbd>, <kbd>Esc</kbd>. With <code>warn</code> set they are
 white on red: every operation that destroys data uses them.</p>
 
@@ -581,7 +583,9 @@ selection and the message line. Every action follows the same pattern: <code>may
 and read-only media; dialogs collect the input; one <code>pt_*</code> call changes the table and returns a message on
 refusal; <code>build_rows</code> and <code>say</code> update the screen. Only three functions reach the disk:
 <code>write_table</code> (Write), <code>restore</code>, <code>wipe_partition</code> and <code>backup</code> (which only reads it);
-the first three go through <code>confirm_destroy</code>, the red warning that wants the disk name typed. After writing, the table is read
+the first three go through <code>confirm_destroy</code>, the red warning answered with <kbd>Y</kbd> or <kbd>N</kbd>
+(<code>ui_yesno</code>, where <kbd>Enter</kbd> does nothing, so a key pressed twice cannot write); a refusal leaves
+<em>Nothing was written.</em> on the message line. After writing, the table is read
 back from the disk, so the screen shows what the disk holds.</p>
 
 <h3 id="units" data-index="pm_parse_size;pm_fmt_size">Sizes: units.c</h3>
@@ -650,7 +654,8 @@ rows come before the message line under them.</p>
   <li><strong>Looking:</strong> the list (the boot disk marked), every row of both disks, the return to the firmware
       (its setup menu starts), and the disks identical byte for byte.</li>
   <li><strong>Changing:</strong> the boot disk refuses; on the GPT disk a new partition (start, size, type, name), a
-      rename, a delete, <kbd>Esc</kbd> asking, a wrong disk name refused, Write; a wipe of the new partition, with both
+      rename, a delete, <kbd>Esc</kbd> asking, Write answered first with <kbd>Enter</kbd> and <kbd>N</kbd> (nothing written),
+      then with <kbd>Y</kbd>; a wipe of the new partition, with both
       passes and the amount on the console, and a wipe of a bigger one stopped with <kbd>Esc</kbd> (the GPT disk's
       writes are slowed to 60 MB/s with QEMU's <code>throttling.bps-write</code>, so that there is time to press it); on
       the MBR disk a logical partition (renumbering the next one), the active flag, a backup to a writable FAT disk,
@@ -720,16 +725,16 @@ name matters.</p>
     <tr><td><code>src/pal/pal_efi.c</code></td><td>1023</td><td>Platform layer for UEFI: entry point, console, keys, time, files, volumes, arguments</td></tr>
     <tr><td><code>src/partmgr/disks.h</code></td><td>23</td><td>A disk as the table code sees it (name, kind, size, boot disk, read and write functions)</td></tr>
     <tr><td><code>src/partmgr/disks_efi.c</code></td><td>174</td><td>Finds the whole disks through block I/O, numbered by block device; recognises the disk partmgr was started from; random numbers from EFI_RNG_PROTOCOL</td></tr>
-    <tr><td><code>src/partmgr/diskview.c</code></td><td>833</td><td>The screen of one disk: rows, keys, every action, Write, backup and restore, the wipe and its progress</td></tr>
-    <tr><td><code>src/partmgr/main.c</code></td><td>78</td><td>app_main and the list of disks</td></tr>
+    <tr><td><code>src/partmgr/diskview.c</code></td><td>835</td><td>The screen of one disk: rows, keys, every action, Write, backup and restore, the wipe and its progress</td></tr>
+    <tr><td><code>src/partmgr/main.c</code></td><td>79</td><td>app_main and the list of disks</td></tr>
     <tr><td><code>src/partmgr/partmgr.h</code></td><td>17</td><td>What the screens share: version, table names, the disk screen</td></tr>
     <tr><td><code>src/partmgr/ptable.c</code></td><td>402</td><td>Reads GPT (both copies checked, the backup used when the primary is damaged) and MBR tables, extended and logical partitions included; partition type names and the list to choose from</td></tr>
     <tr><td><code>src/partmgr/ptable.h</code></td><td>145</td><td>The description of a disk's partition table and the functions that read, change and write it</td></tr>
     <tr><td><code>src/partmgr/ptedit.c</code></td><td>432</td><td>Changes to a table in memory (new table, add, delete, type, name, active flag) and the free areas, with the rules for logical partitions and their boot records</td></tr>
     <tr><td><code>src/partmgr/ptint.h</code></td><td>22</td><td>Internals: little-endian fields, extended partition types</td></tr>
     <tr><td><code>src/partmgr/ptwrite.c</code></td><td>469</td><td>Writing GPT (both copies, protective MBR) and MBR (chain of logical partitions, CHS fields), deleting a table, backup files and restore, wipe</td></tr>
-    <tr><td><code>src/partmgr/ui.c</code></td><td>280</td><td>Drawing on the text console and the dialogs: messages, questions, text fields, menus</td></tr>
-    <tr><td><code>src/partmgr/ui.h</code></td><td>34</td><td>The drawing and dialog functions, the EFI colours</td></tr>
+    <tr><td><code>src/partmgr/ui.c</code></td><td>307</td><td>Drawing on the text console and the dialogs: messages, questions, text fields, menus</td></tr>
+    <tr><td><code>src/partmgr/ui.h</code></td><td>43</td><td>The drawing and dialog functions, the EFI colours</td></tr>
     <tr><td><code>src/partmgr/units.c</code></td><td>106</td><td>Sizes as the user writes and reads them</td></tr>
     <tr><td><code>src/partmgr/units.h</code></td><td>20</td><td>Size parsing and formatting</td></tr>
     <tr><td><code>tools/efi.lds</code></td><td>26</td><td>Linker script: ELF image at base 0, page-aligned sections</td></tr>
@@ -737,7 +742,7 @@ name matters.</p>
     <tr><td><code>tools/gen-docs.py</code></td><td>92</td><td>Writes and checks the line counts of this manual</td></tr>
     <tr><td><code>tools/setup-dev.sh</code></td><td>85</td><td>Checks (or installs) the packages a clone needs and sets the git identity of the working copy</td></tr>
     <tr><td><code>tests/partmgr/pttool.c</code></td><td>257</td><td>Drives the table code on a disk image file: reads, changes, writes, backs up, restores, parses sizes (Linux only)</td></tr>
-    <tr><td><code>tests/partmgr/qemu-test.py</code></td><td>354</td><td>partmgr.efi in QEMU/OVMF: started by the firmware, driven with keys, checked on the serial console and with sfdisk afterwards</td></tr>
+    <tr><td><code>tests/partmgr/qemu-test.py</code></td><td>356</td><td>partmgr.efi in QEMU/OVMF: started by the firmware, driven with keys, checked on the serial console and with sfdisk afterwards</td></tr>
     <tr><td><code>tests/partmgr/run-tests.py</code></td><td>779</td><td>The table tests: the reader and the writer compared with sfdisk and parted, damaged images, sizes, backups restored byte for byte</td></tr>
   </tbody>
 </table>

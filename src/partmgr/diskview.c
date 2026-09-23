@@ -168,19 +168,23 @@ static void draw(View *v)
         ui_textf(0, status - notes + i, ui_cols, YELLOW, BLACK, "  Note: %s", v->t.notes[i]);
     if (v->msg[0])
         ui_textf(0, status, ui_cols, v->msg_err ? LIGHTRED : LIGHTGREEN, BLACK, "  %s", v->msg);
+    /* the two key bars: what applies to the selected row, what applies to the
+     * whole disk; keys that do not apply now are dimmed in place */
     const PtPart *p = selected_part(v);
-    char keys[200];
-    if (p)
-        snprintf(keys, sizeof(keys), " D Delete  T Type%s%s%s", gpt ? "  R Rename" : "",
-                 !gpt && p->role != PT_EXTENDED ? "  A Active" : "", p->role != PT_EXTENDED ? "  W Wipe" : "");
-    else if (v->nrows && v->rows[v->sel].free)
-        snprintf(keys, sizeof(keys), " N New partition");
-    else
-        keys[0] = 0;
-    char line1[240];
-    snprintf(line1, sizeof(line1), "%-44s Z New table  X Delete table", keys);
-    ui_keys(1, line1);
-    ui_keys(0, " \u2191\u2193 Move  B Backup  S Restore  Enter Write  Esc Back");
+    bool fr = v->nrows && v->rows[v->sel].free, rw = !d->boot && !d->readonly, part = p != NULL;
+    bool plain = part && p->role != PT_EXTENDED;
+    UiKey pk[] = {
+        { "N", "New", rw && fr }, { "D", "Delete", rw && part }, { "T", "Type", rw && plain },
+        { "R", "Rename", rw && part && gpt }, { "A", "Active", rw && plain && v->t.kind == PT_MBR },
+        { "W", "Wipe", rw && plain },
+    };
+    UiKey dk[] = {
+        { "Enter", "Write", rw && v->t.changed }, { "Z", "New table", rw }, { "X", "Delete table", rw },
+        { "B", "Backup", true }, { "S", "Restore", rw }, { "Esc", "Back", true },
+    };
+    int gw = ui_cols >= 84 ? 11 : 0; /* align the two groups when there is room */
+    ui_keybar(1, "Partition:", gw ? gw : 11, pk, (int)ARRAY_SIZE(pk));
+    ui_keybar(0, "Disk:", gw ? gw : 6, dk, (int)ARRAY_SIZE(dk));
 }
 
 /* ---- changes in memory ---- */
@@ -452,21 +456,19 @@ static void delete_table(View *v)
 
 /* ---- writing ---- */
 
-/* The big red warning of every operation that destroys data; the disk name
- * must be typed to go on. HINT follows the warning. */
+/* The big red warning of every operation that destroys data, answered with
+ * Y or N (Enter does nothing, so a key pressed twice cannot write). HINT
+ * follows the warning. */
 #define BACKUP_HINT "There is no automatic copy: to keep one, press Esc and use B Backup first."
 
 static bool confirm_destroy(View *v, const char *title, const char *what, const char *hint)
 {
-    char text[900], buf[32] = "";
-    snprintf(text, sizeof(text), "%s\n\n%s\n\nType %s and press Enter to go on:", what, hint, v->d->name);
+    char text[900];
+    snprintf(text, sizeof(text), "%s\n\n%s\n\nConfirm? (Y/N)", what, hint);
     draw(v);
-    if (!ui_input(true, title, text, buf, sizeof(buf)))
-        return false;
-    if (!strcasecmp(buf, v->d->name))
+    if (ui_yesno(true, title, text))
         return true;
-    draw(v);
-    ui_message(true, title, "That is not the name of this disk: nothing was done.");
+    say(v, false, "Nothing was written.");
     return false;
 }
 
