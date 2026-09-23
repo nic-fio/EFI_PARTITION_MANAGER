@@ -1,16 +1,16 @@
 #!/usr/bin/env python3
-"""partmgr.efi inside QEMU/OVMF: the program as firmware runs it.
+r"""partmgr.efi inside QEMU/OVMF: the program as firmware runs it.
 
-Boots NESH from a virtual FAT disk that also holds partmgr.efi, attaches test
-disks made with sfdisk (a GPT one and an MBR one with logical partitions),
-starts partmgr from the NESH prompt and drives it with keys sent through the
+Boots partmgr.efi from a virtual FAT disk (as \EFI\BOOT\BOOTX64.EFI, so the
+firmware starts it), attaches test disks made with sfdisk (a GPT one and an MBR
+one with logical partitions) and drives partmgr with keys sent through the
 QEMU monitor. What partmgr draws reaches the serial console too; the test
 waits there for the lines it expects.
 
-1. Looking: the disks numbered as NESH's map numbers them, the disk partmgr
-   was started from marked read-only, the partitions and free areas of each
-   disk, the return to the NESH prompt - and the disks unchanged, byte for
-   byte.
+1. Looking: the disks numbered by block device,
+   the disk partmgr was started from marked read-only, the partitions and free
+   areas of each disk, the return to the firmware - and the disks unchanged,
+   byte for byte.
 2. Changing: the boot disk refuses changes; on the GPT disk a new partition,
    a rename and a delete, leaving with changes asks first, Write asks for the
    disk name; then the new partition is wiped, and the wipe of a bigger one is
@@ -23,7 +23,7 @@ waits there for the lines it expects.
    partition all zeros, the stopped one overwritten only at its start, the
    others untouched.
 
-    tests/partmgr/qemu-test.py OVMF.fd build/nesh.efi build/partmgr.efi
+    tests/partmgr/qemu-test.py OVMF.fd build/partmgr.efi
 """
 import hashlib
 import json
@@ -36,7 +36,7 @@ import sys
 import tempfile
 import time
 
-OVMF, NESH, PARTMGR = sys.argv[1:4]
+OVMF, PARTMGR = sys.argv[1:3]
 SFDISK = shutil.which("sfdisk") or "/sbin/sfdisk"
 WORK = tempfile.mkdtemp(prefix="pmqemu-")
 failures = []
@@ -80,8 +80,7 @@ class Qemu:
     def __init__(self, name, disks, slow=()):
         esp = os.path.join(WORK, name)
         os.makedirs(os.path.join(esp, "EFI", "BOOT"))
-        shutil.copy(NESH, os.path.join(esp, "EFI", "BOOT", "BOOTX64.EFI"))
-        shutil.copy(PARTMGR, os.path.join(esp, "partmgr.efi"))
+        shutil.copy(PARTMGR, os.path.join(esp, "EFI", "BOOT", "BOOTX64.EFI"))
         self.log = os.path.join(WORK, name + ".log")
         mon = os.path.join(WORK, name + ".monitor")
         drives = ["-drive", "if=virtio,format=raw,readonly=on,file=fat:" + esp]
@@ -154,10 +153,8 @@ try:
     before = {d: digest(d) for d in (gpt, mbr)}
     q = Qemu("look", [gpt, mbr])
     try:
-        check("NESH starts", q.wait(r"New EFI Shell", 90), "no NESH banner on the serial console")
-        q.type("\nfs0:\\partmgr.efi\n")
-        # screen 1: blk1 is the boot disk (the FAT one), blk3 and blk7 the test disks, as in NESH's map
-        check("disk list", q.wait(r"Select a disk"), "no disk list")
+        # screen 1: blk1 is the boot disk (the FAT one), blk3 and blk7 the test disks
+        check("disk list", q.wait(r"EFI Partition Manager 0\.1 +Select a disk", 90), "partmgr did not start")
         check("boot disk", q.wait(r"blk1 +disk +504\.0 MiB +MBR +1 partition +started from here: read only"),
               "the boot disk is not marked read-only")
         check("gpt disk listed", q.wait(r"blk3 +disk +512\.0 MiB +GPT +3 partitions"), "blk3 missing")
@@ -181,11 +178,10 @@ try:
         check("mbr free inside", q.wait(r"- +153\.0 MiB +40\.9 MiB +free space \(for logical partitions\)"), "")
         check("mbr logical 6", q.wait(r"6 +194\.0 MiB +40\.0 MiB +Linux swap +logical"), "")
         check("mbr free outside", q.wait(r"- +351\.0 MiB +161\.0 MiB +free space(?! \(for)"), "")
-        # back to the list, quit, and NESH is there again
+        # back to the list, quit, and the firmware goes on (to its setup menu)
         q.key("esc")
         q.key("q")
-        q.type("ver\n")
-        check("back to NESH", q.wait(r"NESH \d+\.\d+\.\d+"), "the NESH prompt did not come back")
+        check("back to the firmware", q.wait(r"starting Boot\d+ \"UiApp\""), "partmgr did not return")
     finally:
         q.stop()
     # looking does not write: the disks are identical, byte for byte
@@ -206,9 +202,7 @@ try:
             f.write(bytes([byte]) * (blocks_n * 512))
     q = Qemu("change", [gpt, mbr, work], slow=(gpt,))
     try:
-        check("NESH starts again", q.wait(r"New EFI Shell", 90), "")
-        q.type("\nfs0:\\partmgr.efi\n")
-        check("list", q.wait(r"Select a disk"), "")
+        check("list", q.wait(r"Select a disk", 90), "partmgr did not start")
         # the boot disk (first row) cannot be changed
         q.key("ret")
         check("boot disk opened", q.wait(r"blk1 +disk"), "")
@@ -325,8 +319,7 @@ try:
         check("restored", q.wait(r"restored from fs1:\\partmgr-blk7\.bin"), "")
         q.key("esc")
         q.key("q")
-        q.type("ver\n")
-        check("back to NESH again", q.wait(r"NESH \d+\.\d+\.\d+"), "")
+        check("back to the firmware again", q.wait(r"starting Boot\d+ \"UiApp\""), "")
     finally:
         q.stop()
     # the GPT disk as asked

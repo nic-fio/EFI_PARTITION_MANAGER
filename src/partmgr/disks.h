@@ -6,7 +6,7 @@
 #include "ptable.h"
 
 typedef struct {
-    char name[16];     /* blkN, numbered as NESH's map numbers block devices */
+    char name[16];     /* blkN: N counts every block device, sorted by device path */
     char kind[16];     /* NVMe, SATA, USB, SCSI, SD, disk... from the device path */
     char *devpath;     /* the device path as text */
     uint64_t size;     /* bytes */

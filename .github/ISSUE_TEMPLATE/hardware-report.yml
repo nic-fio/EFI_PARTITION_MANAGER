@@ -1,0 +1,104 @@
+name: Hardware report
+description: How partmgr behaved on a real machine — whether it worked or not, both are worth sending
+title: "[hardware] "
+labels: ["hardware report"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        partmgr is tested in QEMU with OVMF, on disk images checked by sfdisk
+        and parted. What real firmware and real disks do with it is the open
+        question, and the one thing that cannot be answered without you.
+
+        **Start with what only reads:** the list of disks, opening a disk, a
+        backup (B) to a stick. Try changes, Write and wipe only on a disk or
+        stick whose contents you do not need.
+
+        A photograph of the list of disks and of the screen of a disk is the
+        most useful thing you can attach.
+  - type: input
+    id: machine
+    attributes:
+      label: Machine
+      description: Maker and model, as written on the case or in the firmware setup.
+      placeholder: Lenovo ThinkPad T480, or a desktop built around an ASUS PRIME B450M-A
+    validations:
+      required: true
+  - type: input
+    id: firmware
+    attributes:
+      label: Firmware
+      description: Maker and version, from the firmware setup screen.
+      placeholder: American Megatrends 5.19
+    validations:
+      required: true
+  - type: dropdown
+    id: secureboot
+    attributes:
+      label: Secure Boot
+      options:
+        - "Off"
+        - "On, with partmgr.efi signed by a key I enrolled"
+        - "On, and the firmware refused to start partmgr"
+        - "I do not know"
+    validations:
+      required: true
+  - type: dropdown
+    id: started
+    attributes:
+      label: How did you start partmgr?
+      options:
+        - "partmgr.efi copied to a stick as \\EFI\\BOOT\\BOOTX64.EFI"
+        - "From a UEFI shell"
+        - "From a boot entry"
+        - "Some other way (described below)"
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: partmgr version
+      description: In the title bar, e.g. "EFI Partition Manager 0.1".
+      placeholder: "0.1"
+    validations:
+      required: true
+  - type: textarea
+    id: disks
+    attributes:
+      label: The disks partmgr listed
+      description: One line per row of the list, or a photograph. Say if a disk you have is missing.
+      placeholder: |
+        blk2  NVMe  476.9 GiB  GPT  4 partitions
+        blk5  USB    14.4 GiB  MBR  1 partition   started from here: read only
+  - type: checkboxes
+    id: tried
+    attributes:
+      label: What did you try?
+      options:
+        - label: Opening disks and looking at their partitions
+        - label: Backup (B) to a file
+        - label: Changes and Write
+        - label: Restore (S)
+        - label: Wipe (W)
+  - type: dropdown
+    id: outcome
+    attributes:
+      label: How did it go?
+      options:
+        - "Everything I tried worked"
+        - "It started, but something misbehaved"
+        - "It never started: refused, or the screen stayed black"
+    validations:
+      required: true
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened
+      description: What you did, what you expected, what you saw instead. For a table partmgr showed with notes, the notes as they are written.
+    validations:
+      required: true
+  - type: textarea
+    id: more
+    attributes:
+      label: Anything else
+      description: Photographs are welcome. If you used Linux afterwards, the output of `sudo sfdisk -l` for the disk you changed says whether the result is right.

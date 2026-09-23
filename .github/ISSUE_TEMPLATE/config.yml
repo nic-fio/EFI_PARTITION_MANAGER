@@ -1,0 +1,8 @@
+blank_issues_enabled: true
+contact_links:
+  - name: User manual
+    url: https://nic-fio.github.io/EFI_PARTITION_MANAGER/partmgr-user-manual.html
+    about: Every screen, key and message, and what the notes about damaged tables mean. Worth a look before reporting.
+  - name: Technical manual
+    url: https://nic-fio.github.io/EFI_PARTITION_MANAGER/partmgr-developer-manual.html
+    about: How partmgr reads, changes and writes partition tables, and how it is tested.

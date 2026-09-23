@@ -1,0 +1,97 @@
+# Build and test EFI Partition Manager on every push and pull request; on a
+# version tag (v*), also publish a GitHub Release with partmgr.efi built here
+# from the tagged source.
+name: CI
+
+on:
+  push:
+    branches: [main]
+    tags: ["v*"]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build-test:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            qemu-system-x86 ovmf dosfstools fdisk parted python3
+
+      - name: Enable KVM
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' \
+            | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+
+      - name: Build
+        run: make -j"$(nproc)"
+
+      - name: Partition table tests and documentation check
+        run: make test
+
+      - name: partmgr.efi in QEMU/OVMF
+        run: make qemu-test
+
+      - name: Keep partmgr.efi
+        uses: actions/upload-artifact@v4
+        with:
+          name: partmgr.efi
+          path: build/partmgr.efi
+
+  release:
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: build-test
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0   # the annotated tag object, for the release notes
+          fetch-tags: true
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: partmgr.efi
+          path: dist
+
+      - name: Checksum
+        run: cd dist && sha256sum partmgr.efi > SHA256SUMS && cat SHA256SUMS
+
+      - name: Create the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          # the annotation of the tag becomes the description of the release
+          git tag -l --format='%(contents)' "$GITHUB_REF_NAME" > notes.md
+          [ -s notes.md ] || echo "EFI Partition Manager $GITHUB_REF_NAME" > notes.md
+          cat >> notes.md <<EOF
+
+          Built and tested by GitHub Actions from this tag.
+
+          **Download** \`partmgr.efi\` (UEFI x86-64). Copy it to a FAT USB stick, as
+          \`\EFI\BOOT\BOOTX64.EFI\` to start it from the firmware boot menu, or next
+          to a UEFI shell to start it from there. Check the download with
+          \`sha256sum -c SHA256SUMS\`.
+
+          **Secure Boot:** the file is not signed. Sign it with your own key or
+          disable Secure Boot (see the user manual).
+
+          **Licence:** Apache 2.0 with the Commons Clause, attached here as
+          \`LICENSE\` and \`NOTICE.md\`: free to use, to copy and to modify,
+          not to sell. Source-available, not OSI open source.
+
+          Documentation: https://nic-fio.github.io/EFI_PARTITION_MANAGER/
+          EOF
+          gh release create "$GITHUB_REF_NAME" dist/partmgr.efi dist/SHA256SUMS \
+            LICENSE NOTICE.md \
+            --title "EFI Partition Manager $GITHUB_REF_NAME" --notes-file notes.md --verify-tag

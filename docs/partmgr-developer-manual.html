@@ -3,20 +3,20 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>partmgr Technical Manual</title>
-<meta name="description" content="Technical manual of partmgr, the partition manager of the NESH project: architecture, partition table code, writing rules, backup format, the UEFI program, testing and conventions.">
+<title>EFI Partition Manager — Technical Manual</title>
+<meta name="description" content="Technical manual of EFI Partition Manager (partmgr.efi): architecture, build, platform layer, partition table code, writing rules, backup format, wipe, the UEFI program, testing and conventions.">
 <link rel="stylesheet" href="assets/docs.css">
 </head>
 <body>
 <div class="topbar">
   <button class="btn menu-btn" type="button" aria-label="Open the table of contents">&#9776; Contents</button>
-  <strong>partmgr Technical Manual</strong>
+  <strong>EFI Partition Manager — Technical Manual</strong>
 </div>
 <div class="layout">
 <nav class="sidebar" aria-label="Table of contents">
   <div class="brand">
     <div class="brand-logo">{ }</div>
-    <div class="brand-text"><strong>partmgr Technical Manual</strong><span>partmgr 0.1 · with NESH</span></div>
+    <div class="brand-text"><strong>Technical Manual</strong><span>EFI Partition Manager 0.1</span></div>
   </div>
   <div class="search">
     <input type="search" placeholder="Search  ( / )" aria-label="Search">
@@ -26,7 +26,6 @@
   <div class="side-tools">
     <button class="btn print-btn" type="button">Print / PDF</button>
     <a class="btn" href="partmgr-user-manual.html">User manual</a>
-    <a class="btn" href="developer-manual.html">NESH developer manual</a>
   </div>
 </nav>
 
@@ -34,13 +33,13 @@
 
 <header class="titlepage">
   <div class="kicker">Technical manual</div>
-  <h1>Inside partmgr</h1>
+  <h1>Inside EFI Partition Manager</h1>
   <p class="lead">Everything a programmer needs to understand, build, test and extend partmgr: the partition table code,
   the rules it writes by, the backup format, the UEFI program around it and the way it is tested.</p>
   <div class="meta">
     <span><b>Version</b> 0.1</span>
     <span><b>Language</b> C (gnu11), Python 3 tests</span>
-    <span><b>Size</b> ~2,800 lines of C</span>
+    <span><b>Size</b> ~6,000 lines of C</span>
     <span><b>Target</b> UEFI x86-64 · Linux test tool</span>
   </div>
 </header>
@@ -59,9 +58,7 @@
 <h3 id="what-you-learn">What this manual covers</h3>
 <p>The <a href="partmgr-user-manual.html">user manual</a> explains what partmgr does. This manual explains <em>how</em>:
 after reading it you should be able to find your way in every source file, build and test partmgr, and change the
-way it reads or writes tables without breaking a disk. It assumes the <a href="developer-manual.html">NESH developer
-manual</a> for what the two programs share: the build pipeline, <code>elf2efi.py</code>, the freestanding runtime and
-the platform layer.</p>
+way it reads or writes tables without breaking a disk.</p>
 
 <h3 id="principles">Design principles</h3>
 <ul>
@@ -70,27 +67,32 @@ the platform layer.</p>
       (<code>PtDev</code>). The same code runs on a UEFI block device and, in the tests, on a disk image file, where
       <code>sfdisk</code> and <code>parted</code> check every table it writes.</li>
   <li><strong>Nothing is written until Write.</strong> Every change is made on a <code>PtTable</code> in memory; only
-      <code>pt_write</code>, <code>pt_restore</code> and <code>pt_wipe</code> write to a disk (decision D21).</li>
+      <code>pt_write</code>, <code>pt_restore</code> and <code>pt_wipe</code> write to a disk (decision P7).</li>
   <li><strong>Protection at the lowest level.</strong> The disk partmgr was started from, and a write-protected one, get
       no write function at all: no mistake in the interface can write them.</li>
   <li><strong>Only the table — or a wipe.</strong> The blocks partmgr writes are the MBR, the extended boot records and
       the GPT headers and arrays. The only write inside a partition is a wipe, of exactly that partition's blocks.</li>
   <li><strong>Damage is shown, not hidden.</strong> A damaged table is read as far as possible and explained with
       <em>notes</em>; writing a table always writes a clean and complete one.</li>
-  <li><strong>One project with NESH.</strong> Same repository, same release, same platform layer, same disk names; no
-      EDK2 code (D7).</li>
+  <li><strong>No EDK2 code.</strong> Own UEFI definitions, runtime, platform layer and build tools; the ordinary Linux
+      GCC and ld build the image.</li>
 </ul>
 
 <h3 id="numbers">The project in numbers</h3>
 <table>
   <thead><tr><th>Area</th><th>Directory</th><th>Lines</th><th>Content</th></tr></thead>
   <tbody>
-    <tr><td>partmgr</td><td><code>src/partmgr</code></td><td>3,034</td><td>table code, the UEFI program, the screens</td></tr>
-    <tr><td>Tests</td><td><code>tests/partmgr</code></td><td>1,397</td><td>the Linux test tool, the table tests, the QEMU test</td></tr>
+    <tr><td>partmgr</td><td><code>src/partmgr</code></td><td>3,035</td><td>table code, the UEFI program, the screens</td></tr>
+    <tr><td>Platform layer</td><td><code>src/pal</code></td><td>1,245</td><td>console, keys, time, files, volumes, entry point</td></tr>
+    <tr><td>Runtime</td><td><code>src/lib</code></td><td>1,003</td><td>libc subset, printf, string buffer, UTF-8, CRC-32</td></tr>
+    <tr><td>UEFI definitions</td><td><code>include</code></td><td>579</td><td>the UEFI types and protocols partmgr uses</td></tr>
+    <tr><td>Tools</td><td><code>tools</code></td><td>375</td><td>ELF→PE converter, linker script, documentation tool, setup script</td></tr>
+    <tr><td>Tests</td><td><code>tests/partmgr</code></td><td>1,390</td><td>the Linux test tool, the table tests, the QEMU test</td></tr>
   </tbody>
 </table>
-<p><code>partmgr.efi</code> is about 67 KB. As in the NESH manual, the line counts here and in the
-<a href="#file-map">source file map</a> are written by <code>make docs</code> and checked by <code>make test</code>.</p>
+<p><code>partmgr.efi</code> is about 70 KB. The line counts here and in the <a href="#file-map">source file map</a> are
+not typed by hand: <code>make docs</code> counts the files and writes them into this page, and <code>make test</code> fails
+when they no longer match the tree — a new source file without a row in the map fails as well.</p>
 
 <!-- ===================================================================== -->
 <h2 id="source-and-build">Source tree and build</h2>
@@ -107,7 +109,12 @@ the platform layer.</p>
     <tr><td><code>src/partmgr/disks_efi.c</code>, <code>disks.h</code></td><td>The disks of the machine through block I/O.</td></tr>
     <tr><td><code>src/partmgr/ui.c</code>, <code>ui.h</code></td><td>Drawing and dialogs.</td></tr>
     <tr><td><code>src/partmgr/main.c</code>, <code>diskview.c</code>, <code>partmgr.h</code></td><td>The program: the list of disks and the screen of a disk.</td></tr>
-    <tr><td><code>src/lib/crc32.c</code></td><td>CRC-32 of GPT headers and arrays (in the shared runtime, described in the NESH manual).</td></tr>
+    <tr><td><code>src/lib/</code></td><td><code>rt.h</code> (the C subset every module includes), <code>libc.c</code>, <code>fmt.c</code> (vsnprintf),
+        <code>util.c</code> (allocation, string buffer, UTF-8), <code>crc32.c</code>.</td></tr>
+    <tr><td><code>src/pal/</code></td><td><code>pal.h</code> (the platform interface), <code>pal_efi.c</code>, <code>pal_common.c</code>,
+        <code>efi_glue.h</code> (UEFI globals for UEFI-only modules).</td></tr>
+    <tr><td><code>include/efi.h</code></td><td>UEFI types, services and protocols, written from the specification.</td></tr>
+    <tr><td><code>tools/</code></td><td><code>efi.lds</code>, <code>elf2efi.py</code>, <code>gen-docs.py</code>, <code>setup-dev.sh</code>.</td></tr>
     <tr><td><code>tests/partmgr/</code></td><td><code>pttool.c</code>, <code>run-tests.py</code>, <code>qemu-test.py</code>.</td></tr>
   </tbody>
 </table>
@@ -116,11 +123,11 @@ the platform layer.</p>
 <table>
   <thead><tr><th>Tool</th><th>Used for</th></tr></thead>
   <tbody>
-    <tr><td>GCC, GNU ld, Python 3</td><td>The build, as for NESH.</td></tr>
+    <tr><td>GCC (x86-64), GNU ld, Python 3</td><td>The build. No cross-compiler: the image is linked as an ELF shared object and converted.</td></tr>
     <tr><td><code>sfdisk</code> (fdisk)</td><td>The table tests: it builds the test images and is the reference.</td></tr>
     <tr><td><code>parted</code></td><td>A second reader of the tables partmgr writes (the check is skipped without it).</td></tr>
     <tr><td><code>mkfs.fat</code> (dosfstools)</td><td>A disk without a table, and the writable volume of the QEMU test.</td></tr>
-    <tr><td>QEMU and OVMF</td><td><code>make qemu-partmgr</code>.</td></tr>
+    <tr><td>QEMU and OVMF</td><td><code>make qemu-test</code>. <code>OVMF=</code> selects the firmware image (default: <code>/usr/share/ovmf/OVMF.fd</code> or <code>/usr/share/OVMF/OVMF.fd</code>).</td></tr>
   </tbody>
 </table>
 
@@ -128,26 +135,126 @@ the platform layer.</p>
 <table>
   <thead><tr><th>Target</th><th>Does</th></tr></thead>
   <tbody>
-    <tr><td><code>make</code></td><td>Builds <code>build/partmgr.efi</code> with <code>nesh.efi</code>.</td></tr>
-    <tr><td><code>make test</code></td><td>Also builds <code>build/tests/pttool</code> and runs <code>tests/partmgr/run-tests.py</code>.</td></tr>
-    <tr><td><code>make qemu-partmgr</code></td><td>Runs <code>tests/partmgr/qemu-test.py</code>: partmgr.efi in QEMU/OVMF.</td></tr>
+    <tr><td><code>make</code></td><td>Builds <code>build/partmgr.efi</code>.</td></tr>
+    <tr><td><code>make test</code></td><td>Builds <code>build/tests/pttool</code>, runs <code>tests/partmgr/run-tests.py</code> and checks this manual.</td></tr>
+    <tr><td><code>make qemu-test</code></td><td>Runs <code>tests/partmgr/qemu-test.py</code>: partmgr.efi in QEMU/OVMF.</td></tr>
     <tr><td><code>make docs</code></td><td>Rewrites the line counts of this manual.</td></tr>
+    <tr><td><code>make clean</code></td><td>Removes <code>build/</code>.</td></tr>
   </tbody>
 </table>
 
-<h3 id="build">How partmgr.efi is linked</h3>
-<p>The Makefile lists two groups: <code>PARTMGR_SRC</code>, the portable part also compiled into the Linux test tool,
-and <code>PARTMGR_EFI_SRC</code>, which adds the program and what it needs from NESH's runtime and platform layer:</p>
-<pre class="code" data-lang="make" data-title="Makefile">PARTMGR_SRC := src/partmgr/ptable.c src/partmgr/ptedit.c src/partmgr/ptwrite.c src/partmgr/units.c \
+<h3 id="build">What is linked</h3>
+<p>The Makefile lists two groups: <code>TABLE_SRC</code>, the portable table code, also compiled into the Linux test tool,
+and <code>EFI_SRC</code>, which adds the program, the runtime and the platform layer:</p>
+<pre class="code" data-lang="make" data-title="Makefile">TABLE_SRC := src/partmgr/ptable.c src/partmgr/ptedit.c src/partmgr/ptwrite.c src/partmgr/units.c \
 	src/lib/crc32.c src/lib/util.c
-PARTMGR_EFI_SRC := $(PARTMGR_SRC) src/partmgr/main.c src/partmgr/diskview.c src/partmgr/ui.c src/partmgr/disks_efi.c \
+EFI_SRC := $(TABLE_SRC) src/partmgr/main.c src/partmgr/diskview.c src/partmgr/ui.c src/partmgr/disks_efi.c \
 	src/lib/libc.c src/lib/fmt.c src/pal/pal_efi.c src/pal/pal_common.c</pre>
-<p>The objects are compiled with the EFI flags of NESH, linked with <code>tools/efi.lds</code> into
-<code>build/partmgr.so</code> and converted to PE32+ by <code>tools/elf2efi.py</code>. <code>pal_efi.c</code> is the same
-file NESH uses: it does not know which program it starts. It calls <code>app_main</code> and names the program
-<code>app_name</code> in fatal errors; <code>src/partmgr/main.c</code> defines both, as <code>src/core/shell.c</code> does for
-NESH. So partmgr gets the 1 MiB private stack, the console, the keyboard and the file functions of NESH, and the shell
-itself is not linked in.</p>
+
+<!-- ===================================================================== -->
+<h2 id="build-pipeline">The build</h2>
+
+<p class="chapter-intro">From C sources to a PE32+ EFI application with the ordinary Linux toolchain.</p>
+
+<h3 id="pipeline">Pipeline</h3>
+<figure>
+<pre class="mermaid">
+flowchart LR
+  C["*.c"] -- "gcc -ffreestanding -fPIC&lt;br/&gt;-mno-red-zone -fshort-wchar" --> O["*.o"]
+  O -- "ld -shared -Bsymbolic&lt;br/&gt;-T tools/efi.lds" --> SO["partmgr.so&lt;br/&gt;(ELF, base 0)"]
+  SO -- "tools/elf2efi.py" --> EFI["partmgr.efi&lt;br/&gt;(PE32+, subsystem 10)"]
+  C -- "gcc -DPARTMGR_HOST&lt;br/&gt;-fsanitize=address,undefined" --> H["pttool&lt;br/&gt;(Linux, tests)"]
+</pre>
+<figcaption>From the sources to partmgr.efi and to the test tool</figcaption>
+</figure>
+
+<h3 id="cflags">Compiler flags and why</h3>
+<table>
+  <thead><tr><th>Flag</th><th>Reason</th></tr></thead>
+  <tbody>
+    <tr><td><code>-ffreestanding -fno-builtin</code></td><td>No hosted C library; GCC must not assume one.</td></tr>
+    <tr><td><code>-mno-red-zone</code></td><td>Firmware interrupt handlers run on the current stack and would overwrite the 128-byte red zone.</td></tr>
+    <tr><td><code>-fshort-wchar</code></td><td>UEFI strings are UCS-2: <code>L"..."</code> must be 16-bit.</td></tr>
+    <tr><td><code>-fPIC -fvisibility=hidden</code> + <code>ld -Bsymbolic</code></td><td>The image can be loaded at any address; with hidden symbols the only dynamic
+        relocations left are <code>R_X86_64_RELATIVE</code>, which map 1:1 to PE <code>DIR64</code> fixups.</td></tr>
+    <tr><td><code>-mgeneral-regs-only</code></td><td>No SSE/x87 code: the firmware does not promise that FPU state is usable, and partmgr has no floating point.</td></tr>
+    <tr><td><code>-fno-stack-protector -fno-stack-check</code></td><td>No runtime support for them in firmware.</td></tr>
+    <tr><td><code>-fno-asynchronous-unwind-tables</code></td><td>No unwinding; smaller image.</td></tr>
+    <tr><td><code>-fno-tree-loop-distribute-patterns</code></td><td>Stops GCC from turning the loops of <code>memset</code>/<code>memcpy</code> into calls to themselves.</td></tr>
+    <tr><td><code>-fno-strict-aliasing</code></td><td>UEFI structures are often reinterpreted through casts.</td></tr>
+  </tbody>
+</table>
+<p>Warnings: <code>-Wall -Wextra</code> without <code>-Wunused-parameter</code> and <code>-Wmissing-field-initializers</code>. A clean
+build has no warnings; keep it that way. The test tool is built with <code>-DPARTMGR_HOST</code>, which makes
+<code>rt.h</code> use the system C library, and with AddressSanitizer and UBSan.</p>
+
+<h3 id="linker-script">The linker script</h3>
+<p><code>tools/efi.lds</code> links at base address 0 with page-aligned <code>.text</code>, <code>.rodata</code>, <code>.data</code> (with the
+GOT) and <code>.bss</code>, and discards notes, comments and unwind tables. Base 0 makes ELF virtual addresses equal to PE
+relative virtual addresses, which keeps the conversion trivial. Page alignment gives each PE section its own memory
+protection (code read+execute, data read+write, never both).</p>
+
+<h3 id="elf2efi">elf2efi.py</h3>
+<ol>
+  <li>keeps <code>.text</code>, <code>.rodata</code> (as <code>.rdata</code>), <code>.data</code> and <code>.bss</code>, checking page alignment;</li>
+  <li>for every <code>R_X86_64_RELATIVE</code> relocation writes the addend into the section data and records a
+      <code>DIR64</code> fixup; <strong>any other relocation type is a build error</strong> (a symbol escaped the hidden
+      visibility);</li>
+  <li>builds a <code>.reloc</code> section with one block per 4 KiB page;</li>
+  <li>writes the DOS stub, COFF header (machine 0x8664), optional header (subsystem 10 = EFI application,
+      DllCharacteristics <code>DYNAMIC_BASE | NX_COMPAT</code>) and the section table.</li>
+</ol>
+<p><code>objcopy --target=efi-app-x86_64</code> produces corrupted relocations with this layout; the converter is short,
+easy to audit, and fails loudly.</p>
+
+<h3 id="freestanding">The freestanding runtime</h3>
+<ul>
+  <li><strong>Memory</strong>: <code>malloc</code> uses <code>AllocatePool</code> with a small header that stores the size (for
+      <code>realloc</code>). Code calls the <code>x</code> wrappers (<code>xmalloc</code>, <code>xstrdup</code>…), which stop the program with
+      <code>rt_fatal</code> on out-of-memory, so callers never check for NULL.</li>
+  <li><strong>printf</strong>: <code>fmt.c</code> implements <code>vsnprintf</code> with <code>%d %i %u %x %X %o %c %s %p %%</code>, flags,
+      width, precision and the length modifiers <code>hh h l ll z j t</code>. There is no <code>%f</code>.</li>
+  <li><strong>Strings</strong>: <code>libc.c</code> has the usual <code>mem*</code>/<code>str*</code> functions, <code>strto*</code> and <code>qsort</code>;
+      <code>rt.h</code> has inline <code>ctype</code> functions (ASCII only); <code>util.c</code> the string buffer <code>Sbuf</code> and the
+      UTF-8 / UCS-2 conversions.</li>
+</ul>
+
+<!-- ===================================================================== -->
+<h2 id="pal">The platform layer</h2>
+
+<p class="chapter-intro"><code>src/pal/pal.h</code> is the contract between the program and the firmware; <code>pal_efi.c</code>
+implements it.</p>
+
+<h3 id="pal-contract">The contract</h3>
+<table>
+  <thead><tr><th>Group</th><th>Functions</th><th>Notes</th></tr></thead>
+  <tbody>
+    <tr><td>Errors</td><td><code>PAL_OK</code>, <code>PAL_ENOENT</code>… <code>pal_strerror</code></td><td>Negative codes; <code>efi_to_pal</code> maps EFI_STATUS.</td></tr>
+    <tr><td>Console</td><td><code>pal_con_write</code> (UTF-8), <code>pal_con_read_key</code>, colours, cursor, size</td><td>Keys arrive as <code>PalKey</code>:
+        Unicode <code>ch</code> or a <code>KEY_*</code> scan code, plus modifiers.</td></tr>
+    <tr><td>Time</td><td><code>pal_ticks_ms</code>, <code>pal_sleep_ms/us</code>, <code>pal_get_time</code></td><td>The time-stamp counter, calibrated against <code>Stall</code> at start-up.</td></tr>
+    <tr><td>Files</td><td><code>pal_open/read/write/close</code>, <code>pal_stat</code></td><td><strong>Paths are canonical</strong>: <code>fsN:\dir\file</code>
+        (<code>canonical()</code> in <code>diskview.c</code> makes them so).</td></tr>
+    <tr><td>Volumes</td><td><code>pal_volumes_refresh</code>, <code>pal_volume_count</code>, <code>pal_volume(i)</code>, <code>pal_boot_volume</code></td><td>For backup files: name, label, read-only.</td></tr>
+    <tr><td>Program</td><td><code>app_main</code>, <code>app_name</code>, <code>pal_argc/argv</code></td><td>Defined by <code>src/partmgr/main.c</code>.</td></tr>
+  </tbody>
+</table>
+
+<h3 id="pal-efi">pal_efi.c</h3>
+<ul>
+  <li><strong>Entry point</strong>: <code>efi_main</code> sets <code>gST</code>, <code>gBS</code>, <code>gRT</code>, <code>gImage</code>, turns the watchdog
+      off, calibrates the clock, finds the volumes and the arguments, allocates 1 MiB of pages and calls
+      <code>app_main</code> on that private stack (UEFI only guarantees 128 KiB).</li>
+  <li><strong>Console</strong>: output converts UTF-8 to UCS-2 and calls <code>ConOut-&gt;OutputString</code>; input uses
+      <code>SimpleTextInputEx</code> when available and <code>WaitForEvent</code> with a timer for timeouts (a timeout of 0 polls,
+      which the wipe uses to notice <kbd>Esc</kbd>).</li>
+  <li><strong>Volumes</strong>: every handle with <code>SimpleFileSystem</code> becomes a volume <code>fsN</code>, sorted by device path
+      text; the one the image was loaded from is the boot volume.</li>
+  <li><strong>Arguments</strong>: from the shell parameters protocol when a UEFI shell starts partmgr, else from the load
+      options; partmgr ignores them.</li>
+  <li><strong>UEFI-only modules</strong> (<code>disks_efi.c</code>) include <code>efi_glue.h</code> for the globals and the device path
+      helpers.</li>
+</ul>
 
 <!-- ===================================================================== -->
 <h2 id="architecture">Architecture</h2>
@@ -451,7 +558,7 @@ the disk.</p>
 
 <h3 id="disks" data-index="pm_disks;boot disk;blkN">Finding the disks: disks_efi.c</h3>
 <p><code>pm_disks</code> locates every handle with <code>EFI_BLOCK_IO_PROTOCOL</code>, sorts them by device path text and
-names them <code>blkN</code> by position — exactly NESH's <code>map</code> — then keeps the whole disks with a medium and a
+names them <code>blkN</code> by position — so a disk keeps its name from one start to the next — then keeps the whole disks with a medium and a
 block size of at least 512. The disk partmgr was loaded from is the one whose device path the path of
 <code>gLoadedImage-&gt;DeviceHandle</code> (the partition) starts with, followed by <code>/</code>; it and write-protected
 media get <code>write = NULL</code>. The kind (NVMe, SATA, USB…) comes from the node names in the device path.</p>
@@ -533,15 +640,15 @@ each break fails them. Where <code>sfdisk</code> lacks
 and the script says <code>SKIPPED</code>.</p>
 
 <h3 id="qemu-test" data-index="qemu-test.py">In QEMU</h3>
-<p><code>make qemu-partmgr</code> runs <code>tests/partmgr/qemu-test.py</code>. It boots NESH in QEMU/OVMF from a virtual
-FAT disk holding <code>partmgr.efi</code>, attaches test disks made by sfdisk, starts partmgr from the prompt and drives it
-with <code>sendkey</code> through the QEMU monitor. Everything partmgr draws also reaches the serial console; the test
-strips the terminal sequences, makes every run of blanks one space (so dialog texts wrapped over two lines still match),
-and waits for the expected text after the previous match — the screen is drawn top to bottom, so rows come before the
-message line under them.</p>
+<p><code>make qemu-test</code> runs <code>tests/partmgr/qemu-test.py</code>. It boots QEMU/OVMF from a virtual FAT disk holding
+<code>partmgr.efi</code> as <code>\EFI\BOOT\BOOTX64.EFI</code>, so the firmware starts it, attaches test disks made by sfdisk,
+and drives partmgr with <code>sendkey</code> through the QEMU monitor. Everything partmgr draws also reaches the serial
+console; the test strips the terminal sequences, makes every run of blanks one space (so dialog texts wrapped over two
+lines still match), and waits for the expected text after the previous match — the screen is drawn top to bottom, so
+rows come before the message line under them.</p>
 <ol class="steps">
-  <li><strong>Looking:</strong> the list (names as in NESH's map, the boot disk marked), every row of both disks, the
-      return to NESH, and the disks identical byte for byte.</li>
+  <li><strong>Looking:</strong> the list (the boot disk marked), every row of both disks, the return to the firmware
+      (its setup menu starts), and the disks identical byte for byte.</li>
   <li><strong>Changing:</strong> the boot disk refuses; on the GPT disk a new partition (start, size, type, name), a
       rename, a delete, <kbd>Esc</kbd> asking, a wrong disk name refused, Write; a wipe of the new partition, with both
       passes and the amount on the console, and a wipe of a bigger one stopped with <kbd>Esc</kbd> (the GPT disk's
@@ -579,7 +686,13 @@ name matters.</p>
 <!-- ===================================================================== -->
 <h2 id="conventions">Conventions</h2>
 <ul>
-  <li>The code style, English texts and help rules of NESH apply (see the NESH developer manual).</li>
+  <li>C11 with GNU extensions, 4-space indentation, braces on the same line, <code>snake_case</code>; file-local functions and
+      data are <code>static</code>. Comments explain <em>why</em>, in English, and are short; every file starts with a comment
+      saying what it contains.</li>
+  <li>Text is UTF-8; conversion to and from UCS-2 happens only at the firmware boundary.</li>
+  <li>No code, headers or libraries from EDK2: protocol and structure definitions are written from the UEFI
+      specification.</li>
+  <li>Keep the build free of warnings and the tests green; add a test with every fix.</li>
   <li><em>Delete</em> a partition: remove it from the table. <em>Wipe</em>: destroy its contents. The code, the texts and
       the manuals never use one for the other.</li>
   <li>Blocks are written only in <code>ptwrite.c</code>, and only by <code>pt_write</code>, <code>pt_restore</code> and
@@ -594,8 +707,19 @@ name matters.</p>
 <table>
   <thead><tr><th>File</th><th>Lines</th><th>Purpose</th></tr></thead>
   <tbody>
+    <tr><td><code>include/efi.h</code></td><td>579</td><td>Minimal UEFI definitions (UEFI Specification 2.10), written from the specification; no EDK2 code</td></tr>
+    <tr><td><code>src/lib/crc32.c</code></td><td>29</td><td>CRC-32 (IEEE 802.3), the checksum of GPT headers and entry arrays</td></tr>
+    <tr><td><code>src/lib/crc32.h</code></td><td>10</td><td>CRC-32 (IEEE 802.3)</td></tr>
+    <tr><td><code>src/lib/fmt.c</code></td><td>192</td><td>vsnprintf for the EFI build: %d %i %u %x %X %o %c %s %p %%, flags, width/precision, length hh h l ll z j t</td></tr>
+    <tr><td><code>src/lib/libc.c</code></td><td>320</td><td>Freestanding C library subset for the EFI build</td></tr>
+    <tr><td><code>src/lib/rt.h</code></td><td>115</td><td>Runtime: standard C subset + shared helpers</td></tr>
+    <tr><td><code>src/lib/util.c</code></td><td>337</td><td>Allocation wrappers, string buffer, UTF-8 and UCS-2</td></tr>
+    <tr><td><code>src/pal/efi_glue.h</code></td><td>38</td><td>Access to UEFI services for UEFI-only modules</td></tr>
+    <tr><td><code>src/pal/pal.h</code></td><td>159</td><td>Platform layer: what the program needs from the machine</td></tr>
+    <tr><td><code>src/pal/pal_common.c</code></td><td>25</td><td>Error names</td></tr>
+    <tr><td><code>src/pal/pal_efi.c</code></td><td>1023</td><td>Platform layer for UEFI: entry point, console, keys, time, files, volumes, arguments</td></tr>
     <tr><td><code>src/partmgr/disks.h</code></td><td>23</td><td>A disk as the table code sees it (name, kind, size, boot disk, read and write functions)</td></tr>
-    <tr><td><code>src/partmgr/disks_efi.c</code></td><td>173</td><td>Finds the whole disks through block I/O, numbered as NESH's map; recognises the disk partmgr was started from; random numbers from EFI_RNG_PROTOCOL</td></tr>
+    <tr><td><code>src/partmgr/disks_efi.c</code></td><td>174</td><td>Finds the whole disks through block I/O, numbered by block device; recognises the disk partmgr was started from; random numbers from EFI_RNG_PROTOCOL</td></tr>
     <tr><td><code>src/partmgr/diskview.c</code></td><td>833</td><td>The screen of one disk: rows, keys, every action, Write, backup and restore, the wipe and its progress</td></tr>
     <tr><td><code>src/partmgr/main.c</code></td><td>78</td><td>app_main and the list of disks</td></tr>
     <tr><td><code>src/partmgr/partmgr.h</code></td><td>17</td><td>What the screens share: version, table names, the disk screen</td></tr>
@@ -608,8 +732,12 @@ name matters.</p>
     <tr><td><code>src/partmgr/ui.h</code></td><td>34</td><td>The drawing and dialog functions, the EFI colours</td></tr>
     <tr><td><code>src/partmgr/units.c</code></td><td>106</td><td>Sizes as the user writes and reads them</td></tr>
     <tr><td><code>src/partmgr/units.h</code></td><td>20</td><td>Size parsing and formatting</td></tr>
+    <tr><td><code>tools/efi.lds</code></td><td>26</td><td>Linker script: ELF image at base 0, page-aligned sections</td></tr>
+    <tr><td><code>tools/elf2efi.py</code></td><td>172</td><td>Converts the ELF shared object into a PE32+ EFI application with native base relocations</td></tr>
+    <tr><td><code>tools/gen-docs.py</code></td><td>92</td><td>Writes and checks the line counts of this manual</td></tr>
+    <tr><td><code>tools/setup-dev.sh</code></td><td>85</td><td>Checks (or installs) the packages a clone needs and sets the git identity of the working copy</td></tr>
     <tr><td><code>tests/partmgr/pttool.c</code></td><td>257</td><td>Drives the table code on a disk image file: reads, changes, writes, backs up, restores, parses sizes (Linux only)</td></tr>
-    <tr><td><code>tests/partmgr/qemu-test.py</code></td><td>361</td><td>partmgr.efi in QEMU/OVMF: started from NESH, driven with keys, checked on the serial console and with sfdisk afterwards</td></tr>
+    <tr><td><code>tests/partmgr/qemu-test.py</code></td><td>354</td><td>partmgr.efi in QEMU/OVMF: started by the firmware, driven with keys, checked on the serial console and with sfdisk afterwards</td></tr>
     <tr><td><code>tests/partmgr/run-tests.py</code></td><td>779</td><td>The table tests: the reader and the writer compared with sfdisk and parted, damaged images, sizes, backups restored byte for byte</td></tr>
   </tbody>
 </table>
@@ -633,11 +761,11 @@ name matters.</p>
 <div id="index-list"></div>
 
 <footer class="doc-footer">
-  partmgr Technical Manual — for partmgr 0.1. See also the <a href="partmgr-user-manual.html">user manual</a>, the
-  <a href="developer-manual.html">NESH developer manual</a> and the
-  <a href="https://github.com/nic-fio/NG-EFI_SHELL/blob/main/docs/decisions-and-history.md">design decisions</a> (D21).
+  EFI Partition Manager Technical Manual — for partmgr 0.1. See also the
+  <a href="partmgr-user-manual.html">user manual</a> and the
+  <a href="https://github.com/nic-fio/EFI_PARTITION_MANAGER/blob/main/docs/decisions-and-history.md">design decisions</a>.
   <br>Copyright (c) 2026 nic-fio, licensed
-  <a href="https://github.com/nic-fio/NG-EFI_SHELL/blob/main/LICENSE">Apache 2.0 with the Commons
+  <a href="https://github.com/nic-fio/EFI_PARTITION_MANAGER/blob/main/LICENSE">Apache 2.0 with the Commons
   Clause</a>: free to use and to share, selling it needs a commercial licence.
 </footer>
 

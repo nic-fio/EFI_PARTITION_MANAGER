@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>EFI Partition Manager</title>
+<meta name="description" content="Documentation of EFI Partition Manager (partmgr.efi), a full-screen partition manager for UEFI firmware: user manual, technical manual, design decisions.">
+<link rel="stylesheet" href="assets/docs.css">
+<style>
+  .home { max-width: 58rem; margin: 0 auto; padding: 3rem clamp(1rem, 4vw, 3rem) 4rem; }
+  .home .cards { grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr)); }
+  .home .card { display: block; color: var(--text); text-decoration: none; }
+  .home .card:hover { border-color: var(--accent); text-decoration: none; }
+  .home .card h4 { color: var(--accent); }
+</style>
+</head>
+<body>
+<div class="home">
+  <header class="titlepage">
+    <div class="kicker">Documentation</div>
+    <h1>EFI Partition Manager</h1>
+    <p class="lead">A full-screen partition manager for UEFI firmware, in one file: GPT and MBR partition tables,
+    changes shown before they are written, backup and restore, and wipe.</p>
+    <div class="meta"><span><b>Version</b> 0.1</span><span><b>Platform</b> UEFI x86-64</span><span><b>File</b> partmgr.efi</span></div>
+  </header>
+
+  <figure class="demo">
+    <img src="assets/partmgr-disk.png" width="816" height="608"
+         alt="The screen of a GPT disk in partmgr: three partitions, a new one marked with a star, the free space and the keys">
+    <figcaption>The screen of a disk: a new partition is marked with a star until Write writes it.</figcaption>
+  </figure>
+
+  <div class="cards">
+    <a class="card" href="partmgr-user-manual.html"><div class="icon">[#]</div><h4>User manual</h4>
+      <p>The screens, every key, writing, backup and restore, wipe, and what the notes about damaged tables mean.</p></a>
+    <a class="card" href="partmgr-developer-manual.html"><div class="icon">{ }</div><h4>Technical manual</h4>
+      <p>How partmgr reads, changes and writes partition tables, the backup format, the tests, how to extend it.</p></a>
+    <a class="card" href="https://github.com/nic-fio/EFI_PARTITION_MANAGER/blob/main/docs/decisions-and-history.md"><div class="icon">&#8801;</div><h4>Decisions and history</h4>
+      <p>Why partmgr is the way it is: the design decisions and the history of the project.</p></a>
+    <a class="card" href="https://github.com/nic-fio/EFI_PARTITION_MANAGER"><div class="icon">&lt;/&gt;</div><h4>Source code</h4>
+      <p>The repository on GitHub.</p></a>
+  </div>
+
+  <footer class="doc-footer">Copyright (c) 2026 nic-fio. EFI Partition Manager is licensed
+  <a href="https://github.com/nic-fio/EFI_PARTITION_MANAGER/blob/main/LICENSE">Apache 2.0 with the
+  Commons Clause</a>: free to use and to share, selling it needs a commercial licence.</footer>
+</div>
+</body>
+</html>

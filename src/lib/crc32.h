@@ -1,6 +1,6 @@
 /* CRC-32 (IEEE 802.3, the one of GPT headers, ZIP and PNG). */
-#ifndef NESH_CRC32_H
-#define NESH_CRC32_H
+#ifndef PARTMGR_CRC32_H
+#define PARTMGR_CRC32_H
 
 #include "rt.h"
 

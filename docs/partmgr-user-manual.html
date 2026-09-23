@@ -3,20 +3,20 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>partmgr User Manual</title>
-<meta name="description" content="User manual of partmgr, the partition manager that ships with NESH: GPT and MBR partition tables in UEFI, changes shown before they are written, backup and restore.">
+<title>EFI Partition Manager — User Manual</title>
+<meta name="description" content="User manual of EFI Partition Manager (partmgr.efi), a full-screen partition manager for UEFI firmware: GPT and MBR partition tables, changes shown before they are written, backup and restore, wipe.">
 <link rel="stylesheet" href="assets/docs.css">
 </head>
 <body>
 <div class="topbar">
   <button class="btn menu-btn" type="button" aria-label="Open the table of contents">&#9776; Contents</button>
-  <strong>partmgr User Manual</strong>
+  <strong>EFI Partition Manager — User Manual</strong>
 </div>
 <div class="layout">
 <nav class="sidebar" aria-label="Table of contents">
   <div class="brand">
     <div class="brand-logo">[#]</div>
-    <div class="brand-text"><strong>partmgr User Manual</strong><span>partmgr 0.1 · with NESH</span></div>
+    <div class="brand-text"><strong>User Manual</strong><span>EFI Partition Manager 0.1</span></div>
   </div>
   <div class="search">
     <input type="search" placeholder="Search  ( / )" aria-label="Search">
@@ -26,7 +26,6 @@
   <div class="side-tools">
     <button class="btn print-btn" type="button">Print / PDF</button>
     <a class="btn" href="partmgr-developer-manual.html">Technical manual</a>
-    <a class="btn" href="user-manual.html">NESH manual</a>
   </div>
 </nav>
 
@@ -34,7 +33,7 @@
 
 <header class="titlepage">
   <div class="kicker">User manual</div>
-  <h1>partmgr — the partition manager</h1>
+  <h1>EFI Partition Manager</h1>
   <p class="lead">A full-screen program for UEFI firmware that shows, creates and changes GPT and MBR partition tables.
   Every change is shown on the screen first and written only when you ask for it, after a clear warning.</p>
   <div class="meta">
@@ -55,7 +54,7 @@
 <!-- ===================================================================== -->
 <h2 id="introduction">Introduction</h2>
 
-<p class="chapter-intro">What partmgr is, what it does and does not do, and how it fits next to NESH.</p>
+<p class="chapter-intro">What partmgr is, and what it does and does not do.</p>
 
 <h3 id="what-is-partmgr">What partmgr is</h3>
 <p>A disk is divided into <em>partitions</em>, and a small table at its beginning — the <em>partition table</em> —
@@ -63,8 +62,7 @@ says where each partition starts, how big it is and what it is for. Preparing a 
 recovery stick, a second drive) starts with that table. Usually it means booting a whole Linux or Windows
 environment just to run a partitioning tool.</p>
 <p>partmgr does it directly in the UEFI firmware, before any operating system. It is a single file,
-<code>partmgr.efi</code>, that you start from <a href="user-manual.html">NESH</a>, from another UEFI shell or from the
-firmware boot menu. It offers:</p>
+<code>partmgr.efi</code>, that you start from the firmware boot menu or from a UEFI shell. It offers:</p>
 
 <div class="cards">
   <div class="card"><div class="icon">[#]</div><h4>GPT and MBR</h4>
@@ -79,8 +77,8 @@ firmware boot menu. It offers:</p>
     <p>The disk partmgr was started from is never written; damaged tables are recognised and explained.</p></div>
   <div class="card"><div class="icon">&#8801;</div><h4>Readable</h4>
     <p>Types chosen from a list, sizes such as <code>512M</code> or <code>rest</code>, no codes to remember.</p></div>
-  <div class="card"><div class="icon">&gt;_</div><h4>Part of the NESH project</h4>
-    <p>Same release, same disk names as NESH's <code>map</code> (<code>blk3</code> is the same disk in both).</p></div>
+  <div class="card"><div class="icon">&gt;_</div><h4>No EDK2 code</h4>
+    <p>Written from scratch, with its own UEFI definitions: one small file.</p></div>
 </div>
 
 <h3 id="what-it-does-not">What partmgr does not do</h3>
@@ -90,12 +88,9 @@ Deleting a partition removes it from the table; its data stays on the disk until
 <p>The one thing partmgr writes inside a partition is a <a href="#wipe">wipe</a>, and only when asked: it overwrites the
 whole partition so that its data is gone.</p>
 
-<h3 id="partmgr-and-nesh">partmgr and NESH</h3>
-<p>partmgr is a separate program, not a NESH command: <code>nesh.efi</code> stays one file with the shell in it, and
-partmgr is a second file of the same project, built from the same sources and published in the same release. They
-share the way disks are numbered: the <code>blkN</code> names of partmgr are the ones NESH's <code>map</code> shows.
-The reasons are recorded as decision D21 in the
-<a href="https://github.com/nic-fio/NG-EFI_SHELL/blob/main/docs/decisions-and-history.md">design decisions</a>.</p>
+<h3 id="names">Names</h3>
+<p><em>EFI Partition Manager</em> is the name of the project; <code>partmgr.efi</code> is the file, and <em>partmgr</em>
+the short name this manual uses for the program.</p>
 
 <h3 id="conventions">Conventions used in this manual</h3>
 <table>
@@ -103,7 +98,7 @@ The reasons are recorded as decision D21 in the
   <tbody>
     <tr><td><kbd>N</kbd>, <kbd>Enter</kbd>, <kbd>Esc</kbd></td><td>Keys to press. Letters work in upper or lower case.</td></tr>
     <tr><td><code>512M</code></td><td>Something you type.</td></tr>
-    <tr><td><code>blk3</code></td><td>A disk, as partmgr and NESH name it.</td></tr>
+    <tr><td><code>blk3</code></td><td>A disk, as partmgr names it.</td></tr>
     <tr><td><em>Delete</em> / <em>wipe</em></td><td>To <em>delete</em> a partition removes it from the table; to <em>wipe</em> it
         destroys its contents. The manual never uses one word for the other.</td></tr>
   </tbody>
@@ -122,33 +117,41 @@ The reasons are recorded as decision D21 in the
       be written.</li>
 </ul>
 
-<h3 id="getting" data-index="partmgr.efi;building partmgr">Getting partmgr.efi</h3>
-<p>partmgr is built together with NESH:</p>
-<pre class="terminal">$ make
+<h3 id="getting" data-index="partmgr.efi;download;building partmgr">Getting partmgr.efi</h3>
+<p>Ready-made, <code>partmgr.efi</code> is on the <a href="https://github.com/nic-fio/EFI_PARTITION_MANAGER/releases/latest">release
+page</a> of the project, with its checksum in <code>SHA256SUMS</code>: <code>sha256sum -c SHA256SUMS</code> checks the
+download. To build it, on Linux:</p>
+<pre class="terminal">$ git clone https://github.com/nic-fio/EFI_PARTITION_MANAGER.git
+$ cd EFI_PARTITION_MANAGER
+$ make
 $ ls -l build/partmgr.efi</pre>
-<p><code>make</code> produces <code>build/partmgr.efi</code> next to <code>build/nesh.efi</code>. Ready-made, it is a download of
-its own on the <a href="https://github.com/nic-fio/NG-EFI_SHELL/releases/latest">release page</a>, next to
-<code>nesh.efi</code>, with its checksum in <code>SHA256SUMS</code> (<code>sha256sum -c --ignore-missing SHA256SUMS</code> checks the files you downloaded). partmgr is
-new: the release of NESH 0.2.0 does not have it yet; the releases after it do.</p>
+<p>The build needs <code>gcc</code>, GNU <code>ld</code>, <code>make</code> and <code>python3</code>; the
+<a href="partmgr-developer-manual.html">technical manual</a> has the details and the tests.</p>
 
 <h3 id="installing">Putting it on a stick</h3>
-<p>Copy <code>partmgr.efi</code> to the FAT volume, next to <code>nesh.efi</code> or in a tools folder, for example
-<code>\EFI\tools\partmgr.efi</code>. To have it as the only program of a stick, copy it as
-<code>\EFI\BOOT\BOOTX64.EFI</code>: the firmware boot menu then starts partmgr directly.</p>
+<p>Copy <code>partmgr.efi</code> to a FAT-formatted stick. Two common layouts:</p>
+<ul>
+  <li><strong>As the program of the stick:</strong> copy it as <code>\EFI\BOOT\BOOTX64.EFI</code>. Choosing the stick in
+      the firmware boot menu starts partmgr directly.</li>
+  <li><strong>As a tool next to a shell:</strong> copy it to a folder such as <code>\EFI\tools\partmgr.efi</code> and
+      start it from the shell.</li>
+</ul>
 
 <h3 id="starting" data-index="starting partmgr">Starting partmgr</h3>
-<p>From the NESH prompt, type its name with the volume and folder, or just <code>partmgr</code> when its folder is in
-NESH's <code>path</code>:</p>
-<pre class="terminal">fs0:\> fs0:\partmgr.efi</pre>
-<p>A boot entry works too: <code>bootmgr add fs0:\EFI\tools\partmgr.efi "partmgr"</code> in NESH puts it in the firmware
-boot menu. When you leave partmgr (<kbd>Q</kbd> on the list of disks) the screen is cleared and you are back where you
-started it from.</p>
+<p>From the firmware boot menu — usually opened with <kbd>F12</kbd>, <kbd>F11</kbd>, <kbd>F8</kbd> or <kbd>Esc</kbd> during
+power-on — choose the stick. From a UEFI shell, type the file with its volume and folder:</p>
+<pre class="terminal">fs0:\> fs0:\EFI\tools\partmgr.efi</pre>
+<p>When you leave partmgr (<kbd>Q</kbd> on the list of disks) the screen is cleared and you are back where you started
+it from: the shell, or the firmware, which goes on with its boot order or its setup menu.</p>
 
 <h3 id="secure-boot" data-index="Secure Boot">Secure Boot</h3>
 <p>With Secure Boot active the firmware starts only signed programs. <code>partmgr.efi</code> is a file of its own, so it
-needs its own signature, made in the same way as for <code>nesh.efi</code> (see <em>Signing nesh.efi</em> in the
-<a href="user-manual.html">NESH manual</a>):</p>
-<pre class="terminal">$ sbsign --key db.key --cert db.crt --output partmgr-signed.efi build/partmgr.efi</pre>
+needs a signature with a key the machine trusts. With your own keys, on Linux (package <code>sbsigntool</code>):</p>
+<pre class="terminal">$ sbsign --key db.key --cert db.crt --output partmgr-signed.efi build/partmgr.efi
+$ sbverify --cert db.crt partmgr-signed.efi</pre>
+<p>The certificate must be in the firmware's <code>db</code> database (enrolled from the firmware setup), or — on machines
+that boot through shim — in the MOK list (<code>mokutil --import db.der</code>). Otherwise, disable Secure Boot in the
+firmware setup while you use partmgr.</p>
 <p>Secure Boot does not limit what partmgr may do: writing a partition table is a disk write, like writing a file,
 and does not get around the protection of the firmware.</p>
 
@@ -167,8 +170,9 @@ and does not get around the protection of the firmware.</p>
 just <em>disk</em> when the firmware does not say), its size, the kind of partition table and the number of partitions.
 Empty drives and single partitions are not listed.</p>
 <ul>
-  <li><strong>Names.</strong> Disks are called <code>blkN</code> with the numbers of NESH's <code>map</code>: the numbers
-      count every block device, partitions included, which is why they are not consecutive.</li>
+  <li><strong>Names.</strong> Disks are called <code>blkN</code>, where N counts every block device of the firmware,
+      partitions included — which is why the numbers are not consecutive. They stay the same from one start to the next
+      as long as the hardware does not change.</li>
   <li><strong>started from here: read only</strong> marks the disk partmgr was loaded from. It can be looked at and
       backed up, never changed: changing the table under the running program could destroy it.</li>
   <li><strong>write-protected</strong> marks a medium the firmware reports as read-only.</li>
@@ -396,7 +400,7 @@ name: only its contents are gone.</p>
 <h3 id="wipe-progress" data-index="progress bar;Esc (wipe)">Progress, and stopping</h3>
 <figure class="demo">
   <img src="assets/partmgr-wipe.png" width="816" height="608"
-       alt="Wiping blk3 partition 3 (1.0 GiB): pass 1 of 2, random data, the bar at 48 percent, 492.0 MiB of 1.0 GiB, 57.8 MiB/s, about 26 s left">
+       alt="Wiping blk3 partition 3 (1.0 GiB): pass 1 of 2, random data, the bar at 51 percent, 524.0 MiB of 1.0 GiB, 57.6 MiB/s, about 26 s left">
   <figcaption>The progress of a wipe: pass, bar, amount, speed and time left.</figcaption>
 </figure>
 <p>While it runs, partmgr shows which pass it is in, a bar with the percentage of the pass, how much of the partition
@@ -603,11 +607,11 @@ recognised but never chosen by hand: partmgr creates the extended partition itse
 <div id="index-list"></div>
 
 <footer class="doc-footer">
-  partmgr User Manual — for partmgr 0.1. See also the <a href="partmgr-developer-manual.html">technical manual</a>,
-  the <a href="user-manual.html">NESH user manual</a> and the
-  <a href="https://github.com/nic-fio/NG-EFI_SHELL/blob/main/docs/decisions-and-history.md">design decisions</a> (D21).
+  EFI Partition Manager User Manual — for partmgr 0.1. See also the
+  <a href="partmgr-developer-manual.html">technical manual</a> and the
+  <a href="https://github.com/nic-fio/EFI_PARTITION_MANAGER/blob/main/docs/decisions-and-history.md">design decisions</a>.
   <br>Copyright (c) 2026 nic-fio, licensed
-  <a href="https://github.com/nic-fio/NG-EFI_SHELL/blob/main/LICENSE">Apache 2.0 with the Commons
+  <a href="https://github.com/nic-fio/EFI_PARTITION_MANAGER/blob/main/LICENSE">Apache 2.0 with the Commons
   Clause</a>: free to use and to share, selling it needs a commercial licence.
 </footer>
 

@@ -1,6 +1,6 @@
-/* partmgr.efi: the partition manager that ships with NESH (decision D21).
- * A full-screen program: this screen lists the disks, diskview.c shows one
- * disk and changes its partition table. */
+/* partmgr.efi: EFI Partition Manager, a full-screen partition manager for
+ * UEFI firmware. This screen lists the disks, diskview.c shows one disk and
+ * changes its partition table. */
 #include "partmgr.h"
 
 const char app_name[] = "partmgr";
@@ -13,7 +13,7 @@ const char *pm_table_name(int kind)
 static void draw(PmDisk *d, int n, int sel)
 {
     char title[64];
-    snprintf(title, sizeof(title), "partmgr %s", PARTMGR_VERSION);
+    snprintf(title, sizeof(title), "EFI Partition Manager %s", PARTMGR_VERSION);
     ui_title(title, "Select a disk");
     ui_clear_body();
     ui_textf(0, 2, ui_cols, WHITE, BLACK, "  %-7s %-6s %-11s %-9s %s", "Disk", "Type", "Size", "Table", "Partitions");

@@ -1,8 +1,9 @@
 /* partmgr: the disks of the machine, found through the firmware's block
  * devices (EFI_BLOCK_IO_PROTOCOL).
  *
- * Block devices are numbered as NESH's map numbers them - every handle with
- * block I/O, sorted by device path - so blk2 in partmgr is blk2 in NESH.
+ * Block devices are numbered by position among every handle with block I/O,
+ * partitions included, sorted by device path: the numbers stay the same from
+ * one start to the next as long as the hardware does not change.
  * Only whole disks with a medium are listed. The disk partmgr.efi was loaded
  * from is recognised by its device path, which the path of the loading
  * partition starts with, and is never given a write function. */

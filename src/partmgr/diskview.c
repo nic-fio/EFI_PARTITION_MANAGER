@@ -2,7 +2,7 @@
  * areas in disk order, and every change - new partition, delete, type,
  * name, active flag, new table, delete table - is made on the table in
  * memory only: the screen shows the table as it will be, with * on what
- * changed, until Write writes it (decision D21). Backup reads the disk as it
+ * changed, until Write writes it (decision P7). Backup reads the disk as it
  * is; restore and wipe write it at once, after their own warning. The
  * disk partmgr was started from, or a write-protected one, can only be
  * looked at and backed up. */
@@ -114,7 +114,7 @@ static void draw(View *v)
     PmDisk *d = v->d;
     char size[32], left[200], right[80];
     pm_fmt_size(size, sizeof(size), d->size);
-    snprintf(left, sizeof(left), "partmgr %s   %s  %s  %s  %s", PARTMGR_VERSION, d->name, d->kind, size,
+    snprintf(left, sizeof(left), "EFI Partition Manager %s   %s  %s  %s  %s", PARTMGR_VERSION, d->name, d->kind, size,
              pm_table_name(v->t.kind));
     snprintf(right, sizeof(right), "%s", d->boot ? "started from here: read only"
                                          : d->readonly ? "write-protected"
