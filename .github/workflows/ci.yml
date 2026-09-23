@@ -92,6 +92,9 @@ jobs:
 
           Documentation: https://nic-fio.github.io/EFI_PARTITION_MANAGER/
           EOF
+          # 0.x versions are pre-releases: real hardware has not been tried yet
+          pre=""
+          case "$GITHUB_REF_NAME" in v0.*) pre="--prerelease" ;; esac
           gh release create "$GITHUB_REF_NAME" dist/partmgr.efi dist/SHA256SUMS \
-            LICENSE NOTICE.md \
+            LICENSE NOTICE.md $pre \
             --title "EFI Partition Manager $GITHUB_REF_NAME" --notes-file notes.md --verify-tag

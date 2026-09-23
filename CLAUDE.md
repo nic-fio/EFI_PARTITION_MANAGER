@@ -61,12 +61,15 @@ The reasoning for each is in [docs/decisions-and-history.md](docs/decisions-and-
    hides a failure.
 4. Commits use the repository-local identity set by `tools/setup-dev.sh`.
 
-Releases: bump `PARTMGR_VERSION` in `src/partmgr/partmgr.h` and the version in
-both manuals and in the QEMU test, then tag `vX.Y.Z`. The annotated tag message
-becomes the release notes; CI builds `partmgr.efi` and publishes it.
+Releases: bump `PARTMGR_VERSION` in `src/partmgr/partmgr.h`, the version in
+both manuals, `docs/index.html` and the issue template, and take the
+screenshots again (the title bar shows the version); then tag `vX.Y.Z`. The
+annotated tag message becomes the release notes; CI builds `partmgr.efi` and
+publishes it. **0.x versions are published as pre-releases**: real hardware has
+not been tried yet.
 
 ## Where the project stands
 
-Version 0.1, not released yet. Tested in QEMU with OVMF and on disk images
+Version 0.1.0, released as a pre-release (tag v0.1.0). Tested in QEMU with OVMF and on disk images
 checked by sfdisk and parted. **Not tried on real hardware yet**: the user will
 do it when they can. Open: real hardware, a first release.

@@ -154,7 +154,7 @@ try:
     q = Qemu("look", [gpt, mbr])
     try:
         # screen 1: blk1 is the boot disk (the FAT one), blk3 and blk7 the test disks
-        check("disk list", q.wait(r"EFI Partition Manager 0\.1 +Select a disk", 90), "partmgr did not start")
+        check("disk list", q.wait(r"EFI Partition Manager 0\.1\.0 +Select a disk", 90), "partmgr did not start")
         check("boot disk", q.wait(r"blk1 +disk +504\.0 MiB +MBR +1 partition +started from here: read only"),
               "the boot disk is not marked read-only")
         check("gpt disk listed", q.wait(r"blk3 +disk +512\.0 MiB +GPT +3 partitions"), "blk3 missing")

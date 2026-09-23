@@ -6,7 +6,7 @@
 #include "ui.h"
 #include "units.h"
 
-#define PARTMGR_VERSION "0.1"
+#define PARTMGR_VERSION "0.1.0"
 
 /* "GPT", "MBR" or "no table" */
 const char *pm_table_name(int kind);
