@@ -69,23 +69,66 @@ static int put_part(int col, int max, int fg, int bg, const char *s)
     return col + (int)utf8_len(s, cut);
 }
 
-void ui_keybar(int line, const char *group, int group_width, const UiKey *keys, int n)
+/* Columns a bar takes: a leading space, the group name padded to GW, then
+ * each key (with a space each side if PAD), a space, its label, and two
+ * spaces before the next key. */
+static int bar_width(const UiKeyBar *b, int gw, bool pad)
 {
-    int row = ui_rows - 1 - line, max = ui_cols - 1; /* the last cell cannot be written */
+    int w = 1 + gw;
+    for (int i = 0; i < b->n; i++)
+        w += (int)(utf8_len(b->keys[i].key, strlen(b->keys[i].key)) +
+                   utf8_len(b->keys[i].label, strlen(b->keys[i].label))) +
+             1 + (pad ? 2 : 0) + (i + 1 < b->n ? 2 : 0);
+    return w;
+}
+
+static void draw_bar(int row, const UiKeyBar *b, int gw, bool pad)
+{
+    int max = ui_cols - 1; /* the last cell of the screen cannot be written */
     pal_con_set_cursor(0, row);
     int col = put_part(0, max, BLACK, LIGHTGRAY, " ");
-    if (group) {
+    if (gw) {
         char g[40];
-        snprintf(g, sizeof(g), "%-*s", group_width, group);
+        snprintf(g, sizeof(g), "%-*s", gw, b->group ? b->group : "");
         col = put_part(col, max, BLACK, LIGHTGRAY, g);
     }
-    for (int i = 0; i < n; i++) {
-        col = put_part(col, max, keys[i].on ? WHITE : DARKGRAY, keys[i].on ? BLUE : LIGHTGRAY, keys[i].key);
-        char l[48];
-        snprintf(l, sizeof(l), " %s%s", keys[i].label, i + 1 < n ? "  " : "");
-        col = put_part(col, max, keys[i].on ? BLACK : DARKGRAY, LIGHTGRAY, l);
+    for (int i = 0; i < b->n; i++) {
+        char k[24], l[48];
+        snprintf(k, sizeof(k), pad ? " %s " : "%s", b->keys[i].key);
+        snprintf(l, sizeof(l), " %s%s", b->keys[i].label, i + 1 < b->n ? "  " : "");
+        col = put_part(col, max, WHITE, BLUE, k);
+        col = put_part(col, max, BLACK, LIGHTGRAY, l);
     }
     ui_text(col, row, max - col, BLACK, LIGHTGRAY, "");
+}
+
+void ui_keybars(const UiKeyBar *bar1, const UiKeyBar *bar2)
+{
+    const UiKeyBar *bars[2] = { bar1, bar2 };
+    int gw = 0;
+    for (int i = 0; i < 2; i++)
+        if (bars[i] && bars[i]->group)
+            gw = MAX(gw, (int)utf8_len(bars[i]->group, strlen(bars[i]->group)) + 1);
+    static const struct {
+        bool groups, pad;
+    } styles[] = { { true, true }, { true, false }, { false, false } };
+    int s = 0;
+    for (; s < 2; s++) {
+        bool fits = true;
+        for (int i = 0; i < 2; i++)
+            if (bars[i] && bar_width(bars[i], styles[s].groups ? gw : 0, styles[s].pad) > ui_cols - 1)
+                fits = false;
+        if (fits)
+            break;
+    }
+    int g = styles[s].groups ? gw : 0;
+    if (bar2) {
+        draw_bar(ui_rows - 2, bar1, g, styles[s].pad);
+        draw_bar(ui_rows - 1, bar2, g, styles[s].pad);
+    } else {
+        ui_keys(1, "");
+        draw_bar(ui_rows - 1, bar1, g, styles[s].pad);
+    }
 }
 
 void ui_clear_body(void)

@@ -16,7 +16,7 @@
 <nav class="sidebar" aria-label="Table of contents">
   <div class="brand">
     <div class="brand-logo">{ }</div>
-    <div class="brand-text"><strong>Technical Manual</strong><span>EFI Partition Manager 0.1.1</span></div>
+    <div class="brand-text"><strong>Technical Manual</strong><span>EFI Partition Manager 0.1.2</span></div>
   </div>
   <div class="search">
     <input type="search" placeholder="Search  ( / )" aria-label="Search">
@@ -37,7 +37,7 @@
   <p class="lead">Everything a programmer needs to understand, build, test and extend partmgr: the partition table code,
   the rules it writes by, the backup format, the UEFI program around it and the way it is tested.</p>
   <div class="meta">
-    <span><b>Version</b> 0.1.1</span>
+    <span><b>Version</b> 0.1.2</span>
     <span><b>Language</b> C (gnu11), Python 3 tests</span>
     <span><b>Size</b> ~6,000 lines of C</span>
     <span><b>Target</b> UEFI x86-64 · Linux test tool</span>
@@ -82,8 +82,8 @@ way it reads or writes tables without breaking a disk.</p>
 <table>
   <thead><tr><th>Area</th><th>Directory</th><th>Lines</th><th>Content</th></tr></thead>
   <tbody>
-    <tr><td>partmgr</td><td><code>src/partmgr</code></td><td>3,056</td><td>table code, the UEFI program, the screens</td></tr>
-    <tr><td>Platform layer</td><td><code>src/pal</code></td><td>1,245</td><td>console, keys, time, files, volumes, entry point</td></tr>
+    <tr><td>partmgr</td><td><code>src/partmgr</code></td><td>3,113</td><td>table code, the UEFI program, the screens</td></tr>
+    <tr><td>Platform layer</td><td><code>src/pal</code></td><td>1,281</td><td>console, keys, time, files, volumes, entry point</td></tr>
     <tr><td>Runtime</td><td><code>src/lib</code></td><td>1,003</td><td>libc subset, printf, string buffer, UTF-8, CRC-32</td></tr>
     <tr><td>UEFI definitions</td><td><code>include</code></td><td>579</td><td>the UEFI types and protocols partmgr uses</td></tr>
     <tr><td>Tools</td><td><code>tools</code></td><td>375</td><td>ELF→PE converter, linker script, documentation tool, setup script</td></tr>
@@ -230,7 +230,8 @@ implements it.</p>
   <thead><tr><th>Group</th><th>Functions</th><th>Notes</th></tr></thead>
   <tbody>
     <tr><td>Errors</td><td><code>PAL_OK</code>, <code>PAL_ENOENT</code>… <code>pal_strerror</code></td><td>Negative codes; <code>efi_to_pal</code> maps EFI_STATUS.</td></tr>
-    <tr><td>Console</td><td><code>pal_con_write</code> (UTF-8), <code>pal_con_read_key</code>, colours, cursor, size</td><td>Keys arrive as <code>PalKey</code>:
+    <tr><td>Console</td><td><code>pal_con_write</code> (UTF-8), <code>pal_con_read_key</code>, colours, cursor, size; text modes:
+        <code>pal_con_mode</code>, <code>pal_con_wide_mode</code>, <code>pal_con_set_mode</code></td><td>Keys arrive as <code>PalKey</code>:
         Unicode <code>ch</code> or a <code>KEY_*</code> scan code, plus modifiers.</td></tr>
     <tr><td>Time</td><td><code>pal_ticks_ms</code>, <code>pal_sleep_ms/us</code>, <code>pal_get_time</code></td><td>The time-stamp counter, calibrated against <code>Stall</code> at start-up.</td></tr>
     <tr><td>Files</td><td><code>pal_open/read/write/close</code>, <code>pal_stat</code></td><td><strong>Paths are canonical</strong>: <code>fsN:\dir\file</code>
@@ -290,10 +291,11 @@ flowchart TB
 
 <h3 id="startup">Start-up</h3>
 <p><code>efi_main</code> (in <code>pal_efi.c</code>) sets up the firmware globals, the volumes and the arguments, switches to
-the private stack and calls <code>app_main</code>. partmgr hides the cursor and loops on the list of disks: every turn
+the private stack and calls <code>app_main</code>. partmgr switches the console to the narrowest text mode of at least
+100 columns and 25 rows, if the firmware has one (<code>pal_con_wide_mode</code>), hides the cursor and loops on the list of disks: every turn
 calls <code>pm_disks</code>, which locates the block devices again (so <kbd>R</kbd>, or any key, rescans), and reads each
 disk's table to fill the columns. <kbd>Enter</kbd> calls <code>pm_disk_screen</code>; <kbd>Q</kbd> resets the colours,
-clears the screen and returns 0 to the caller.</p>
+clears the screen, puts back the text mode partmgr found (only if it changed it) and returns 0 to the caller.</p>
 
 <h3 id="edit-flow">Life of a change</h3>
 <figure>
@@ -571,8 +573,10 @@ counter and the clock.</p>
 <p><code>ui_text</code> writes a UTF-8 text at a position, padded or cut to a width counted in characters; it never writes
 the last cell of the screen, which scrolls some consoles. Dialogs are boxes in the middle of the screen, drawn over it:
 the caller redraws the screen before the next dialog (<code>draw</code> in <code>diskview.c</code>).
-<code>ui_keybar</code> draws a bar of keys: a group name, then each key white on blue with its action after it, and the
-keys that do not apply now dimmed in place, so the bar never moves. <code>ui_input</code> shows a field whose proposed text
+<code>ui_keybars</code> draws the one or two key bars at the bottom: a group name, then each key white on blue with its
+action after it, always the same keys in the same colours, so the bars never move (a key that does not apply answers
+with a message instead). Both bars use one style, the widest that fits: boxes with a space on each side and the group
+names, then narrow boxes, then narrow boxes without the names. <code>ui_input</code> shows a field whose proposed text
 is replaced by the first character typed; <code>ui_menu</code> is a
 scrolling list; <code>ui_yesno</code> takes <kbd>Y</kbd>, <kbd>N</kbd>, <kbd>Esc</kbd>. With <code>warn</code> set they are
 white on red: every operation that destroys data uses them.</p>
@@ -720,21 +724,21 @@ name matters.</p>
     <tr><td><code>src/lib/rt.h</code></td><td>115</td><td>Runtime: standard C subset + shared helpers</td></tr>
     <tr><td><code>src/lib/util.c</code></td><td>337</td><td>Allocation wrappers, string buffer, UTF-8 and UCS-2</td></tr>
     <tr><td><code>src/pal/efi_glue.h</code></td><td>38</td><td>Access to UEFI services for UEFI-only modules</td></tr>
-    <tr><td><code>src/pal/pal.h</code></td><td>159</td><td>Platform layer: what the program needs from the machine</td></tr>
+    <tr><td><code>src/pal/pal.h</code></td><td>166</td><td>Platform layer: what the program needs from the machine</td></tr>
     <tr><td><code>src/pal/pal_common.c</code></td><td>25</td><td>Error names</td></tr>
-    <tr><td><code>src/pal/pal_efi.c</code></td><td>1023</td><td>Platform layer for UEFI: entry point, console, keys, time, files, volumes, arguments</td></tr>
+    <tr><td><code>src/pal/pal_efi.c</code></td><td>1052</td><td>Platform layer for UEFI: entry point, console, keys, time, files, volumes, arguments</td></tr>
     <tr><td><code>src/partmgr/disks.h</code></td><td>23</td><td>A disk as the table code sees it (name, kind, size, boot disk, read and write functions)</td></tr>
     <tr><td><code>src/partmgr/disks_efi.c</code></td><td>174</td><td>Finds the whole disks through block I/O, numbered by block device; recognises the disk partmgr was started from; random numbers from EFI_RNG_PROTOCOL</td></tr>
-    <tr><td><code>src/partmgr/diskview.c</code></td><td>813</td><td>The screen of one disk: rows, keys, every action, Write, backup and restore, the wipe and its progress</td></tr>
-    <tr><td><code>src/partmgr/main.c</code></td><td>79</td><td>app_main and the list of disks</td></tr>
+    <tr><td><code>src/partmgr/diskview.c</code></td><td>814</td><td>The screen of one disk: rows, keys, every action, Write, backup and restore, the wipe and its progress</td></tr>
+    <tr><td><code>src/partmgr/main.c</code></td><td>86</td><td>app_main and the list of disks</td></tr>
     <tr><td><code>src/partmgr/partmgr.h</code></td><td>17</td><td>What the screens share: version, table names, the disk screen</td></tr>
     <tr><td><code>src/partmgr/ptable.c</code></td><td>402</td><td>Reads GPT (both copies checked, the backup used when the primary is damaged) and MBR tables, extended and logical partitions included; partition type names and the list to choose from</td></tr>
     <tr><td><code>src/partmgr/ptable.h</code></td><td>145</td><td>The description of a disk's partition table and the functions that read, change and write it</td></tr>
     <tr><td><code>src/partmgr/ptedit.c</code></td><td>432</td><td>Changes to a table in memory (new table, add, delete, type, name, active flag) and the free areas, with the rules for logical partitions and their boot records</td></tr>
     <tr><td><code>src/partmgr/ptint.h</code></td><td>22</td><td>Internals: little-endian fields, extended partition types</td></tr>
     <tr><td><code>src/partmgr/ptwrite.c</code></td><td>469</td><td>Writing GPT (both copies, protective MBR) and MBR (chain of logical partitions, CHS fields), deleting a table, backup files and restore, wipe</td></tr>
-    <tr><td><code>src/partmgr/ui.c</code></td><td>311</td><td>Drawing on the text console and the dialogs: messages, questions, text fields, menus</td></tr>
-    <tr><td><code>src/partmgr/ui.h</code></td><td>43</td><td>The drawing and dialog functions, the EFI colours</td></tr>
+    <tr><td><code>src/partmgr/ui.c</code></td><td>354</td><td>Drawing on the text console and the dialogs: messages, questions, text fields, menus</td></tr>
+    <tr><td><code>src/partmgr/ui.h</code></td><td>49</td><td>The drawing and dialog functions, the EFI colours</td></tr>
     <tr><td><code>src/partmgr/units.c</code></td><td>106</td><td>Sizes as the user writes and reads them</td></tr>
     <tr><td><code>src/partmgr/units.h</code></td><td>20</td><td>Size parsing and formatting</td></tr>
     <tr><td><code>tools/efi.lds</code></td><td>26</td><td>Linker script: ELF image at base 0, page-aligned sections</td></tr>
@@ -766,7 +770,7 @@ name matters.</p>
 <div id="index-list"></div>
 
 <footer class="doc-footer">
-  EFI Partition Manager Technical Manual — for partmgr 0.1.1. See also the
+  EFI Partition Manager Technical Manual — for partmgr 0.1.2. See also the
   <a href="partmgr-user-manual.html">user manual</a> and the
   <a href="https://github.com/nic-fio/EFI_PARTITION_MANAGER/blob/main/docs/decisions-and-history.md">design decisions</a>.
   <br>Copyright (c) 2026 nic-fio, licensed

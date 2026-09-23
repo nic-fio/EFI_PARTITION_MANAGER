@@ -40,14 +40,19 @@ static void draw(PmDisk *d, int n, int sel)
         bool hl = i == sel;
         ui_text(0, 3 + i, ui_cols, hl ? BLACK : LIGHTGRAY, hl ? CYAN : BLACK, line);
     }
-    ui_keys(1, "");
-    UiKey k[] = { { "Enter", "Open", n > 0 }, { "R", "Rescan", true }, { "Q", "Quit", true } };
-    ui_keybar(0, NULL, 0, k, (int)ARRAY_SIZE(k));
+    static const UiKey k[] = { { "Enter", "Open" }, { "R", "Rescan" }, { "Q", "Quit" } };
+    UiKeyBar b = { NULL, k, (int)ARRAY_SIZE(k) };
+    ui_keybars(&b, NULL);
 }
 
 int app_main(int argc, char **argv)
 {
     (void)argc, (void)argv;
+    /* at least 100 columns when the firmware has such a mode: the screens and
+     * the key bars are much easier to read than at 80; the old mode comes
+     * back on exit */
+    int old_mode = pal_con_mode();
+    bool switched = pal_con_wide_mode(100, 25);
     pal_con_show_cursor(false);
     int sel = 0;
     for (;;) {
@@ -74,6 +79,8 @@ int app_main(int argc, char **argv)
     }
     pal_con_reset_color();
     pal_con_clear();
+    if (switched)
+        pal_con_set_mode(old_mode);
     pal_con_show_cursor(true);
     return 0;
 }

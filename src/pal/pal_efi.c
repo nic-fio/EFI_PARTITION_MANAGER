@@ -210,6 +210,35 @@ void pal_con_size(int *cols, int *rows)
     *rows = (int)r;
 }
 
+int pal_con_mode(void)
+{
+    return (int)gST->ConOut->Mode->Mode;
+}
+
+bool pal_con_wide_mode(int min_cols, int min_rows)
+{
+    int best = -1;
+    UINTN bc = 0, br = 0;
+    for (INT32 m = 0; m < gST->ConOut->Mode->MaxMode; m++) {
+        UINTN c, r;
+        if (gST->ConOut->QueryMode(gST->ConOut, (UINTN)m, &c, &r) != EFI_SUCCESS)
+            continue;
+        if ((int)c < min_cols || (int)r < min_rows)
+            continue;
+        if (best < 0 || c < bc || (c == bc && r < br))
+            best = m, bc = c, br = r;
+    }
+    if (best < 0 || best == pal_con_mode())
+        return false;
+    return gST->ConOut->SetMode(gST->ConOut, (UINTN)best) == EFI_SUCCESS;
+}
+
+void pal_con_set_mode(int mode)
+{
+    if (mode != pal_con_mode())
+        gST->ConOut->SetMode(gST->ConOut, (UINTN)mode);
+}
+
 void pal_con_set_cursor(int col, int row)
 {
     gST->ConOut->SetCursorPosition(gST->ConOut, (UINTN)col, (UINTN)row);

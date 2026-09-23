@@ -137,8 +137,11 @@ typed as codes. Disks are named `blkN`, N counting every block device of the
 firmware sorted by device path, so a disk keeps its name from one start to the
 next. After the owner tried the first release ("le voci sembrano un po'
 sparpagliate"), the key bar became two fixed rows: **Partition:** (N, D, T, R,
-A, W) and **Disk:** (Enter, Z, X, B, S, Esc), each key highlighted, the keys
-that do not apply now dimmed in place.
+A, W) and **Disk:** (Enter, Z, X, B, S, Esc). Keys that did not apply were at
+first dimmed in place; the owner found the mix of highlighted and grey letters
+inconsistent ("si riesce a fare un prodotto fatto bene?"). Now every key is
+drawn the same way, white on blue, and a key that does not apply answers with
+one short line saying why ("Select a partition first.").
 
 ### P11. New partition: start and size
 
@@ -163,6 +166,16 @@ explanation: confirmations are one red line ending in (Y/N) (for example
 disks has no help line. The explanations live in the user manual. The Y/N
 confirmation of every write, and the question when leaving with unwritten
 changes, stay.
+
+### P17. A text mode of 100 columns
+
+Owner, after seeing the screen at 100 columns: "le 100 colonne sono molto piu'
+leggibili. E se facessimo in modo che partmgr come prima cosa impostasse lo
+schermo proprio in quella modalita'?". At start partmgr switches to the
+narrowest text mode the firmware offers with at least 100 columns and 25 rows
+(the narrowest gives the largest characters), and on leaving puts back the mode
+it found. Where there is no such mode it stays as it is, and the key bars are
+drawn narrower to fit 80 columns.
 
 ### P13. Two manuals of its own
 
@@ -199,7 +212,8 @@ All the work took place on 2026-09-23.
 | **5. Interface** | Every change, Write, backup and restore on the screen; two manuals. |
 | **6. Wipe** | Two passes with a progress bar; tested on images and, with a slowed-down disk, in QEMU. |
 | **7. Own repository** | The history of partmgr's files carried into this repository, the project named EFI Partition Manager (P2, P3). |
-| **8. After the first try** | Release 0.1.0 as a pre-release. The owner tried it in QEMU: the key bar was reorganised in two fixed groups, the typed disk name gave way to a Y/N confirmation, and the screens became terse for expert users (P8, P10, P16). |
+| **8. After the first try** | Release 0.1.0 as a pre-release. The owner tried it in QEMU: the key bar was reorganised in two fixed groups, the typed disk name gave way to a Y/N confirmation, and the screens became terse for expert users (P8, P10, P16). Release 0.1.1. |
+| **9. A finished look** | Every key drawn the same way, with a message for the keys that do not apply; a text mode of 100 columns at start (P10, P17). Release 0.1.2. |
 
 ---
 
@@ -208,5 +222,5 @@ All the work took place on 2026-09-23.
 | Topic | Status |
 |---|---|
 | Real hardware | Not tried yet. The owner will try it when possible; reports are asked for with an issue template. |
-| First release | 0.1.0, published as a pre-release: releases stay pre-releases while real hardware has not been tried (0.x versions). |
+| Releases | 0.1.0, 0.1.1 and 0.1.2, published as pre-releases: releases stay pre-releases while real hardware has not been tried (0.x versions). |
 | Disk names | The kind comes from the device path (NVMe, SATA, USB...); the model name of the disk is not shown yet. |

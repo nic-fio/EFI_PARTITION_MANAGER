@@ -16,7 +16,7 @@
 <nav class="sidebar" aria-label="Table of contents">
   <div class="brand">
     <div class="brand-logo">[#]</div>
-    <div class="brand-text"><strong>User Manual</strong><span>EFI Partition Manager 0.1.1</span></div>
+    <div class="brand-text"><strong>User Manual</strong><span>EFI Partition Manager 0.1.2</span></div>
   </div>
   <div class="search">
     <input type="search" placeholder="Search  ( / )" aria-label="Search">
@@ -37,7 +37,7 @@
   <p class="lead">A full-screen program for UEFI firmware that shows, creates and changes GPT and MBR partition tables.
   Every change is shown on the screen first and written only when you ask for it, after a clear warning.</p>
   <div class="meta">
-    <span><b>Version</b> 0.1.1</span>
+    <span><b>Version</b> 0.1.2</span>
     <span><b>Platform</b> UEFI x86-64</span>
     <span><b>File</b> partmgr.efi (one file)</span>
     <span><b>Audience</b> experienced users and technicians</span>
@@ -117,7 +117,9 @@ in this manual. What partmgr never drops is the confirmation of every operation 
 <h3 id="requirements">Requirements</h3>
 <ul>
   <li>A computer or virtual machine with <strong>UEFI firmware</strong> on <strong>x86-64</strong>.</li>
-  <li>A text console of at least 80 columns and 25 rows (every firmware has one).</li>
+  <li>A text console of at least 80 columns and 25 rows (every firmware has one). When the firmware offers a text mode
+      of 100 columns or more, partmgr switches to it at start — the narrowest such mode, for the largest characters — and
+      puts the previous mode back when it ends. At 80 columns the key bars are drawn narrower.</li>
   <li>A FAT volume the firmware can read, for <code>partmgr.efi</code> itself — and, for backups, a FAT volume that can
       be written.</li>
 </ul>
@@ -223,9 +225,12 @@ notes mean</a>), and a green or red line reports the result of the last action.<
 <p>The two bars at the bottom show the keys, each highlighted in blue with its action after it. <strong>Partition:</strong>
 the actions on the selected row — <kbd>N</kbd> New, <kbd>D</kbd> Delete, <kbd>T</kbd> Type, <kbd>R</kbd> Rename,
 <kbd>A</kbd> Active, <kbd>W</kbd> Wipe. <strong>Disk:</strong> the actions on the whole disk — <kbd>Enter</kbd> Write,
-<kbd>Z</kbd> New table, <kbd>X</kbd> Delete table, <kbd>B</kbd> Backup, <kbd>S</kbd> Restore, <kbd>Esc</kbd> Back. A key
-that does not apply now stays in its place, dimmed: <kbd>N</kbd> on a partition, <kbd>R</kbd> on an MBR disk,
-<kbd>Enter</kbd> when there is nothing to write, every change on a disk that can only be read.</p>
+<kbd>Z</kbd> New table, <kbd>X</kbd> Delete table, <kbd>B</kbd> Backup, <kbd>S</kbd> Restore, <kbd>Esc</kbd> Back. The
+bars never change. A key that does not apply to the selected row says why in one short line: <kbd>N</kbd> on a
+partition, <em>Select a free area.</em>; <kbd>D</kbd>, <kbd>T</kbd>, <kbd>R</kbd>, <kbd>A</kbd> or <kbd>W</kbd> on free
+space, <em>Select a partition first.</em>; <kbd>R</kbd> on an MBR disk, <em>MBR partitions have no name.</em>;
+<kbd>A</kbd> on a GPT disk, <em>GPT partitions have no active flag.</em>; <kbd>Enter</kbd> with nothing to write,
+<em>No changes to write.</em> On a disk that can only be read, every change answers <em>Read only</em>.</p>
 
 <figure class="demo">
   <img src="assets/partmgr-mbr.png" width="816" height="608"
@@ -618,7 +623,7 @@ recognised but never chosen by hand: partmgr creates the extended partition itse
 <div id="index-list"></div>
 
 <footer class="doc-footer">
-  EFI Partition Manager User Manual — for partmgr 0.1.1. See also the
+  EFI Partition Manager User Manual — for partmgr 0.1.2. See also the
   <a href="partmgr-developer-manual.html">technical manual</a> and the
   <a href="https://github.com/nic-fio/EFI_PARTITION_MANAGER/blob/main/docs/decisions-and-history.md">design decisions</a>.
   <br>Copyright (c) 2026 nic-fio, licensed

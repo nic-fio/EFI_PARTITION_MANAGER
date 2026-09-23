@@ -16,14 +16,20 @@ void ui_textf(int col, int row, int width, int fg, int bg, const char *fmt, ...)
 void ui_title(const char *left, const char *right);
 void ui_keys(int line, const char *keys); /* line 0: the last row, 1: the one above */
 
-/* A bar of keys on LINE (as ui_keys): GROUP (padded to GROUP_WIDTH), then
- * every key highlighted with its label after it. A key that does not apply
- * now is dimmed in place, so the bar never moves. */
+/* Key bars at the bottom of the screen: every key in a blue box with its
+ * label after it, always in the same place and the same colours. With two
+ * bars (the second may be NULL) both use the same style: boxes with a space
+ * on each side and the group names, when that fits the screen; else narrow
+ * boxes; else narrow boxes without the group names. BAR1 is the upper one. */
 typedef struct {
     const char *key, *label;
-    bool on;
 } UiKey;
-void ui_keybar(int line, const char *group, int group_width, const UiKey *keys, int n);
+typedef struct {
+    const char *group;
+    const UiKey *keys;
+    int n;
+} UiKeyBar;
+void ui_keybars(const UiKeyBar *bar1, const UiKeyBar *bar2);
 void ui_clear_body(void);
 
 PalKey ui_key(void);

@@ -168,23 +168,14 @@ static void draw(View *v)
         ui_textf(0, status - notes + i, ui_cols, YELLOW, BLACK, "  Note: %s", v->t.notes[i]);
     if (v->msg[0])
         ui_textf(0, status, ui_cols, v->msg_err ? LIGHTRED : LIGHTGREEN, BLACK, "  %s", v->msg);
-    /* the two key bars: what applies to the selected row, what applies to the
-     * whole disk; keys that do not apply now are dimmed in place */
-    const PtPart *p = selected_part(v);
-    bool fr = v->nrows && v->rows[v->sel].free, rw = !d->boot && !d->readonly, part = p != NULL;
-    bool plain = part && p->role != PT_EXTENDED;
-    UiKey pk[] = {
-        { "N", "New", rw && fr }, { "D", "Delete", rw && part }, { "T", "Type", rw && plain },
-        { "R", "Rename", rw && part && gpt }, { "A", "Active", rw && plain && v->t.kind == PT_MBR },
-        { "W", "Wipe", rw && plain && !v->t.changed },
-    };
-    UiKey dk[] = {
-        { "Enter", "Write", rw && v->t.changed }, { "Z", "New table", rw }, { "X", "Delete table", rw },
-        { "B", "Backup", true }, { "S", "Restore", rw }, { "Esc", "Back", true },
-    };
-    int gw = ui_cols >= 84 ? 11 : 0; /* align the two groups when there is room */
-    ui_keybar(1, "Partition:", gw ? gw : 11, pk, (int)ARRAY_SIZE(pk));
-    ui_keybar(0, "Disk:", gw ? gw : 6, dk, (int)ARRAY_SIZE(dk));
+    /* the two key bars: what acts on the selected row, what acts on the
+     * whole disk; always complete and in the same place */
+    static const UiKey pk[] = { { "N", "New" },    { "D", "Delete" }, { "T", "Type" },
+                                { "R", "Rename" }, { "A", "Active" }, { "W", "Wipe" } };
+    static const UiKey dk[] = { { "Enter", "Write" }, { "Z", "New table" }, { "X", "Delete table" },
+                                { "B", "Backup" },    { "S", "Restore" },   { "Esc", "Back" } };
+    UiKeyBar b1 = { "Partition:", pk, (int)ARRAY_SIZE(pk) }, b2 = { "Disk:", dk, (int)ARRAY_SIZE(dk) };
+    ui_keybars(&b1, &b2);
 }
 
 /* ---- changes in memory ---- */
@@ -397,7 +388,11 @@ static void change_type(View *v, PtPart *p)
 
 static void rename_partition(View *v, PtPart *p)
 {
-    if (v->t.kind != PT_GPT || !may_change(v))
+    if (v->t.kind != PT_GPT) {
+        say(v, true, "MBR partitions have no name.");
+        return;
+    }
+    if (!may_change(v))
         return;
     char buf[112];
     snprintf(buf, sizeof(buf), "%s", p->name);
@@ -413,7 +408,11 @@ static void rename_partition(View *v, PtPart *p)
 
 static void toggle_active(View *v, PtPart *p)
 {
-    if (v->t.kind != PT_MBR || !may_change(v))
+    if (v->t.kind != PT_MBR) {
+        say(v, true, "GPT partitions have no active flag.");
+        return;
+    }
+    if (!may_change(v))
         return;
     int num = p->num;
     bool on = !p->active;
@@ -788,15 +787,17 @@ void pm_disk_screen(PmDisk *d)
             new_partition(&v, &r->f);
         else if (ch == 'N')
             say(&v, true, v.t.kind == PT_NONE ? "No partition table: Z makes one." : "Select a free area.");
-        else if (ch == 'D' && p)
+        else if (strchr("DTRAW", ch) && ch && !p)
+            say(&v, true, "Select a partition first.");
+        else if (ch == 'D')
             delete_partition(&v, p);
-        else if (ch == 'T' && p)
+        else if (ch == 'T')
             change_type(&v, p);
-        else if (ch == 'R' && p)
+        else if (ch == 'R')
             rename_partition(&v, p);
-        else if (ch == 'A' && p)
+        else if (ch == 'A')
             toggle_active(&v, p);
-        else if (ch == 'W' && p)
+        else if (ch == 'W')
             wipe_partition(&v, p);
         else if (ch == 'Z')
             new_table(&v);

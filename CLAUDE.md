@@ -31,8 +31,10 @@ The reasoning for each is in [docs/decisions-and-history.md](docs/decisions-and-
 | **GPT and MBR, MBR complete** | Extended and logical partitions, active flag, CHS fields. |
 | **A new table starts from zero** | New identifiers, no boot code: boot code belongs to boot loaders. |
 | **Changes are written together** | Nothing reaches the disk until Write; restore and wipe run at once, each after its own warning. |
+| **Key bars: every key alike** | Two fixed rows, every key white on blue; a key that does not apply answers with a short message, never greyed out. |
+| **100 columns when available** | At start the narrowest text mode with at least 100 columns; the previous mode is put back on exit. |
 | **Terse screens for expert users** | One-line (Y/N) questions, fields with a label only, short messages; explanations belong in the manual. |
-| **Y/N confirmation, no dry run, no automatic backup** | A very readable red warning, "Confirm? (Y/N)"; Enter does nothing there. Backup is the user's choice. |
+| **Y/N confirmation, no dry run, no automatic backup** | A very readable red question ending in (Y/N); Enter does nothing there. Backup is the user's choice. |
 | **The boot disk is read-only** | No override. |
 | **Writes allowed under Secure Boot** | A partition table is a disk write, not a way around the protection. |
 | **Wipe: random data, then zeros** | A progress bar is mandatory; Esc asks. Not the extended partition, not with changes pending. |
@@ -71,6 +73,6 @@ not been tried yet.
 
 ## Where the project stands
 
-Version 0.1.1 in development; 0.1.0 is released as a pre-release (tag v0.1.0). Tested in QEMU with OVMF and on disk images
+Version 0.1.2; 0.1.0 and 0.1.1 were released as pre-releases. Tested in QEMU with OVMF and on disk images
 checked by sfdisk and parted. **Not tried on real hardware yet**: the user will
-do it when they can. Open: real hardware, a first release.
+do it when they can. Open: real hardware.

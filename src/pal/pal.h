@@ -67,6 +67,13 @@ void pal_con_set_color(int fg, int bg); /* 0..15 / 0..7, EFI palette */
 void pal_con_get_color(int *fg, int *bg);
 void pal_con_reset_color(void);
 void pal_con_size(int *cols, int *rows);
+/* Text modes. pal_con_mode: the current one. pal_con_wide_mode: switch to the
+ * narrowest mode with at least MIN_COLS columns and MIN_ROWS rows; false when
+ * there is none or it is the current one (nothing changes). Switching modes
+ * clears the screen. */
+int pal_con_mode(void);
+bool pal_con_wide_mode(int min_cols, int min_rows);
+void pal_con_set_mode(int mode);
 void pal_con_set_cursor(int col, int row);
 void pal_con_get_cursor(int *col, int *row);
 void pal_con_show_cursor(bool on);
