@@ -71,6 +71,6 @@ not been tried yet.
 
 ## Where the project stands
 
-Version 0.1.0, released as a pre-release (tag v0.1.0). Tested in QEMU with OVMF and on disk images
+Version 0.1.1 in development; 0.1.0 is released as a pre-release (tag v0.1.0). Tested in QEMU with OVMF and on disk images
 checked by sfdisk and parted. **Not tried on real hardware yet**: the user will
 do it when they can. Open: real hardware, a first release.

@@ -58,8 +58,8 @@ body:
     id: version
     attributes:
       label: partmgr version
-      description: In the title bar, e.g. "EFI Partition Manager 0.1.0".
-      placeholder: "0.1.0"
+      description: In the title bar, e.g. "EFI Partition Manager 0.1.1".
+      placeholder: "0.1.1"
     validations:
       required: true
   - type: textarea

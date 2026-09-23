@@ -16,7 +16,7 @@
 <nav class="sidebar" aria-label="Table of contents">
   <div class="brand">
     <div class="brand-logo">{ }</div>
-    <div class="brand-text"><strong>Technical Manual</strong><span>EFI Partition Manager 0.1.0</span></div>
+    <div class="brand-text"><strong>Technical Manual</strong><span>EFI Partition Manager 0.1.1</span></div>
   </div>
   <div class="search">
     <input type="search" placeholder="Search  ( / )" aria-label="Search">
@@ -37,7 +37,7 @@
   <p class="lead">Everything a programmer needs to understand, build, test and extend partmgr: the partition table code,
   the rules it writes by, the backup format, the UEFI program around it and the way it is tested.</p>
   <div class="meta">
-    <span><b>Version</b> 0.1.0</span>
+    <span><b>Version</b> 0.1.1</span>
     <span><b>Language</b> C (gnu11), Python 3 tests</span>
     <span><b>Size</b> ~6,000 lines of C</span>
     <span><b>Target</b> UEFI x86-64 · Linux test tool</span>
@@ -87,7 +87,7 @@ way it reads or writes tables without breaking a disk.</p>
     <tr><td>Runtime</td><td><code>src/lib</code></td><td>1,003</td><td>libc subset, printf, string buffer, UTF-8, CRC-32</td></tr>
     <tr><td>UEFI definitions</td><td><code>include</code></td><td>579</td><td>the UEFI types and protocols partmgr uses</td></tr>
     <tr><td>Tools</td><td><code>tools</code></td><td>375</td><td>ELF→PE converter, linker script, documentation tool, setup script</td></tr>
-    <tr><td>Tests</td><td><code>tests/partmgr</code></td><td>1,390</td><td>the Linux test tool, the table tests, the QEMU test</td></tr>
+    <tr><td>Tests</td><td><code>tests/partmgr</code></td><td>1,394</td><td>the Linux test tool, the table tests, the QEMU test</td></tr>
   </tbody>
 </table>
 <p><code>partmgr.efi</code> is about 70 KB. The line counts here and in the <a href="#file-map">source file map</a> are
@@ -742,7 +742,7 @@ name matters.</p>
     <tr><td><code>tools/gen-docs.py</code></td><td>92</td><td>Writes and checks the line counts of this manual</td></tr>
     <tr><td><code>tools/setup-dev.sh</code></td><td>85</td><td>Checks (or installs) the packages a clone needs and sets the git identity of the working copy</td></tr>
     <tr><td><code>tests/partmgr/pttool.c</code></td><td>257</td><td>Drives the table code on a disk image file: reads, changes, writes, backs up, restores, parses sizes (Linux only)</td></tr>
-    <tr><td><code>tests/partmgr/qemu-test.py</code></td><td>354</td><td>partmgr.efi in QEMU/OVMF: started by the firmware, driven with keys, checked on the serial console and with sfdisk afterwards</td></tr>
+    <tr><td><code>tests/partmgr/qemu-test.py</code></td><td>358</td><td>partmgr.efi in QEMU/OVMF: started by the firmware, driven with keys, checked on the serial console and with sfdisk afterwards</td></tr>
     <tr><td><code>tests/partmgr/run-tests.py</code></td><td>779</td><td>The table tests: the reader and the writer compared with sfdisk and parted, damaged images, sizes, backups restored byte for byte</td></tr>
   </tbody>
 </table>
@@ -766,7 +766,7 @@ name matters.</p>
 <div id="index-list"></div>
 
 <footer class="doc-footer">
-  EFI Partition Manager Technical Manual — for partmgr 0.1.0. See also the
+  EFI Partition Manager Technical Manual — for partmgr 0.1.1. See also the
   <a href="partmgr-user-manual.html">user manual</a> and the
   <a href="https://github.com/nic-fio/EFI_PARTITION_MANAGER/blob/main/docs/decisions-and-history.md">design decisions</a>.
   <br>Copyright (c) 2026 nic-fio, licensed

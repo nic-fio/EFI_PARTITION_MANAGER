@@ -63,7 +63,7 @@ its own with a full-screen interface (P1).
   repository. GitHub names cannot contain spaces: the repository is
   `EFI_PARTITION_MANAGER`, with underscores (owner's choice).
 - **The file** keeps the short name `partmgr.efi`, easy to type at a shell
-  prompt; the title bar says "EFI Partition Manager 0.1.0".
+  prompt; the title bar says "EFI Partition Manager" and the version.
 - **Public** from the start (owner's choice), with a clear note in the README
   that real hardware has not been tried yet.
 - **Licence:** Apache 2.0 with the Commons Clause: free to use, share and
