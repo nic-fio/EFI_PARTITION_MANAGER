@@ -1,6 +1,8 @@
 /* partmgr: one disk as the screens show it (view.h). */
 #include "view.h"
 
+const PmScreen *pm_screen;
+
 void pm_say(View *v, bool err, const char *fmt, ...)
 {
     va_list ap;

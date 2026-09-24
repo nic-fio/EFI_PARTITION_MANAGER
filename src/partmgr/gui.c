@@ -602,11 +602,78 @@ static void redraw(Gui *g)
 
 /* ---- input ---- */
 
+static Gui *G; /* the window: one at a time */
+
+static int button_at(const Gui *g, int x, int y)
+{
+    for (int i = 0; i < NBUTTONS; i++)
+        if (inside(&g->l.btn[i], x, y))
+            return i;
+    return -1;
+}
+
+/* Waits for a key or a click: 1 with the key in *K, 2 for a click at the
+ * pointer. With HOVER, the window's button under the pointer is highlighted
+ * (the window is drawn again when that changes). */
+static int wait_input(Gui *g, PalKey *k, bool hover)
+{
+    for (;;) {
+        if (pal_con_read_key(k, 10))
+            return 1;
+        PalPointer p;
+        if (!g->pointer || !pal_pointer_read(&p))
+            continue;
+        int nx = p.abs ? (int)((long)p.ax * (g->c.w - 1) / 65535) : g->px + p.dx;
+        int ny = p.abs ? (int)((long)p.ay * (g->c.h - 1) / 65535) : g->py + p.dy;
+        nx = MAX(0, MIN(nx, g->c.w - 1)), ny = MAX(0, MIN(ny, g->c.h - 1));
+        bool pressed = p.left && !g->down;
+        g->down = p.left;
+        if (nx != g->px || ny != g->py) {
+            pointer_hide(g);
+            g->px = nx, g->py = ny;
+            int hv = hover ? button_at(g, nx, ny) : g->hover;
+            if (hv != g->hover) {
+                g->hover = hv;
+                redraw(g);
+            } else {
+                pointer_show(g);
+                logf("pointer %d,%d", g->px, g->py);
+            }
+        }
+        if (pressed)
+            return 2;
+    }
+}
+
+/* Changing the disk, reading the disks again or quitting loses the changes
+ * not written: asked first, as leaving a disk in the text screens. */
+static bool may_leave(Gui *g, const char *title)
+{
+    if (!g->v.t.changed)
+        return true;
+    redraw(g);
+    return ui_yesno(true, title, "Discard the unwritten changes? (Y/N)");
+}
+
 static void change_disk(Gui *g, int i)
 {
-    if (i < 0 || i >= g->ndisks || i == g->dsel)
+    if (i < 0 || i >= g->ndisks || i == g->dsel || !may_leave(g, "Change disk"))
         return;
     open_disk(g, i);
+}
+
+/* The summary of the selected disk again, after an action. */
+static void summarise_selected(Gui *g)
+{
+    PtTable t;
+    Summary *s = &g->sum[g->dsel];
+    *s = (Summary){ -1, 0 };
+    if (!pt_read(&g->disks[g->dsel].dev, &t)) {
+        s->kind = t.kind;
+        for (int j = 0; j < t.nparts; j++)
+            s->nparts += t.parts[j].role != PT_EXTENDED;
+        pt_free(&t);
+    }
 }
 
 /* A key; false to quit. */
@@ -615,14 +682,16 @@ static bool key(Gui *g, PalKey k)
     View *v = &g->v;
     g->v.msg[0] = 0;
     if (ui_is_esc(&k))
-        return false;
+        return !may_leave(g, "Quit");
     if (k.ch == '\t') {
         g->focus_disks = !g->focus_disks;
         return true;
     }
     if (k.scan == KEY_F1 + 4) {
-        scan(g);
-        pm_say(v, false, "Disks read again.");
+        if (may_leave(g, "Read the disks again")) {
+            scan(g);
+            pm_say(&g->v, false, "Disks read again.");
+        }
         return true;
     }
     if (k.scan == KEY_PGUP || k.scan == KEY_PGDN) {
@@ -640,9 +709,8 @@ static bool key(Gui *g, PalKey k)
             v->sel = to;
         return true;
     }
-    int ch = k.ch < 128 ? toupper((int)k.ch) : 0;
-    if ((ch && strchr("NDTRAWZXBS", ch)) || ui_is_enter(&k))
-        pm_say(v, true, "Not in the graphical interface yet: the next stage brings the actions.");
+    if (v->d && v->loaded && pm_disk_action(v, k))
+        summarise_selected(g);
     return true;
 }
 
@@ -698,13 +766,452 @@ static bool click(Gui *g)
     return true;
 }
 
-static int button_at(const Gui *g, int x, int y)
+/* ---- dialogs: boxes over the window, which is dimmed meanwhile ---- */
+
+#define DLG_LINES 16
+
+typedef struct {
+    bool warn;
+    Rect box, text, extra; /* extra: a field or a list, between the text and the buttons */
+    int nbtn;
+    Rect btn[3];
+    const char *key[3], *label[3];
+    uint32_t *saved; /* the window under the box */
+} Dlg;
+
+/* Splits TEXT into lines of at most W pixels, at spaces when possible, and
+ * at every '\n'. */
+static int wrap(const GfxFont *f, const char *text, int w, char lines[DLG_LINES][200])
 {
-    for (int i = 0; i < NBUTTONS; i++)
-        if (inside(&g->l.btn[i], x, y))
+    int n = 0;
+    const char *p = text;
+    while (*p && n < DLG_LINES) {
+        size_t para = strcspn(p, "\n");
+        const char *end = p + para;
+        while (p < end && n < DLG_LINES) {
+            /* the longest piece that fits, cut at a space if it can be */
+            size_t take = (size_t)(end - p), best = 0, space = 0;
+            char piece[200];
+            for (size_t k = 1; k <= take && k < sizeof(piece); k++) {
+                if ((p[k - 1] & 0xC0) == 0x80 && k < take)
+                    continue;
+                snprintf(piece, sizeof(piece), "%.*s", (int)k, p);
+                if (gfx_text_width(f, piece) > w)
+                    break;
+                best = k;
+                if (k < take && p[k] == ' ')
+                    space = k;
+            }
+            if (!best)
+                best = 1;
+            if (best < take && space)
+                best = space;
+            snprintf(lines[n++], 200, "%.*s", (int)best, p);
+            p += best;
+            while (p < end && *p == ' ')
+                p++;
+        }
+        p = *end ? end + 1 : end;
+    }
+    return n;
+}
+
+static void dlg_button(Gui *g, const Rect *r, const char *key, const char *label, bool danger)
+{
+    const GfxFont *f = g->l.f;
+    gfx_round_rect(&g->c, r->x, r->y, r->w, r->h, 5, danger ? C_RED : C_PANEL, 1, danger ? C_RED : C_LINE);
+    int kw = gfx_text_width(f, key) + 8;
+    gfx_round_rect(&g->c, r->x + 6, r->y + 4, kw, r->h - 8, 3, danger ? C_PANEL : C_KEY, 0, 0);
+    gfx_text(&g->c, r->x + 10, r->y + 3, f, danger ? C_RED : C_PANEL, key);
+    gfx_text(&g->c, r->x + 6 + kw + 8, r->y + 3, f, danger ? C_PANEL : C_TEXT, label);
+}
+
+/* Draws the box: title, text, room for EXTRA_H pixels, the buttons
+ * (KEYS/LABELS, the first one on the left; with WARN the first is red). */
+static void dlg_open(Gui *g, Dlg *d, bool warn, const char *title, const char *text, int extra_h, int nbtn,
+                     const char *const *keys, const char *const *labels)
+{
+    const Layout *l = &g->l;
+    GfxCanvas *c = &g->c;
+    d->warn = warn;
+    d->saved = xmalloc((size_t)c->w * (size_t)c->h * 4);
+    memcpy(d->saved, c->px, (size_t)c->w * (size_t)c->h * 4);
+    /* the window dimmed */
+    for (int i = 0; i < c->w * c->h; i++) {
+        uint32_t p = c->px[i];
+        c->px[i] = (p >> 16 & 255) * 3 / 5 << 16 | (p >> 8 & 255) * 3 / 5 << 8 | (p & 255) * 3 / 5;
+    }
+    int w = MIN(c->w - 40, 26 * l->L);
+    char lines[DLG_LINES][200];
+    int n = wrap(warn ? l->fb : l->f, text, w - 2 * l->L, lines);
+    int th = l->L + 8, bh = l->L + 6;
+    int h = th + l->pad + n * l->L + (extra_h ? extra_h + l->pad : 0) + l->pad + bh + l->pad;
+    d->box = (Rect){ (c->w - w) / 2, MAX(8, (c->h - h) / 2), w, h };
+    Rect *b = &d->box;
+    GfxColor tc = warn ? C_RED : C_TITLE;
+    gfx_round_rect(c, b->x, b->y, b->w, b->h, 8, C_PANEL, 1, C_EDGE);
+    gfx_round_rect(c, b->x, b->y, b->w, th + 8, 8, tc, 0, 0);
+    gfx_fill(c, b->x, b->y + th, b->w, 8, C_PANEL);
+    gfx_fill(c, b->x, b->y + th, 1, 8, C_EDGE);
+    gfx_fill(c, b->x + b->w - 1, b->y + th, 1, 8, C_EDGE);
+    gfx_text(c, b->x + l->L, b->y + 4, l->fb, C_PANEL, title);
+    d->text = (Rect){ b->x + l->L, b->y + th + l->pad, b->w - 2 * l->L, n * l->L };
+    for (int i = 0; i < n; i++)
+        gfx_text(c, d->text.x, d->text.y + i * l->L, warn ? l->fb : l->f, warn ? 0xA40E26 : C_TEXT, lines[i]);
+    d->extra = (Rect){ d->text.x, d->text.y + d->text.h + l->pad, d->text.w, extra_h };
+    d->nbtn = nbtn;
+    int x = b->x + b->w - l->L, y = b->y + b->h - l->pad - bh;
+    for (int i = nbtn - 1; i >= 0; i--) {
+        int bw = gfx_text_width(l->f, keys[i]) + 8 + gfx_text_width(l->f, labels[i]) + 26;
+        x -= bw;
+        d->btn[i] = (Rect){ x, y, bw, bh };
+        d->key[i] = keys[i], d->label[i] = labels[i];
+        dlg_button(g, &d->btn[i], keys[i], labels[i], warn && i == 0);
+        x -= 10;
+    }
+    /* for the tests: the whole text, not the wrapped lines */
+    char flat[600];
+    snprintf(flat, sizeof(flat), "%s", text);
+    for (char *q = flat; *q; q++)
+        if (*q == '\n')
+            *q = ' ';
+    logf("dialog %s%s: %s", title, warn ? " (warning)" : "", flat);
+    for (int i = 0; i < nbtn; i++)
+        logf("dbutton %s %s at %d,%d", keys[i], labels[i], d->btn[i].x + d->btn[i].w / 2, d->btn[i].y + d->btn[i].h / 2);
+}
+
+static void dlg_show(Gui *g, const Dlg *d)
+{
+    pal_gfx_show(g->c.px, g->c.w, 0, 0, 0, 0, g->c.w, g->c.h);
+    pointer_show(g);
+    logf("dialog shown");
+}
+
+static void dlg_close(Gui *g, Dlg *d)
+{
+    memcpy(g->c.px, d->saved, (size_t)g->c.w * (size_t)g->c.h * 4);
+    free(d->saved);
+    pal_gfx_show(g->c.px, g->c.w, 0, 0, 0, 0, g->c.w, g->c.h);
+    pointer_show(g);
+    logf("dialog closed");
+}
+
+/* The dialog button under the pointer, or -1. */
+static int dlg_hit(const Gui *g, const Dlg *d)
+{
+    for (int i = 0; i < d->nbtn; i++)
+        if (inside(&d->btn[i], g->px, g->py))
             return i;
     return -1;
 }
+
+static void gui_message(bool warn, const char *title, const char *text)
+{
+    Gui *g = G;
+    /* messages of the table code start in lower case: a sentence here */
+    char buf[400];
+    snprintf(buf, sizeof(buf), "%s", text);
+    if (buf[0] >= 'a' && buf[0] <= 'z')
+        buf[0] = (char)(buf[0] - 'a' + 'A');
+    static const char *const keys[] = { "Enter" }, *const labels[] = { "OK" };
+    Dlg d;
+    dlg_open(g, &d, warn, title, buf, 0, 1, keys, labels);
+    dlg_show(g, &d);
+    for (;;) {
+        PalKey k;
+        int e = wait_input(g, &k, false);
+        if (e == 1 || dlg_hit(g, &d) == 0)
+            break; /* any key, as "Press a key." in the text screens */
+    }
+    dlg_close(g, &d);
+}
+
+static bool gui_yesno(bool warn, const char *title, const char *text)
+{
+    Gui *g = G;
+    static const char *const keys[] = { "Y", "N" }, *const labels[] = { "Yes", "No" };
+    Dlg d;
+    dlg_open(g, &d, warn, title, text, 0, 2, keys, labels);
+    dlg_show(g, &d);
+    bool yes;
+    for (;;) {
+        PalKey k;
+        int e = wait_input(g, &k, false);
+        int hit = e == 2 ? dlg_hit(g, &d) : -1;
+        /* Enter does nothing here: a key pressed twice cannot write (P8) */
+        if ((e == 1 && (k.ch == 'y' || k.ch == 'Y')) || hit == 0) {
+            yes = true;
+            break;
+        }
+        if ((e == 1 && (k.ch == 'n' || k.ch == 'N' || ui_is_esc(&k))) || hit == 1) {
+            yes = false;
+            break;
+        }
+    }
+    dlg_close(g, &d);
+    return yes;
+}
+
+static void draw_field(Gui *g, const Dlg *d, const char *buf, size_t cur, bool fresh)
+{
+    const Layout *l = &g->l;
+    const Rect *r = &d->extra;
+    gfx_round_rect(&g->c, r->x, r->y, r->w, r->h, 4, C_PANEL, 2, C_BLUE);
+    gfx_clip(&g->c, r->x + 4, r->y + 2, r->w - 8, r->h - 4);
+    /* scrolled so that the cursor is visible */
+    char before[200];
+    snprintf(before, sizeof(before), "%.*s", (int)cur, buf);
+    int shift = MAX(0, gfx_text_width(l->f, before) - (r->w - 24));
+    int x = r->x + 8 - shift, y = r->y + (r->h - l->L) / 2;
+    if (fresh && buf[0]) {
+        /* the proposed text, replaced by the first character typed */
+        gfx_fill(&g->c, x - 2, y + 2, gfx_text_width(l->f, buf) + 4, l->L - 4, C_BLUE);
+        gfx_text(&g->c, x, y, l->f, C_PANEL, buf);
+    } else {
+        gfx_text(&g->c, x, y, l->f, C_TEXT, buf);
+        gfx_fill(&g->c, x + gfx_text_width(l->f, before), y + 3, 2, l->L - 6, C_TEXT);
+    }
+    gfx_unclip(&g->c);
+    pal_gfx_show(g->c.px, g->c.w, r->x, r->y, r->x, r->y, r->w, r->h);
+    logf("field %s", buf);
+}
+
+static bool gui_input(bool warn, const char *title, const char *text, char *buf, size_t n)
+{
+    Gui *g = G;
+    static const char *const keys[] = { "Enter", "Esc" }, *const labels[] = { "OK", "Cancel" };
+    Dlg d;
+    dlg_open(g, &d, warn, title, text, g->l.L + 12, 2, keys, labels);
+    bool fresh = true; /* the first typed character replaces the proposed text */
+    size_t cur = strlen(buf);
+    draw_field(g, &d, buf, cur, fresh);
+    dlg_show(g, &d);
+    bool ok;
+    for (;;) {
+        PalKey k;
+        int e = wait_input(g, &k, false);
+        int hit = e == 2 ? dlg_hit(g, &d) : -1;
+        if ((e == 1 && ui_is_enter(&k)) || hit == 0) {
+            ok = true;
+            break;
+        }
+        if ((e == 1 && ui_is_esc(&k)) || hit == 1) {
+            ok = false;
+            break;
+        }
+        if (e != 1)
+            continue;
+        size_t len = strlen(buf);
+        if (k.scan == KEY_LEFT && cur > 0) {
+            do
+                cur--;
+            while (cur > 0 && (buf[cur] & 0xC0) == 0x80);
+        } else if (k.scan == KEY_RIGHT && cur < len) {
+            do
+                cur++;
+            while (cur < len && (buf[cur] & 0xC0) == 0x80);
+        } else if (k.scan == KEY_HOME)
+            cur = 0;
+        else if (k.scan == KEY_END)
+            cur = len;
+        else if ((k.ch == 8 || k.ch == 127) && cur > 0) {
+            size_t s = cur;
+            do
+                s--;
+            while (s > 0 && (buf[s] & 0xC0) == 0x80);
+            memmove(buf + s, buf + cur, len - cur + 1);
+            cur = s;
+        } else if (k.scan == KEY_DELETE && cur < len) {
+            size_t e2 = cur;
+            do
+                e2++;
+            while (e2 < len && (buf[e2] & 0xC0) == 0x80);
+            memmove(buf + cur, buf + e2, len - e2 + 1);
+        } else if (k.ch >= 0x20 && k.ch != 127) {
+            if (fresh) {
+                buf[0] = 0;
+                cur = len = 0;
+            }
+            char u[4];
+            int ul = utf8_encode(k.ch, u);
+            if (len + (size_t)ul < n) {
+                memmove(buf + cur + ul, buf + cur, len - cur + 1);
+                memcpy(buf + cur, u, (size_t)ul);
+                cur += (size_t)ul;
+            }
+        } else
+            continue;
+        fresh = false;
+        draw_field(g, &d, buf, cur, fresh);
+        pointer_show(g);
+    }
+    dlg_close(g, &d);
+    return ok;
+}
+
+static void draw_list(Gui *g, const Dlg *d, const char *const *items, int n, int sel, int top, int h)
+{
+    const Layout *l = &g->l;
+    const Rect *r = &d->extra;
+    gfx_fill(&g->c, r->x, r->y, r->w, r->h, C_PANEL);
+    for (int i = 0; i < h && top + i < n; i++) {
+        bool hl = top + i == sel;
+        int y = r->y + i * l->row_h;
+        if (hl)
+            gfx_fill(&g->c, r->x, y, r->w, l->row_h, C_BLUE);
+        gfx_text(&g->c, r->x + 8, y + 2, l->f, hl ? C_PANEL : C_TEXT, items[top + i]);
+        logf("item %s at %d,%d%s", items[top + i], r->x + r->w / 2, y + l->row_h / 2, hl ? " <" : "");
+    }
+    if (n > h) {
+        /* where the visible part lies in the list */
+        int th = MAX(12, r->h * h / n), ty = r->y + (r->h - th) * top / MAX(1, n - h);
+        gfx_fill(&g->c, r->x + r->w - 5, r->y, 5, r->h, C_BAR);
+        gfx_fill(&g->c, r->x + r->w - 5, ty, 5, th, C_EDGE);
+    }
+    gfx_frame(&g->c, r->x, r->y, r->w, r->h, 1, C_LINE);
+    pal_gfx_show(g->c.px, g->c.w, r->x, r->y, r->x, r->y, r->w, r->h);
+}
+
+static int gui_menu(const char *title, const char *const *items, int n, int sel)
+{
+    Gui *g = G;
+    const Layout *l = &g->l;
+    int h = MAX(1, MIN(n, MIN(14, (g->c.h - 12 * l->L) / l->row_h)));
+    static const char *const keys[] = { "Enter", "Esc" }, *const labels[] = { "Choose", "Cancel" };
+    Dlg d;
+    dlg_open(g, &d, false, title, "", h * l->row_h, 2, keys, labels);
+    if (sel < 0 || sel >= n)
+        sel = 0;
+    int top = 0;
+    bool first = true;
+    for (;;) {
+        if (sel < top)
+            top = sel;
+        if (sel >= top + h)
+            top = sel - h + 1;
+        draw_list(g, &d, items, n, sel, top, h);
+        if (first)
+            dlg_show(g, &d); /* the whole box the first time, then the list only */
+        else {
+            pointer_show(g);
+            logf("dialog shown");
+        }
+        first = false;
+        PalKey k;
+        int e = wait_input(g, &k, false);
+        if (e == 2) {
+            int hit = dlg_hit(g, &d);
+            if (hit == 0)
+                break;
+            if (hit == 1) {
+                sel = -1;
+                break;
+            }
+            if (inside(&d.extra, g->px, g->py)) {
+                int i = top + (g->py - d.extra.y) / l->row_h;
+                if (i < n) {
+                    sel = i; /* a click on an item chooses it */
+                    break;
+                }
+            }
+            continue;
+        }
+        if (ui_is_enter(&k))
+            break;
+        if (ui_is_esc(&k)) {
+            sel = -1;
+            break;
+        }
+        if (k.scan == KEY_UP && sel > 0)
+            sel--;
+        else if (k.scan == KEY_DOWN && sel + 1 < n)
+            sel++;
+        else if (k.scan == KEY_PGUP)
+            sel = MAX(0, sel - h);
+        else if (k.scan == KEY_PGDN)
+            sel = MIN(n - 1, sel + h);
+        else if (k.scan == KEY_HOME)
+            sel = 0;
+        else if (k.scan == KEY_END)
+            sel = n - 1;
+    }
+    dlg_close(g, &d);
+    return sel;
+}
+
+/* ---- the wipe: its progress in a red box, with a Stop button ---- */
+
+static Rect wipe_stop_btn;
+
+static void gui_wipe(const char *title, int pass, int percent, const char *amount)
+{
+    Gui *g = G;
+    const Layout *l = &g->l;
+    GfxCanvas *c = &g->c;
+    int w = MIN(c->w - 40, 26 * l->L), th = l->L + 8, bh = l->L + 6;
+    int h = th + l->pad + 3 * l->L + 16 + l->pad + bh + l->pad;
+    Rect b = { (c->w - w) / 2, (c->h - h) / 2, w, h };
+    gfx_round_rect(c, b.x, b.y, b.w, b.h, 8, C_PANEL, 1, C_EDGE);
+    gfx_round_rect(c, b.x, b.y, b.w, th + 8, 8, C_RED, 0, 0);
+    gfx_fill(c, b.x, b.y + th, b.w, 8, C_PANEL);
+    gfx_fill(c, b.x, b.y + th, 1, 8, C_EDGE);
+    gfx_fill(c, b.x + b.w - 1, b.y + th, 1, 8, C_EDGE);
+    gfx_text(c, b.x + l->L, b.y + 4, l->fb, C_PANEL, title);
+    int x = b.x + l->L, y = b.y + th + l->pad, bw = b.w - 2 * l->L;
+    char line[120];
+    snprintf(line, sizeof(line), "Pass %d of 2: %s", pass, pass == 1 ? "random data" : "zeros");
+    gfx_text(c, x, y, l->fb, C_TEXT, line);
+    y += l->L + 4;
+    int barh = l->L;
+    gfx_round_rect(c, x, y, bw, barh, 4, C_FREE, 1, C_LINE);
+    int full = bw * MAX(0, MIN(percent, 100)) / 100;
+    if (full > 0)
+        gfx_round_rect(c, x, y, MAX(full, 8), barh, 4, C_RED, 0, 0);
+    snprintf(line, sizeof(line), "%d%%", percent);
+    gfx_text(c, x + (bw - gfx_text_width(l->fb, line)) / 2, y, l->fb, percent >= 50 ? C_PANEL : C_TEXT, line);
+    y += barh + 8;
+    gfx_text(c, x, y, l->f, C_TEXT, amount);
+    wipe_stop_btn = (Rect){ 0, 0, gfx_text_width(l->f, "Esc") + 8 + gfx_text_width(l->f, "Stop") + 26, bh };
+    wipe_stop_btn.x = b.x + b.w - l->L - wipe_stop_btn.w;
+    wipe_stop_btn.y = b.y + b.h - l->pad - bh;
+    dlg_button(g, &wipe_stop_btn, "Esc", "Stop", false);
+    pal_gfx_show(c->px, c->w, b.x, b.y, b.x, b.y, b.w, b.h);
+    pointer_show(g);
+    logf("wipe %s pass %d %d%% %s stop at %d,%d", title, pass, percent, amount,
+         wipe_stop_btn.x + wipe_stop_btn.w / 2, wipe_stop_btn.y + wipe_stop_btn.h / 2);
+}
+
+/* Esc, or a click on Stop, since the last look. */
+static bool gui_wipe_stop(void)
+{
+    Gui *g = G;
+    PalKey k;
+    if (pal_con_read_key(&k, 0))
+        return ui_is_esc(&k);
+    PalPointer p;
+    if (!g->pointer || !pal_pointer_read(&p))
+        return false;
+    int nx = p.abs ? (int)((long)p.ax * (g->c.w - 1) / 65535) : g->px + p.dx;
+    int ny = p.abs ? (int)((long)p.ay * (g->c.h - 1) / 65535) : g->py + p.dy;
+    nx = MAX(0, MIN(nx, g->c.w - 1)), ny = MAX(0, MIN(ny, g->c.h - 1));
+    bool pressed = p.left && !g->down;
+    g->down = p.left;
+    if (nx != g->px || ny != g->py) {
+        pointer_hide(g);
+        g->px = nx, g->py = ny;
+        pointer_show(g);
+        logf("pointer %d,%d", g->px, g->py);
+    }
+    return pressed && inside(&wipe_stop_btn, g->px, g->py);
+}
+
+static void gui_redraw(View *v)
+{
+    redraw(G);
+}
+
+static const UiDialogs dialogs = { gui_message, gui_yesno, gui_input, gui_menu };
+static const PmScreen screen = { gui_redraw, gui_wipe, gui_wipe_stop };
 
 bool pm_gui(void)
 {
@@ -718,45 +1225,23 @@ bool pm_gui(void)
         pal_gfx_close();
         return false;
     }
+    G = &g;
+    ui_dialogs = &dialogs;
+    pm_screen = &screen;
     g.pointer = pal_pointer_open() > 0;
     logf("pointer devices: %s", pal_pointer_info());
     g.px = w / 2, g.py = h / 2;
     scan(&g);
-    redraw(&g);
     for (;;) {
+        redraw(&g);
         PalKey k;
-        if (pal_con_read_key(&k, 10)) {
-            if (!key(&g, k))
-                break;
-            redraw(&g);
-            continue;
-        }
-        PalPointer p;
-        if (!g.pointer || !pal_pointer_read(&p))
-            continue;
-        int nx = p.abs ? (int)((long)p.ax * (w - 1) / 65535) : g.px + p.dx;
-        int ny = p.abs ? (int)((long)p.ay * (h - 1) / 65535) : g.py + p.dy;
-        nx = MAX(0, MIN(nx, w - 1)), ny = MAX(0, MIN(ny, h - 1));
-        bool pressed = p.left && !g.down;
-        g.down = p.left;
-        if (nx != g.px || ny != g.py) {
-            pointer_hide(&g);
-            g.px = nx, g.py = ny;
-            int hv = button_at(&g, nx, ny);
-            if (hv != g.hover) {
-                g.hover = hv;
-                redraw(&g);
-            } else {
-                pointer_show(&g);
-                logf("pointer %d,%d", g.px, g.py);
-            }
-        }
-        if (pressed) {
-            if (!click(&g))
-                break;
-            redraw(&g);
-        }
+        int e = wait_input(&g, &k, true);
+        if (e == 1 ? !key(&g, k) : !click(&g))
+            break;
     }
+    ui_dialogs = NULL;
+    pm_screen = NULL;
+    G = NULL;
     pal_pointer_close();
     pm_view_free(&g.v);
     free(g.sum);

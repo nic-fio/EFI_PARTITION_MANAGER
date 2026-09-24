@@ -5,6 +5,7 @@
 #include "ui.h"
 
 int ui_cols = 80, ui_rows = 25;
+const UiDialogs *ui_dialogs;
 
 void ui_init(void)
 {
@@ -222,6 +223,10 @@ static Box draw_box(bool warn, const char *title, const char *text, int extra)
 
 void ui_message(bool warn, const char *title, const char *text)
 {
+    if (ui_dialogs) {
+        ui_dialogs->message(warn, title, text);
+        return;
+    }
     /* messages of the table code start in lower case: a sentence here */
     char buf[400];
     snprintf(buf, sizeof(buf), "%s", text);
@@ -234,6 +239,8 @@ void ui_message(bool warn, const char *title, const char *text)
 
 bool ui_yesno(bool warn, const char *title, const char *text)
 {
+    if (ui_dialogs)
+        return ui_dialogs->yesno(warn, title, text);
     draw_box(warn, title, text, 0);
     for (;;) {
         PalKey k = ui_key();
@@ -246,6 +253,8 @@ bool ui_yesno(bool warn, const char *title, const char *text)
 
 bool ui_input(bool warn, const char *title, const char *text, char *buf, size_t n)
 {
+    if (ui_dialogs)
+        return ui_dialogs->input(warn, title, text, buf, n);
     Box b = draw_box(warn, title, text, 2);
     int frow = b.row + b.h - 2, fcol = b.col + 2, fw = b.w - 4;
     ui_text(fcol, b.row + b.h - 1, fw, b.fg, b.bg, "Enter OK    Esc Cancel");
@@ -313,6 +322,8 @@ bool ui_input(bool warn, const char *title, const char *text, char *buf, size_t 
 
 int ui_menu(const char *title, const char *const *items, int n, int sel)
 {
+    if (ui_dialogs)
+        return ui_dialogs->menu(title, items, n, sel);
     int w = 0;
     for (int i = 0; i < n; i++)
         w = MAX(w, (int)utf8_len(items[i], strlen(items[i])));

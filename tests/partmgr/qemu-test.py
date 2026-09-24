@@ -37,9 +37,16 @@ card: no graphics screen, so partmgr shows the text screens (its fallback).
    window, described on the serial port: the disks (the boot disk read only,
    the first one it may change opened), the rows of each disk, the buttons.
    Keys: the rows, Tab between the disks and the rows, Page Up and Page Down,
-   F5; the actions answer that they come later. Mouse: a click on a disk, on
+   F5, an action that changes nothing. Mouse: a click on a disk, on
    a row, on a block of the bar, on a button; a button under the pointer is
    highlighted. Esc quits; the disks are unchanged, byte for byte.
+6. Changing in the window: the journey of part 2 again, with the mouse and
+   the keys and the window's dialogs - the boot disk refuses; on the GPT disk a
+   new partition, a rename, a delete; quitting and changing the disk with
+   changes ask; Write asks (Enter does nothing, No cancels, Yes writes); a wipe,
+   and a second one stopped with the Stop button; on the MBR disk a logical
+   partition chosen from the list with a click, the active flag, a backup,
+   Write, delete the table, restore. Then the same checks as part 2.
 
     tests/partmgr/qemu-test.py OVMF.fd build/partmgr.efi build/tests/gfxdemo.efi build/tests/gfxtool
 """
@@ -190,6 +197,36 @@ class Qemu:
         self.proc.kill()
         self.proc.wait()
 
+
+
+def verify_changes(prefix, gpt, mbr, mbr_before, P1, P3, P4):
+    """After the journey of changes, outside QEMU: the GPT disk as asked, its
+    data right, the MBR disk as it was before (restored from its backup)."""
+    def c(name, cond, detail=""):
+        check(prefix + name, cond, detail)
+    # the GPT disk as asked
+    g = sfdisk_json(gpt)
+    got = [(p["node"], p["start"], p["size"], p.get("name", "")) for p in g["partitions"]]
+    c("gpt result", got == [("1", 2048, 204800, "EFI system"), ("3", 239616, 409600, "Root"),
+                                ("4", 649216, 40960, "Test part")], str(got))
+    c("gpt type", g["partitions"][2]["type"].upper() == "0FC63DAF-8483-4772-8E79-3D69D8477DE4", "")
+    for d in (gpt, mbr):
+        out = subprocess.run([SFDISK, "--verify", d], capture_output=True, text=True)
+        c("verify " + os.path.basename(d), out.returncode == 0 and "No errors detected" in out.stdout,
+              out.stdout + out.stderr)
+    # the data: partition 4 all zeros, partition 3 overwritten only at its start, partition 1 untouched
+    def blocks(first, blocks_n):
+        with open(gpt, "rb") as f:
+            f.seek(first * 512)
+            return f.read(blocks_n * 512)
+    c("wiped partition is zeros", blocks(*P4) == bytes(P4[1] * 512), "partition 4 is not all zeros")
+    head, tail = blocks(P3[0], 2048), blocks(P3[0] + P3[1] - 2048, 2048)
+    c("stopped wipe: start overwritten", head != bytes([0x33]) * len(head), "partition 3 was not touched")
+    c("stopped wipe: end untouched", tail == bytes([0x33]) * len(tail), "the wipe was not stopped")
+    c("other partition untouched", blocks(*P1) == bytes([0x11]) * (P1[1] * 512), "partition 1 changed")
+    # the MBR disk as it was: the backup was made before writing
+    after = sfdisk_json(mbr)
+    c("mbr restored", after == mbr_before, "\n%s\n%s" % (mbr_before, after))
 
 try:
     gpt = disk("gpt.img", 512, 'label: gpt\nsize=100M, type=U, name="EFI system"\n'
@@ -371,29 +408,7 @@ try:
         check("back to the firmware again", q.wait(r"starting Boot\d+ \"UiApp\""), "")
     finally:
         q.stop()
-    # the GPT disk as asked
-    g = sfdisk_json(gpt)
-    got = [(p["node"], p["start"], p["size"], p.get("name", "")) for p in g["partitions"]]
-    check("gpt result", got == [("1", 2048, 204800, "EFI system"), ("3", 239616, 409600, "Root"),
-                                ("4", 649216, 40960, "Test part")], str(got))
-    check("gpt type", g["partitions"][2]["type"].upper() == "0FC63DAF-8483-4772-8E79-3D69D8477DE4", "")
-    for d in (gpt, mbr):
-        out = subprocess.run([SFDISK, "--verify", d], capture_output=True, text=True)
-        check("verify " + os.path.basename(d), out.returncode == 0 and "No errors detected" in out.stdout,
-              out.stdout + out.stderr)
-    # the data: partition 4 all zeros, partition 3 overwritten only at its start, partition 1 untouched
-    def blocks(first, blocks_n):
-        with open(gpt, "rb") as f:
-            f.seek(first * 512)
-            return f.read(blocks_n * 512)
-    check("wiped partition is zeros", blocks(*P4) == bytes(P4[1] * 512), "partition 4 is not all zeros")
-    head, tail = blocks(P3[0], 2048), blocks(P3[0] + P3[1] - 2048, 2048)
-    check("stopped wipe: start overwritten", head != bytes([0x33]) * len(head), "partition 3 was not touched")
-    check("stopped wipe: end untouched", tail == bytes([0x33]) * len(tail), "the wipe was not stopped")
-    check("other partition untouched", blocks(*P1) == bytes([0x11]) * (P1[1] * 512), "partition 1 changed")
-    # the MBR disk as it was: the backup was made before writing
-    after = sfdisk_json(mbr)
-    check("mbr restored", after == mbr_before, "\n%s\n%s" % (mbr_before, after))
+    verify_changes("", gpt, mbr, mbr_before, P1, P3, P4)
 
     # ------------------------------------------------------------ drawing
     def ppm(path):
@@ -562,8 +577,8 @@ try:
         check("key: page up", q.wait(r"gui: shows blk3 disk"), "")
         q.key("f5")
         check("key: F5", q.wait(r"gui: message Disks read again\."), "")
-        q.key("n")
-        check("key: an action", q.wait(r"gui: message Not in the graphical interface yet"), "")
+        q.key("n")                                    # on a partition: nothing to add there
+        check("key: an action", q.wait(r"gui: message Select a free area\."), "")
         # the mouse
         check("click: a disk", click_at(where(r"gui: disk blk7 ")) and q.wait(r"gui: shows blk7 disk"), "")
         check("click: focus on the disks", q.wait(r"gui: focus disks"), "")
@@ -580,13 +595,155 @@ try:
               re.search(r"gui: button N New at \d+,\d+ hover", frame()), frame()[-400:])
         q.monitor("mouse_button 1")
         q.monitor("mouse_button 0")
-        check("click: a button is its key", q.wait(r"gui: message Not in the graphical interface yet"), "")
+        check("click: a button is its key", q.wait(r"gui: message Select a free area\."), "")
         check("click: Quit", click_at(where(r"gui: button Esc Quit")) and q.wait(r"gui: closed"), "")
         check("window: back to the firmware", q.wait(r"starting Boot\d+ \"UiApp\""), "")
     finally:
         q.stop()
     for d in (gpt, mbr):
         check("window: untouched", digest(d) == before[d], os.path.basename(d) + " changed")
+
+    # ------------------------------------------------------------ changing in the window
+    gpt = disk("gpt-w.img", 512, 'label: gpt\nsize=100M, type=U, name="EFI system"\n'
+               'size=16M, type=E3C9E316-0B5C-4DB8-817D-F92DF00215AE\nsize=200M, type=L, name="Linux root"\n')
+    mbr = disk("mbr-w.img", 512, "label: dos\n1 : start=2048, size=102400, type=c, bootable\n"
+               "2 : start=104448, size=614400, type=5\n5 : start=106496, size=204800, type=83\n"
+               "6 : start=397312, size=81920, type=82\n")
+    mbr_before = sfdisk_json(mbr)
+    work = os.path.join(WORK, "work-w.img")
+    subprocess.run([mkfs, "-C", "-n", "WORK", work, "65536"], check=True, stdout=subprocess.DEVNULL)
+    for (first, blocks_n), byte in ((P1, 0x11), (P3, 0x33), (P4, 0x44)):
+        with open(gpt, "r+b") as f:
+            f.seek(first * 512)
+            f.write(bytes([byte]) * (blocks_n * 512))
+    q = Qemu("gui-change", [gpt, mbr, work], slow=(gpt,), extra=usb + ("-device", "usb-mouse"))
+
+    def dbutton(label):
+        """Where the last dialog's button LABEL is."""
+        m = re.findall(r"gui: dbutton \S+ %s at (\d+),(\d+)" % label, q.text())
+        return (int(m[-1][0]), int(m[-1][1])) if m else None
+
+    W = "w: "
+    try:
+        check(W + "started", q.wait(r"gui: shows blk3 disk 512\.0 MiB GPT", 90), q.text()[-300:])
+        q.wait(r"gui: shown")
+        # the boot disk refuses
+        check(W + "boot disk opened", click_at(where(r"gui: disk blk1 ")) and q.wait(r"gui: shows blk1 disk"), "")
+        q.key("z")
+        check(W + "boot disk refuses", q.wait(r"gui: dialog Read only: Partmgr was started from this disk: "
+                                             r"it cannot be changed\."), "")
+        check(W + "OK closes", click_at(dbutton("OK")) and q.wait(r"gui: dialog closed"), "")
+        check(W + "gpt opened", click_at(where(r"gui: disk blk3 ")) and q.wait(r"gui: shows blk3 disk"), "")
+        q.key("tab")                                  # the keys to the rows
+        # a new partition in the free space at the end, from the N button
+        q.key("end")
+        check(W + "free selected", q.wait(r"gui: row - 317\.0 MiB 194\.9 MiB free space <"), "")
+        check(W + "start asked", click_at(where(r"gui: button N New")) and
+              q.wait(r"gui: dialog New partition: Start \(free: 317 MiB to 511\.9 MiB\):"), "")
+        check(W + "start proposed", q.wait(r"gui: field 317 MiB"), "")
+        q.key("ret")
+        check(W + "size asked", q.wait(r"gui: dialog New partition: Size \(512M, 20G\.\.\., rest = 194\.9 MiB\):"), "")
+        q.type("20M\n")
+        check(W + "type asked", q.wait(r"gui: dialog Type: .*gui: item EFI system at \d+,\d+ <"), "")
+        for _ in range(7):                            # EFI system ... Linux filesystem
+            q.key("down")
+        q.key("ret")
+        check(W + "name asked", q.wait(r"gui: dialog New partition: Name \(optional, 36 characters\):"), "")
+        q.type("Test part\n")
+        check(W + "marked", q.wait(r"gui: row 4\* 317\.0 MiB 20\.0 MiB Linux filesystem Test part <"), "")
+        check(W + "added", q.wait(r"gui: message Partition 4 added\."), "")
+        # rename partition 3 (the proposed name replaced), delete partition 2 with the D button
+        check(W + "row 3", click_at(where(r"gui: row 3 ")) and q.wait(r"gui: row 3 .*<"), "")
+        q.key("r")
+        check(W + "rename asked", q.wait(r"gui: dialog Rename: Name \(36 characters\):.*gui: field Linux root"), "")
+        q.type("Root\n")
+        check(W + "renamed", q.wait(r"gui: message Partition 3 renamed\."), "")
+        check(W + "row 2", click_at(where(r"gui: row 2 ")) and q.wait(r"gui: row 2 .*<"), "")
+        check(W + "deleted", click_at(where(r"gui: button D Delete")) and q.wait(r"gui: message Partition 2 deleted\."), "")
+        # quitting and changing the disk with changes ask; No stays
+        q.key("esc")
+        check(W + "quit asks", q.wait(r"gui: dialog Quit \(warning\): Discard the unwritten changes\? \(Y/N\)"), "")
+        check(W + "No stays", click_at(dbutton("No")) and q.wait(r"gui: dialog closed") and
+              q.wait(r"gui: shows blk3 disk 512\.0 MiB GPT \*"), "")
+        q.key("pgdn")
+        check(W + "change asks", q.wait(r"gui: dialog Change disk \(warning\): Discard the unwritten changes"), "")
+        q.key("n")
+        check(W + "still the gpt disk", q.wait(r"gui: shows blk3 disk 512\.0 MiB GPT \*"), "")
+        # Write asks: Enter does nothing, No cancels, Yes writes
+        check(W + "write asks", click_at(where(r"gui: button Enter Write")) and
+              q.wait(r"gui: dialog Write \(warning\): Write the GPT table to blk3 \(512\.0 MiB\)\? \(Y/N\)"), "")
+        q.key("ret")
+        time.sleep(1)
+        check(W + "Enter does nothing", "gui: dialog closed" not in q.text()[q.text().rfind("gui: dialog Write"):], "")
+        q.key("n")
+        check(W + "N cancels", q.wait(r"gui: message Nothing was written\."), "")
+        q.key("ret")
+        check(W + "write asks again", q.wait(r"gui: dialog Write \(warning\): Write the GPT table"), "")
+        check(W + "Yes writes", click_at(dbutton("Yes")) and q.wait(r"gui: message Written\."), "")
+        # wipe partition 4
+        check(W + "row 4", click_at(where(r"gui: row 4 317")) and q.wait(r"gui: row 4 317.*<"), "")
+        q.key("w")
+        check(W + "wipe asks", q.wait(r'gui: dialog Wipe \(warning\): Wipe partition 4 of blk3 \(Linux filesystem, '
+                                      r'20\.0 MiB, "Test part"\)\? \(Y/N\)'), "")
+        q.key("y")
+        check(W + "pass 1 shown", q.wait(r"gui: wipe Wiping blk3 partition 4 \(20\.0 MiB\) pass 1"), "")
+        check(W + "pass 2 done", q.wait(r"gui: wipe Wiping blk3 partition 4 \(20\.0 MiB\) pass 2 100% 20\.0 MiB of 20\.0 MiB"), "")
+        check(W + "wiped", q.wait(r"gui: message Partition 4 wiped \(20\.0 MiB, 2 passes"), "")
+        # wipe partition 3 (200 MiB, writes slowed down) and stop it with the Stop button
+        check(W + "row 3 again", click_at(where(r"gui: row 3 ")) and q.wait(r"gui: row 3 .*<"), "")
+        check(W + "second wipe asks", click_at(where(r"gui: button W Wipe")) and
+              q.wait(r"gui: dialog Wipe \(warning\): Wipe partition 3 of blk3"), "")
+        check(W + "Yes wipes", click_at(dbutton("Yes")) and
+              q.wait(r"gui: wipe Wiping blk3 partition 3 \(200\.0 MiB\) pass 1"), "")
+        m = re.findall(r"gui: wipe Wiping blk3 partition 3 .*? stop at (\d+),(\d+)", q.text())
+        check(W + "Stop asks", m and click_at((int(m[-1][0]), int(m[-1][1]))) and
+              q.wait(r"gui: dialog Wipe \(warning\): Stop the wipe\? \(Y/N\)"), "")
+        q.key("y")
+        check(W + "stopped", q.wait(r"gui: message Wipe of partition 3 stopped in pass 1"), "")
+        # MBR disk: a logical partition in the free space after partition 5, its type clicked
+        q.key("pgdn")
+        check(W + "mbr opened", q.wait(r"gui: shows blk7 disk 512\.0 MiB MBR"), "")
+        q.wait(r"gui: shown")
+        check(W + "free inside", click_at(where(r"gui: row - 153\.0 MiB")) and q.wait(r"gui: row - 153\.0 MiB.*<"), "")
+        q.key("n")
+        check(W + "mbr start asked", q.wait(r"gui: dialog New partition: Start \(free:"), "")
+        q.key("ret")
+        q.type("30M\n")
+        check(W + "mbr type asked", q.wait(r"gui: dialog Type: .*gui: item Linux at"), "")
+        q.wait(r"gui: dialog shown")
+        m = re.findall(r"gui: item Linux at (\d+),(\d+)", q.text())
+        check(W + "type clicked", m and click_at((int(m[-1][0]), int(m[-1][1]))) and
+              q.wait(r"gui: row 7\* 194\.0 MiB 40\.0 MiB Linux swap logical"), "the old 6 is not 7")
+        check(W + "logical added", q.wait(r"gui: message Partition 6 added\."), "")
+        check(W + "row 5", click_at(where(r"gui: row 5 ")) and q.wait(r"gui: row 5 .*<"), "")
+        q.key("a")
+        check(W + "active", q.wait(r"gui: message Partition 5 active\."), "")
+        # backup before writing, write, delete the table, restore
+        check(W + "backup asks", click_at(where(r"gui: button B Backup")) and
+              q.wait(r"gui: dialog Backup: Backup of the table on the disk, to file: Volumes: fs0 \(ro\), fs1"), "")
+        q.key("ret")
+        check(W + "backup saved", q.wait(r"gui: message Saved fs1:\\partmgr-blk7\.bin \(\d+ bytes\)"), "")
+        q.key("ret")
+        check(W + "mbr write asks", q.wait(r"gui: dialog Write \(warning\): Write the MBR table to blk7"), "")
+        q.key("y")
+        check(W + "mbr written", q.wait(r"gui: message Written\."), "")
+        check(W + "table gone", click_at(where(r"gui: button X Delete table")) and
+              q.wait(r"gui: message Partition table deleted\."), "")
+        q.key("ret")
+        check(W + "delete asks", q.wait(r"gui: dialog Write \(warning\): Delete the partition table of blk7 "
+                                        r"\(512\.0 MiB\)\? \(Y/N\)"), "")
+        q.key("y")
+        check(W + "deleted written", q.wait(r"gui: shows blk7 disk 512\.0 MiB no table.*gui: message Written\."), "")
+        check(W + "restore asks", click_at(where(r"gui: button S Restore")) and
+              q.wait(r"gui: dialog Restore: Restore from file:"), "")
+        q.key("ret")
+        check(W + "restore warns", q.wait(r"gui: dialog Restore \(warning\): Restore fs1:\\partmgr-blk7\.bin to blk7\?"), "")
+        check(W + "restored", click_at(dbutton("Yes")) and q.wait(r"gui: message Restored from fs1:\\partmgr-blk7\.bin"), "")
+        check(W + "quit", click_at(where(r"gui: button Esc Quit")) and q.wait(r"gui: closed"), "")
+        check(W + "back to the firmware", q.wait(r"starting Boot\d+ \"UiApp\""), "")
+    finally:
+        q.stop()
+    verify_changes(W, gpt, mbr, mbr_before, P1, P3, P4)
 finally:
     shutil.rmtree(WORK, ignore_errors=True)
 

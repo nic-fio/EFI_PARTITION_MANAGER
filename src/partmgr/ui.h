@@ -37,7 +37,17 @@ bool ui_is_enter(const PalKey *k);
 bool ui_is_esc(const PalKey *k);
 
 /* Dialogs, drawn over the screen; the caller redraws it afterwards.
- * warn: white on red, for anything that destroys data. */
+ * warn: white on red, for anything that destroys data. When ui_dialogs is
+ * set (the graphical window, gui.c), the four functions below are its
+ * dialogs instead of the text ones; they behave the same. */
+typedef struct {
+    void (*message)(bool warn, const char *title, const char *text);
+    bool (*yesno)(bool warn, const char *title, const char *text);
+    bool (*input)(bool warn, const char *title, const char *text, char *buf, size_t n);
+    int (*menu)(const char *title, const char *const *items, int n, int sel);
+} UiDialogs;
+extern const UiDialogs *ui_dialogs;
+
 void ui_message(bool warn, const char *title, const char *text); /* waits for a key */
 bool ui_yesno(bool warn, const char *title, const char *text);  /* y / n, Esc = no; TEXT ends with (Y/N) */
 /* A text field prefilled with BUF (a key other than an editing one replaces

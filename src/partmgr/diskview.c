@@ -20,6 +20,10 @@ static uint64_t bs(const View *v)
 
 static void draw(View *v)
 {
+    if (pm_screen) {
+        pm_screen->redraw(v);
+        return;
+    }
     PmDisk *d = v->d;
     char size[32], left[200], right[80];
     pm_fmt_size(size, sizeof(size), d->size);
@@ -423,18 +427,7 @@ static void draw_wipe(WipeUi *w, int pass, uint64_t done, uint64_t total)
     char size[32], title[120], line[200], amount[32], speed[32], left[48];
     pm_fmt_size(size, sizeof(size), w->bytes);
     snprintf(title, sizeof(title), " Wiping %s partition %d  (%s)", w->v->d->name, w->num, size);
-    ui_text(col, row, bw, YELLOW, RED, title);
-    ui_text(col, row + 1, bw, WHITE, RED, "");
-    ui_textf(col, row + 2, bw, WHITE, RED, "  Pass %d of 2: %s", pass, pass == 1 ? "random data" : "zeros");
-    int barw = bw - 12, pct = total ? (int)(done * 100 / total) : 100, full = total ? (int)(done * barw / total) : barw;
-    Sbuf b;
-    sb_init(&b);
-    sb_adds(&b, "  [");
-    for (int i = 0; i < barw; i++)
-        sb_adds(&b, i < full ? "\u2588" : "\u2591");
-    sb_printf(&b, "] %3d%%", pct);
-    ui_text(col, row + 3, bw, WHITE, RED, b.s);
-    sb_free(&b);
+    int pct = total ? (int)(done * 100 / total) : 100;
     /* both passes count for the speed and the time left */
     uint64_t written = ((uint64_t)(pass - 1) * total + done) * bs, remaining = (2 * total) * bs - written;
     pm_fmt_size(amount, sizeof(amount), done * bs);
@@ -445,17 +438,33 @@ static void draw_wipe(WipeUi *w, int pass, uint64_t done, uint64_t total)
         snprintf(line, sizeof(line), "  %s of %s   %s/s   %s", amount, size, speed, left);
     } else
         snprintf(line, sizeof(line), "  %s of %s   estimating the time...", amount, size);
+    w->drawn = now;
+    if (pm_screen) {
+        pm_screen->wipe(title + 1, pass, pct, line + 2);
+        return;
+    }
+    ui_text(col, row, bw, YELLOW, RED, title);
+    ui_text(col, row + 1, bw, WHITE, RED, "");
+    ui_textf(col, row + 2, bw, WHITE, RED, "  Pass %d of 2: %s", pass, pass == 1 ? "random data" : "zeros");
+    int barw = bw - 12, full = total ? (int)(done * barw / total) : barw;
+    Sbuf b;
+    sb_init(&b);
+    sb_adds(&b, "  [");
+    for (int i = 0; i < barw; i++)
+        sb_adds(&b, i < full ? "\u2588" : "\u2591");
+    sb_printf(&b, "] %3d%%", pct);
+    ui_text(col, row + 3, bw, WHITE, RED, b.s);
+    sb_free(&b);
     ui_text(col, row + 4, bw, WHITE, RED, line);
     ui_text(col, row + 5, bw, WHITE, RED, "");
     ui_text(col, row + 6, bw, WHITE, RED, "  Esc: stop");
-    w->drawn = now;
 }
 
 static bool wipe_progress(void *ctx, int pass, uint64_t done, uint64_t total)
 {
     WipeUi *w = ctx;
     PalKey k;
-    if (pal_con_read_key(&k, 0) && ui_is_esc(&k)) {
+    if (pm_screen ? pm_screen->wipe_stop() : pal_con_read_key(&k, 0) && ui_is_esc(&k)) {
         if (ui_yesno(true, "Wipe", "Stop the wipe? (Y/N)"))
             return false;
         w->drawn = 0; /* the box is drawn again below */
@@ -661,6 +670,42 @@ static void restore(View *v)
 
 /* ---- the screen ---- */
 
+bool pm_disk_action(View *v, PalKey k)
+{
+    PtPart *p = pm_view_part(v);
+    Row *r = v->nrows ? &v->rows[v->sel] : NULL;
+    int ch = k.ch < 128 ? toupper((int)k.ch) : 0;
+    if (ui_is_enter(&k))
+        write_table(v);
+    else if (ch == 'N' && r && r->free)
+        new_partition(v, &r->f);
+    else if (ch == 'N')
+        pm_say(v, true, v->t.kind == PT_NONE ? "No partition table: Z makes one." : "Select a free area.");
+    else if (strchr("DTRAW", ch) && ch && !p)
+        pm_say(v, true, "Select a partition first.");
+    else if (ch == 'D')
+        delete_partition(v, p);
+    else if (ch == 'T')
+        change_type(v, p);
+    else if (ch == 'R')
+        rename_partition(v, p);
+    else if (ch == 'A')
+        toggle_active(v, p);
+    else if (ch == 'W')
+        wipe_partition(v, p);
+    else if (ch == 'Z')
+        new_table(v);
+    else if (ch == 'X')
+        delete_table(v);
+    else if (ch == 'B')
+        backup(v);
+    else if (ch == 'S')
+        restore(v);
+    else
+        return false;
+    return true;
+}
+
 void pm_disk_screen(PmDisk *d)
 {
     View v = { 0 };
@@ -674,9 +719,6 @@ void pm_disk_screen(PmDisk *d)
         draw(&v);
         PalKey k = ui_key();
         v.msg[0] = 0;
-        PtPart *p = pm_view_part(&v);
-        Row *r = v.nrows ? &v.rows[v.sel] : NULL;
-        int ch = k.ch < 128 ? toupper((int)k.ch) : 0;
         if (ui_is_esc(&k)) {
             if (!v.t.changed || ui_yesno(true, "Leave the disk", "Discard the unwritten changes? (Y/N)"))
                 break;
@@ -688,32 +730,8 @@ void pm_disk_screen(PmDisk *d)
             v.sel = 0;
         else if (k.scan == KEY_END && v.nrows)
             v.sel = v.nrows - 1;
-        else if (ui_is_enter(&k))
-            write_table(&v);
-        else if (ch == 'N' && r && r->free)
-            new_partition(&v, &r->f);
-        else if (ch == 'N')
-            pm_say(&v, true, v.t.kind == PT_NONE ? "No partition table: Z makes one." : "Select a free area.");
-        else if (strchr("DTRAW", ch) && ch && !p)
-            pm_say(&v, true, "Select a partition first.");
-        else if (ch == 'D')
-            delete_partition(&v, p);
-        else if (ch == 'T')
-            change_type(&v, p);
-        else if (ch == 'R')
-            rename_partition(&v, p);
-        else if (ch == 'A')
-            toggle_active(&v, p);
-        else if (ch == 'W')
-            wipe_partition(&v, p);
-        else if (ch == 'Z')
-            new_table(&v);
-        else if (ch == 'X')
-            delete_table(&v);
-        else if (ch == 'B')
-            backup(&v);
-        else if (ch == 'S')
-            restore(&v);
+        else
+            pm_disk_action(&v, k);
     }
     free(v.rows);
     if (v.loaded)

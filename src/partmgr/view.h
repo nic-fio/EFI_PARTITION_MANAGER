@@ -38,4 +38,20 @@ void pm_type_text(const View *v, const PtPart *p, char *out, size_t n);
 /* The message line. */
 void pm_say(View *v, bool err, const char *fmt, ...) __attribute__((format(printf, 3, 4)));
 
+/* The screen the actions of diskview.c draw on: NULL for the text screen,
+ * else the graphical window's functions. redraw shows the disk before a
+ * dialog; wipe shows the progress of a wipe (TITLE, the pass, the percentage
+ * and the amount line); wipe_stop says whether the user asked to stop it. */
+typedef struct {
+    void (*redraw)(View *v);
+    void (*wipe)(const char *title, int pass, int percent, const char *amount);
+    bool (*wipe_stop)(void);
+} PmScreen;
+extern const PmScreen *pm_screen;
+
+/* An action of the screen of a disk - the keys N, D, T, R, A, W, Enter, Z, X,
+ * B, S of 0.1.2, with every question and check they ask; false when K is
+ * none of them. The text screen and the window both call it. */
+bool pm_disk_action(View *v, PalKey k);
+
 #endif
