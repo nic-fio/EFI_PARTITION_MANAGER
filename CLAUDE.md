@@ -66,7 +66,8 @@ The reasoning for each is in [docs/decisions-and-history.md](docs/decisions-and-
 
 Releases: bump `PARTMGR_VERSION` in `src/partmgr/partmgr.h`, the version in
 both manuals, `docs/index.html` and the issue template, and take the
-screenshots again (the title bar shows the version); then tag `vX.Y.Z`. The
+screenshots again with `tools/screenshots.py` (the title bar shows the
+version); then tag `vX.Y.Z`. The
 annotated tag message becomes the release notes; CI builds `partmgr.efi` and
 publishes it. **0.x versions are published as pre-releases**: real hardware has
 not been tried yet.

@@ -86,7 +86,7 @@ way it reads or writes tables without breaking a disk.</p>
     <tr><td>Platform layer</td><td><code>src/pal</code></td><td>1,281</td><td>console, keys, time, files, volumes, entry point</td></tr>
     <tr><td>Runtime</td><td><code>src/lib</code></td><td>1,003</td><td>libc subset, printf, string buffer, UTF-8, CRC-32</td></tr>
     <tr><td>UEFI definitions</td><td><code>include</code></td><td>579</td><td>the UEFI types and protocols partmgr uses</td></tr>
-    <tr><td>Tools</td><td><code>tools</code></td><td>375</td><td>ELF→PE converter, linker script, documentation tool, setup script</td></tr>
+    <tr><td>Tools</td><td><code>tools</code></td><td>544</td><td>ELF→PE converter, linker script, documentation tool, setup script</td></tr>
     <tr><td>Tests</td><td><code>tests/partmgr</code></td><td>1,394</td><td>the Linux test tool, the table tests, the QEMU test</td></tr>
   </tbody>
 </table>
@@ -114,7 +114,7 @@ when they no longer match the tree — a new source file without a row in the ma
     <tr><td><code>src/pal/</code></td><td><code>pal.h</code> (the platform interface), <code>pal_efi.c</code>, <code>pal_common.c</code>,
         <code>efi_glue.h</code> (UEFI globals for UEFI-only modules).</td></tr>
     <tr><td><code>include/efi.h</code></td><td>UEFI types, services and protocols, written from the specification.</td></tr>
-    <tr><td><code>tools/</code></td><td><code>efi.lds</code>, <code>elf2efi.py</code>, <code>gen-docs.py</code>, <code>setup-dev.sh</code>.</td></tr>
+    <tr><td><code>tools/</code></td><td><code>efi.lds</code>, <code>elf2efi.py</code>, <code>gen-docs.py</code>, <code>screenshots.py</code>, <code>setup-dev.sh</code>.</td></tr>
     <tr><td><code>tests/partmgr/</code></td><td><code>pttool.c</code>, <code>run-tests.py</code>, <code>qemu-test.py</code>.</td></tr>
   </tbody>
 </table>
@@ -744,6 +744,7 @@ name matters.</p>
     <tr><td><code>tools/efi.lds</code></td><td>26</td><td>Linker script: ELF image at base 0, page-aligned sections</td></tr>
     <tr><td><code>tools/elf2efi.py</code></td><td>172</td><td>Converts the ELF shared object into a PE32+ EFI application with native base relocations</td></tr>
     <tr><td><code>tools/gen-docs.py</code></td><td>92</td><td>Writes and checks the line counts of this manual</td></tr>
+    <tr><td><code>tools/screenshots.py</code></td><td>169</td><td>Takes the screenshots of the manuals again: partmgr in QEMU on test disks, keys through the monitor</td></tr>
     <tr><td><code>tools/setup-dev.sh</code></td><td>85</td><td>Checks (or installs) the packages a clone needs and sets the git identity of the working copy</td></tr>
     <tr><td><code>tests/partmgr/pttool.c</code></td><td>257</td><td>Drives the table code on a disk image file: reads, changes, writes, backs up, restores, parses sizes (Linux only)</td></tr>
     <tr><td><code>tests/partmgr/qemu-test.py</code></td><td>358</td><td>partmgr.efi in QEMU/OVMF: started by the firmware, driven with keys, checked on the serial console and with sfdisk afterwards</td></tr>
