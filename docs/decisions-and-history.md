@@ -351,6 +351,6 @@ The work took place on 2026-09-23 (phases 1–9) and 2026-09-24 (phase 10).
 | Topic | Status |
 |---|---|
 | Real hardware | Not tried yet. The owner will try it when possible; reports are asked for with an issue template. |
-| Releases | 0.1.0, 0.1.1, 0.1.2 and 0.2.0 (the graphical interface), published as pre-releases: releases stay pre-releases while real hardware has not been tried (0.x versions). |
+| Releases | 0.1.0, 0.1.1 and 0.1.2 published as pre-releases, while real hardware had not been tried. 0.2.0 (the graphical interface) was published as a pre-release too, then made a full release by the owner (2026-09-24: "rendi la release definitiva"), so that the download link of the README leads to it; its notes still say it has not been tried on real hardware. |
 | Disk names | The kind comes from the device path (NVMe, SATA, USB...); the model name of the disk is not shown yet. |
 | Graphical interface | Built (P18–P25), released in 0.2.0. Not tried in QEMU: a firmware that has its own mouse driver, a 4K screen; real hardware will tell. A firmware that owns the mouse can only be tried on real hardware (P21). |

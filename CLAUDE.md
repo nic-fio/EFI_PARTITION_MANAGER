@@ -74,15 +74,18 @@ Releases: bump `PARTMGR_VERSION` in `src/partmgr/partmgr.h`, the version in
 both manuals, `docs/index.html` and the issue template, and take the
 screenshots again with `tools/screenshots.py` (the title bar shows the
 version); then tag `vX.Y.Z`. The
-annotated tag message becomes the release notes; CI builds `partmgr.efi` and
-publishes it. **0.x versions are published as pre-releases**: real hardware has
-not been tried yet.
+annotated tag message should become the release notes, but CI publishes the
+commit message instead (checkout loses the annotation): check the release text
+after publishing. CI builds `partmgr.efi` and publishes it; for `v0.*` tags it
+marks the release as a pre-release. The owner made 0.2.0 a full release
+("rendi la release definitiva") although real hardware has not been tried:
+ask the owner before each release whether it is a pre-release or a full one.
 
 ## Where the project stands
 
 Version 0.2.0: the graphical interface (P18–P25), built on 2026-09-24 in six
-stages, all done. 0.1.0, 0.1.1, 0.1.2 and 0.2.0 were released as
-pre-releases. With a graphics screen
+stages, all done. 0.1.0, 0.1.1 and 0.1.2 were released as pre-releases;
+0.2.0 as a full release, the latest, by the owner's choice. With a graphics screen
 `partmgr.efi` opens the window, with every action and graphical dialogs;
 without one, the text screens of 0.1.2. Tested in QEMU with OVMF and on disk
 images checked by sfdisk and parted. **Not tried on real hardware yet**: the
