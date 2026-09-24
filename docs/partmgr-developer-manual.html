@@ -82,15 +82,15 @@ way it reads or writes tables without breaking a disk.</p>
 <table>
   <thead><tr><th>Area</th><th>Directory</th><th>Lines</th><th>Content</th></tr></thead>
   <tbody>
-    <tr><td>partmgr</td><td><code>src/partmgr</code></td><td>4,733</td><td>table code, the UEFI program, the screens</td></tr>
+    <tr><td>partmgr</td><td><code>src/partmgr</code></td><td>5,549</td><td>table code, the UEFI program, the screens</td></tr>
     <tr><td>Platform layer</td><td><code>src/pal</code></td><td>1,624</td><td>console, keys, time, files, volumes, entry point</td></tr>
     <tr><td>Runtime</td><td><code>src/lib</code></td><td>1,003</td><td>libc subset, printf, string buffer, UTF-8, CRC-32</td></tr>
     <tr><td>UEFI definitions</td><td><code>include</code></td><td>742</td><td>the UEFI types and protocols partmgr uses</td></tr>
     <tr><td>Tools</td><td><code>tools</code></td><td>705</td><td>ELF→PE converter, linker script, documentation and font tools, setup script</td></tr>
-    <tr><td>Tests</td><td><code>tests/partmgr</code></td><td>1,887</td><td>the Linux test tools, the table tests, the drawing checks, the QEMU test</td></tr>
+    <tr><td>Tests</td><td><code>tests/partmgr</code></td><td>2,005</td><td>the Linux test tools, the table tests, the drawing checks, the QEMU test</td></tr>
   </tbody>
 </table>
-<p><code>partmgr.efi</code> is about 70 KB. The line counts here and in the <a href="#file-map">source file map</a> are
+<p><code>partmgr.efi</code> is about 370 KB, 278 KB of which are the glyphs of the font. The line counts here and in the <a href="#file-map">source file map</a> are
 not typed by hand: <code>make docs</code> counts the files and writes them into this page, and <code>make test</code> fails
 when they no longer match the tree — a new source file without a row in the map fails as well.</p>
 
@@ -108,10 +108,9 @@ when they no longer match the tree — a new source file without a row in the ma
     <tr><td><code>src/partmgr/units.c</code></td><td>Sizes as the user writes and reads them.</td></tr>
     <tr><td><code>src/partmgr/disks_efi.c</code>, <code>disks.h</code></td><td>The disks of the machine through block I/O.</td></tr>
     <tr><td><code>src/partmgr/ui.c</code>, <code>ui.h</code></td><td>Drawing and dialogs.</td></tr>
-    <tr><td><code>src/partmgr/font_inter.S</code></td><td>10</td><td>Includes the glyphs of font_inter.bin as read-only data</td></tr>
-    <tr><td><code>src/partmgr/gfx.c</code></td><td>314</td><td>Drawing on a canvas in memory: rectangles, frames, rounded rectangles, hatching, text with the embedded glyphs and kerning</td></tr>
-    <tr><td><code>src/partmgr/gfx.h</code></td><td>62</td><td>Canvases, colours, the drawing and text functions</td></tr>
-    <tr><td><code>src/partmgr/main.c</code>, <code>diskview.c</code>, <code>partmgr.h</code></td><td>The program: the list of disks and the screen of a disk.</td></tr>
+    <tr><td><code>src/partmgr/main.c</code>, <code>diskview.c</code>, <code>partmgr.h</code></td><td>The program: the list of disks and the screen of a disk (text).</td></tr>
+    <tr><td><code>src/partmgr/view.c</code>, <code>view.h</code></td><td>A disk as the screens show it: its table, rows, selection, message line.</td></tr>
+    <tr><td><code>src/partmgr/gui.c</code>, <code>gui.h</code></td><td>The graphical window.</td></tr>
     <tr><td><code>src/partmgr/gfx.c</code>, <code>gfx.h</code></td><td>Drawing for the graphical interface: canvases, shapes, text.</td></tr>
     <tr><td><code>src/partmgr/font_inter.S</code>, <code>font_inter.bin</code></td><td>The glyphs of the Inter font, made by <code>tools/gen-font.py</code>.</td></tr>
     <tr><td><code>src/lib/</code></td><td><code>rt.h</code> (the C subset every module includes), <code>libc.c</code>, <code>fmt.c</code> (vsnprintf),
@@ -156,12 +155,13 @@ when they no longer match the tree — a new source file without a row in the ma
 and <code>EFI_SRC</code>, which adds the program, the runtime and the platform layer:</p>
 <pre class="code" data-lang="make" data-title="Makefile">TABLE_SRC := src/partmgr/ptable.c src/partmgr/ptedit.c src/partmgr/ptwrite.c src/partmgr/units.c \
 	src/lib/crc32.c src/lib/util.c
-EFI_SRC := $(TABLE_SRC) src/partmgr/main.c src/partmgr/diskview.c src/partmgr/ui.c src/partmgr/disks_efi.c \
+GFX_SRC := src/partmgr/gfx.c src/partmgr/font_inter.S src/pal/pal_gfx_efi.c src/pal/pal_mouse_efi.c
+EFI_SRC := $(TABLE_SRC) src/partmgr/main.c src/partmgr/view.c src/partmgr/diskview.c src/partmgr/ui.c \
+	src/partmgr/gui.c src/partmgr/disks_efi.c $(GFX_SRC) \
 	src/lib/libc.c src/lib/fmt.c src/pal/pal_efi.c src/pal/pal_common.c</pre>
 <p><code>GFX_SRC</code> is the drawing code of the graphical interface, its font and its platform part (the screen and
-the pointer); until the window
-is built it goes only into <code>build/tests/gfxdemo.efi</code> (<code>DEMO_SRC</code>), so <code>partmgr.efi</code> is still the
-program of 0.1.2. The glyphs enter the image through the assembler: <code>font_inter.S</code> includes
+the pointer); it goes into <code>partmgr.efi</code> and into <code>build/tests/gfxdemo.efi</code> (<code>DEMO_SRC</code>). The
+glyphs enter the image through the assembler: <code>font_inter.S</code> includes
 <code>font_inter.bin</code> with <code>.incbin</code> as read-only data.</p>
 
 <!-- ===================================================================== -->
@@ -611,10 +611,12 @@ scrolling list; <code>ui_yesno</code> takes <kbd>Y</kbd>, <kbd>N</kbd>, <kbd>Esc
 white on red: every operation that destroys data uses them.</p>
 
 <h3 id="diskview" data-index="diskview.c;View;confirm_destroy">The screen of a disk: diskview.c</h3>
-<p>A <code>View</code> holds the disk, its <code>PtTable</code>, the rows (partitions and free areas merged by start), the
-selection and the message line. Every action follows the same pattern: <code>may_change</code> refuses on the boot disk
+<p>A <code>View</code> (<code>view.h</code>, shared with the window) holds the disk, its <code>PtTable</code>, the rows
+(partitions and free areas merged by start), the selection and the message line; <code>view.c</code> reads the table
+(<code>pm_view_load</code>), builds the rows (<code>pm_view_rows</code>), writes the message line (<code>pm_say</code>) and the
+type names (<code>pm_type_text</code>). Every action follows the same pattern: <code>may_change</code> refuses on the boot disk
 and read-only media; dialogs collect the input; one <code>pt_*</code> call changes the table and returns a message on
-refusal; <code>build_rows</code> and <code>say</code> update the screen. Only three functions reach the disk:
+refusal; <code>pm_view_rows</code> and <code>pm_say</code> update the screen. Only three functions reach the disk:
 <code>write_table</code> (Write), <code>restore</code>, <code>wipe_partition</code> and <code>backup</code> (which only reads it);
 the first three go through <code>confirm_destroy</code>, the red warning answered with <kbd>Y</kbd> or <kbd>N</kbd>
 (<code>ui_yesno</code>, where <kbd>Enter</kbd> does nothing, so a key pressed twice cannot write); a refusal leaves
@@ -631,8 +633,9 @@ exact, so that a proposed start reads back to the same block.</p>
 <!-- ===================================================================== -->
 <h2 id="graphics">The graphical interface</h2>
 
-<p class="chapter-intro">Being built (decisions P18–P25): the drawing, the font and the pointer are done; the window
-and the actions come next. Until then <code>partmgr.efi</code> shows the text screens of 0.1.2.</p>
+<p class="chapter-intro">Being built (decisions P18–P25): the drawing, the font, the pointer and the window are done;
+the actions come next — until then the window only looks, and its action buttons say so. Without a graphics screen
+<code>partmgr.efi</code> shows the text screens of 0.1.2.</p>
 
 <h3 id="gfx" data-index="gfx.c;GfxCanvas;gfx_round_rect">Drawing: gfx.c</h3>
 <p>A <code>GfxCanvas</code> is an image in memory, <code>w</code> × <code>h</code> pixels of <code>0x00RRGGBB</code>, with a clip
@@ -683,6 +686,40 @@ largest size not above the one asked for. The file is about 280 KB; its layout i
 Tablets and touchscreens have no boot protocol; they work only through a firmware driver. The pointer is drawn only
 when a device was found. Two cases cannot be tried in QEMU: a firmware that has a mouse driver, and one that has not
 connected its USB controllers.</p>
+
+<h3 id="window" data-index="gui.c;pm_gui;Layout">The window: gui.c</h3>
+<p><code>app_main</code> calls <code>pm_gui</code> first, before any change of the text mode (which on some firmware changes
+the screen too); it returns false, with nothing changed, when <code>pal_gfx_open</code> finds no graphics screen, and the
+text screens run. The window follows the approved mockup (<code>docs/assets/gui-mockup.png</code>):</p>
+<ul>
+  <li><strong>Layout</strong> (<code>layout</code>): the font by the screen's height — 16 pixels up to 600 rows, 20 up to
+      900, 26 up to 1300, 32 above — and every measure from its line height: the title bar, the list of disks (a
+      quarter of the width, within 10 and 14 lines), the disk's line, the bar (two lines high), the table (as many rows
+      as fit above the notes), the message line and the two rows of buttons. The buttons keep the group names
+      <em>Partition:</em> and <em>Disk:</em> when both rows fit, else lose them, else get narrower gaps.</li>
+  <li><strong>The disks</strong>: name, kind and size, the table and the number of partitions (read once, and again with
+      <kbd>F5</kbd>), and <em>started from here: read only</em> or <em>write-protected</em>. At start the first disk partmgr may
+      change is opened.</li>
+  <li><strong>The bar</strong>: every row at its place to scale (at least 3 pixels wide), coloured by type — EFI orange,
+      Linux green, swap red, Microsoft and FAT blue, others lilac —, the free space hatched, the extended partition a band
+      around its logical partitions. A label is whole, or the number only, or absent: never cut. The selected row is
+      framed.</li>
+  <li><strong>The table</strong>: the columns of the text screen at the proportions of the mockup; a cell may run over the
+      next ones while they are empty; changed partitions in amber with their <code>*</code>, free space in grey.</li>
+  <li><strong>Keys</strong>: the arrows, <kbd>Home</kbd> and <kbd>End</kbd> move in the list that has the keys — the rows,
+      or the disks after <kbd>Tab</kbd>, which moves them back and forth; its selection is blue, the other's pale.
+      <kbd>Page Up</kbd> and <kbd>Page Down</kbd> change the disk at any time, <kbd>F5</kbd> reads the disks again,
+      <kbd>Esc</kbd> quits.</li>
+  <li><strong>The mouse</strong>: a click on a button is its key; on a disk it opens it; on a row of the table or a block
+      of the bar it selects it. The button under the pointer is highlighted. The pointer is drawn on the screen over the
+      canvas, which stays as it is, so moving it copies only the two small areas it leaves and enters.</li>
+</ul>
+<p>After every drawing <code>log_window</code> describes the window on the serial port of the console
+(<code>pal_serial_log</code>), one line per item, each with the point to click on: <code>gui: disk …</code>,
+<code>gui: shows …</code>, <code>gui: row …</code> (the cells as the text screen writes them, <code>&lt;</code> on the
+selection, the place in the table and in the bar), <code>gui: button …</code> (<code>hover</code> under the pointer),
+<code>gui: focus …</code>, <code>gui: message …</code>, <code>gui: pointer …</code>, then <code>gui: shown</code>. The QEMU test
+reads the window from there. On a machine whose console is not on a serial port nothing is written.</p>
 
 <!-- ===================================================================== -->
 <h2 id="testing">Testing</h2>
@@ -747,7 +784,9 @@ when given; the QEMU test compares it with the screen.</p>
 and drives partmgr with <code>sendkey</code> through the QEMU monitor. Everything partmgr draws also reaches the serial
 console; the test strips the terminal sequences, makes every run of blanks one space (so dialog texts wrapped over two
 lines still match), and waits for the expected text after the previous match — the screen is drawn top to bottom, so
-rows come before the message line under them.</p>
+rows come before the message line under them. The first two parts run QEMU without a video card
+(<code>-vga none</code>): with no graphics screen partmgr shows its text screens, which they check. The boot disk is then
+<code>blk0</code> or <code>blk1</code>, as the PCI slots fall.</p>
 <ol class="steps">
   <li><strong>Looking:</strong> the list (the boot disk marked), every row of both disks, the return to the firmware
       (its setup menu starts), and the disks identical byte for byte.</li>
@@ -772,6 +811,13 @@ rows come before the message line under them.</p>
       exactly that point, and the screen must be the test picture with the arrow there, pixel for pixel. Moved far past
       the top left corner, the pointer must stop at 0,0. A USB tablet (no boot protocol) and no USB device at all must
       find no pointer. Broken on purpose — the vertical movement reversed — four checks fail.</li>
+  <li><strong>The window:</strong> partmgr with the video card and QEMU's USB mouse, on fresh copies of the two test disks.
+      From the description on the serial port: the three disks (the boot disk read only, the GPT disk opened), every row,
+      the buttons; on the screen, the title bar and the selected row in their colours. Keys: a row down, <kbd>Tab</kbd> to
+      the disks and back, a disk down and up (the MBR disk with its logical partitions and free areas),
+      <kbd>Page Down</kbd>, <kbd>Page Up</kbd>, <kbd>F5</kbd>, an action key. The mouse, moved to the points the description
+      gives: a click on a disk, on a row, on a block of the bar, on a button; the button under the pointer highlighted;
+      Quit, and the firmware goes on. The disks must be unchanged, byte for byte.</li>
 </ol>
 
 <!-- ===================================================================== -->
@@ -837,8 +883,13 @@ name matters.</p>
     <tr><td><code>src/pal/pal_efi.c</code></td><td>1052</td><td>Platform layer for UEFI: entry point, console, keys, time, files, volumes, arguments</td></tr>
     <tr><td><code>src/partmgr/disks.h</code></td><td>23</td><td>A disk as the table code sees it (name, kind, size, boot disk, read and write functions)</td></tr>
     <tr><td><code>src/partmgr/disks_efi.c</code></td><td>174</td><td>Finds the whole disks through block I/O, numbered by block device; recognises the disk partmgr was started from; random numbers from EFI_RNG_PROTOCOL</td></tr>
-    <tr><td><code>src/partmgr/diskview.c</code></td><td>814</td><td>The screen of one disk: rows, keys, every action, Write, backup and restore, the wipe and its progress</td></tr>
-    <tr><td><code>src/partmgr/main.c</code></td><td>86</td><td>app_main and the list of disks</td></tr>
+    <tr><td><code>src/partmgr/diskview.c</code></td><td>721</td><td>The screen of one disk in text: rows, keys, every action, Write, backup and restore, the wipe and its progress</td></tr>
+    <tr><td><code>src/partmgr/font_inter.S</code></td><td>10</td><td>Includes the glyphs of font_inter.bin as read-only data</td></tr>
+    <tr><td><code>src/partmgr/gfx.c</code></td><td>314</td><td>Drawing on a canvas in memory: rectangles, frames, rounded rectangles, hatching, the pointer, text with the embedded glyphs and kerning</td></tr>
+    <tr><td><code>src/partmgr/gfx.h</code></td><td>62</td><td>Canvases, colours, the drawing and text functions</td></tr>
+    <tr><td><code>src/partmgr/gui.c</code></td><td>768</td><td>The graphical window: layout from the screen and the font, the disks, the bar, the table, the buttons, keys and clicks, the pointer, the description for the tests</td></tr>
+    <tr><td><code>src/partmgr/gui.h</code></td><td>11</td><td>pm_gui: the window, when there is a graphics screen</td></tr>
+    <tr><td><code>src/partmgr/main.c</code></td><td>91</td><td>app_main and the list of disks</td></tr>
     <tr><td><code>src/partmgr/partmgr.h</code></td><td>17</td><td>What the screens share: version, table names, the disk screen</td></tr>
     <tr><td><code>src/partmgr/ptable.c</code></td><td>402</td><td>Reads GPT (both copies checked, the backup used when the primary is damaged) and MBR tables, extended and logical partitions included; partition type names and the list to choose from</td></tr>
     <tr><td><code>src/partmgr/ptable.h</code></td><td>145</td><td>The description of a disk's partition table and the functions that read, change and write it</td></tr>
@@ -849,6 +900,8 @@ name matters.</p>
     <tr><td><code>src/partmgr/ui.h</code></td><td>49</td><td>The drawing and dialog functions, the EFI colours</td></tr>
     <tr><td><code>src/partmgr/units.c</code></td><td>106</td><td>Sizes as the user writes and reads them</td></tr>
     <tr><td><code>src/partmgr/units.h</code></td><td>20</td><td>Size parsing and formatting</td></tr>
+    <tr><td><code>src/partmgr/view.c</code></td><td>84</td><td>A disk as the screens show it: reading its table, the rows in disk order, the selection, type names, the message line</td></tr>
+    <tr><td><code>src/partmgr/view.h</code></td><td>41</td><td>View and Row, shared by the text screen and the window</td></tr>
     <tr><td><code>tools/efi.lds</code></td><td>26</td><td>Linker script: ELF image at base 0, page-aligned sections</td></tr>
     <tr><td><code>tools/elf2efi.py</code></td><td>172</td><td>Converts the ELF shared object into a PE32+ EFI application with native base relocations</td></tr>
     <tr><td><code>tools/gen-docs.py</code></td><td>92</td><td>Writes and checks the line counts of this manual</td></tr>
@@ -859,7 +912,7 @@ name matters.</p>
     <tr><td><code>tests/partmgr/gfxscene.c</code></td><td>120</td><td>The test picture: every drawing primitive and every face of the font, laid out like the window</td></tr>
     <tr><td><code>tests/partmgr/gfxtool.c</code></td><td>164</td><td>The drawing code on Linux: the checks, and the test picture as a PPM file</td></tr>
     <tr><td><code>tests/partmgr/pttool.c</code></td><td>257</td><td>Drives the table code on a disk image file: reads, changes, writes, backs up, restores, parses sizes (Linux only)</td></tr>
-    <tr><td><code>tests/partmgr/qemu-test.py</code></td><td>478</td><td>partmgr.efi in QEMU/OVMF: started by the firmware, driven with keys, checked on the serial console and with sfdisk afterwards</td></tr>
+    <tr><td><code>tests/partmgr/qemu-test.py</code></td><td>596</td><td>partmgr.efi in QEMU/OVMF: started by the firmware, driven with keys, checked on the serial console and with sfdisk afterwards</td></tr>
     <tr><td><code>tests/partmgr/run-tests.py</code></td><td>779</td><td>The table tests: the reader and the writer compared with sfdisk and parted, damaged images, sizes, backups restored byte for byte</td></tr>
   </tbody>
 </table>

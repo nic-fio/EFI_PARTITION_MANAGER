@@ -1,7 +1,8 @@
 /* partmgr.efi: EFI Partition Manager, a full-screen partition manager for
- * UEFI firmware. This screen lists the disks, diskview.c shows one disk and
- * changes its partition table. */
-#include "partmgr.h"
+ * UEFI firmware. With a graphics screen the window of gui.c runs; without
+ * one, the text screens: this one lists the disks, diskview.c shows one disk
+ * and changes its partition table. */
+#include "gui.h"
 
 const char app_name[] = "partmgr";
 
@@ -48,6 +49,10 @@ static void draw(PmDisk *d, int n, int sel)
 int app_main(int argc, char **argv)
 {
     (void)argc, (void)argv;
+    /* the graphical window when the firmware has a graphics screen (P18);
+     * decided before the text mode changes, which may change the screen */
+    if (pm_gui())
+        return 0;
     /* at least 100 columns when the firmware has such a mode: the screens and
      * the key bars are much easier to read than at 80; the old mode comes
      * back on exit */

@@ -19,10 +19,11 @@ BUILD   := build
 TABLE_SRC := src/partmgr/ptable.c src/partmgr/ptedit.c src/partmgr/ptwrite.c src/partmgr/units.c \
 	src/lib/crc32.c src/lib/util.c
 PAL_SRC := src/lib/libc.c src/lib/fmt.c src/lib/util.c src/lib/crc32.c src/pal/pal_efi.c src/pal/pal_common.c
-EFI_SRC := $(TABLE_SRC) src/partmgr/main.c src/partmgr/diskview.c src/partmgr/ui.c src/partmgr/disks_efi.c \
-	src/lib/libc.c src/lib/fmt.c src/pal/pal_efi.c src/pal/pal_common.c
-# the drawing code of the graphical interface and its font
+# the drawing code of the graphical interface, its font, the screen and the pointer
 GFX_SRC := src/partmgr/gfx.c src/partmgr/font_inter.S src/pal/pal_gfx_efi.c src/pal/pal_mouse_efi.c
+EFI_SRC := $(TABLE_SRC) src/partmgr/main.c src/partmgr/view.c src/partmgr/diskview.c src/partmgr/ui.c \
+	src/partmgr/gui.c src/partmgr/disks_efi.c $(GFX_SRC) \
+	src/lib/libc.c src/lib/fmt.c src/pal/pal_efi.c src/pal/pal_common.c
 # gfxdemo.efi: the test picture on the screen, for make qemu-test
 DEMO_SRC := tests/partmgr/gfxdemo.c tests/partmgr/gfxscene.c $(GFX_SRC) $(PAL_SRC)
 
@@ -38,7 +39,7 @@ EFI_LDFLAGS := -nostdlib -znocombreloc -shared -Bsymbolic --no-undefined --build
 HOST_CFLAGS := -std=gnu11 -O1 -g $(WARN) -DPARTMGR_HOST -D_FILE_OFFSET_BITS=64 -Iinclude \
 	-fsanitize=address,undefined
 
-EFI_OBJ := $(EFI_SRC:%.c=$(BUILD)/efi/%.o)
+EFI_OBJ := $(patsubst %.S,$(BUILD)/efi/%.o,$(EFI_SRC:%.c=$(BUILD)/efi/%.o))
 DEMO_OBJ := $(patsubst %.S,$(BUILD)/efi/%.o,$(DEMO_SRC:%.c=$(BUILD)/efi/%.o))
 
 all: $(BUILD)/partmgr.efi

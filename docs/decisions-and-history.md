@@ -234,6 +234,10 @@ Protocol) besides the text console.
 - **Esc quits** (asking first when changes are not written): with one window
   there is no screen to go back to. **F5 reads the disks again**, since R
   already means Rename.
+- **Changing the disk from the keyboard** (asked when the window was built):
+  **Tab** moves the keys between the list of disks and the table of rows, and
+  **Page Up / Page Down** change the disk at any time (owner: both, over
+  either alone). At start the first disk partmgr may change is opened.
 
 ### P21. A mouse driver of its own
 
@@ -336,4 +340,4 @@ The work took place on 2026-09-23 (phases 1–9) and 2026-09-24 (phase 10).
 | Real hardware | Not tried yet. The owner will try it when possible; reports are asked for with an issue template. |
 | Releases | 0.1.0, 0.1.1 and 0.1.2, published as pre-releases: releases stay pre-releases while real hardware has not been tried (0.x versions). |
 | Disk names | The kind comes from the device path (NVMe, SATA, USB...); the model name of the disk is not shown yet. |
-| Graphical interface | Designed (P18–P25), not built yet. A firmware that owns the mouse can only be tried on real hardware (P21). |
+| Graphical interface | Being built (P18–P25): drawing, font, pointer and window done; the actions next. A firmware that owns the mouse can only be tried on real hardware (P21). |

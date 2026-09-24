@@ -5,7 +5,8 @@ Boots partmgr.efi from a virtual FAT disk (as \EFI\BOOT\BOOTX64.EFI, so the
 firmware starts it), attaches test disks made with sfdisk (a GPT one and an MBR
 one with logical partitions) and drives partmgr with keys sent through the
 QEMU monitor. What partmgr draws reaches the serial console too; the test
-waits there for the lines it expects.
+waits there for the lines it expects. Parts 1 and 2 run QEMU without a video
+card: no graphics screen, so partmgr shows the text screens (its fallback).
 
 1. Looking: the disks numbered by block device,
    the disk partmgr was started from marked read-only, the partitions and free
@@ -32,6 +33,13 @@ waits there for the lines it expects.
    and the screen must be the test picture with the arrow there), and stop at
    the edges. A USB tablet (left out, decision P21) and no USB device at all
    must find no pointer.
+5. The window: partmgr with a graphics screen and a USB mouse shows its
+   window, described on the serial port: the disks (the boot disk read only,
+   the first one it may change opened), the rows of each disk, the buttons.
+   Keys: the rows, Tab between the disks and the rows, Page Up and Page Down,
+   F5; the actions answer that they come later. Mouse: a click on a disk, on
+   a row, on a block of the bar, on a button; a button under the pointer is
+   highlighted. Esc quits; the disks are unchanged, byte for byte.
 
     tests/partmgr/qemu-test.py OVMF.fd build/partmgr.efi build/tests/gfxdemo.efi build/tests/gfxtool
 """
@@ -190,11 +198,13 @@ try:
                "2 : start=104448, size=614400, type=5\n5 : start=106496, size=204800, type=83\n"
                "6 : start=397312, size=81920, type=82\n")
     before = {d: digest(d) for d in (gpt, mbr)}
-    q = Qemu("look", [gpt, mbr])
+    TEXT = ("-vga", "none")  # no graphics screen: the text screens
+    q = Qemu("look", [gpt, mbr], extra=TEXT)
     try:
-        # screen 1: blk1 is the boot disk (the FAT one), blk3 and blk7 the test disks
+        # screen 1: the boot disk (the FAT one: blk0 or blk1, as the PCI slots fall
+        # without a video card), blk3 and blk7 the test disks
         check("disk list", q.wait(r"EFI Partition Manager " + re.escape(VERSION) + r" +Select a disk", 90), "partmgr did not start")
-        check("boot disk", q.wait(r"blk1 +disk +504\.0 MiB +MBR +1 partition +started from here: read only"),
+        check("boot disk", q.wait(r"blk\d +disk +504\.0 MiB +MBR +1 partition +started from here: read only"),
               "the boot disk is not marked read-only")
         check("gpt disk listed", q.wait(r"blk3 +disk +512\.0 MiB +GPT +3 partitions"), "blk3 missing")
         check("mbr disk listed", q.wait(r"blk7 +disk +512\.0 MiB +MBR +3 partitions"), "blk7 missing")
@@ -239,12 +249,12 @@ try:
         with open(gpt, "r+b") as f:
             f.seek(first * 512)
             f.write(bytes([byte]) * (blocks_n * 512))
-    q = Qemu("change", [gpt, mbr, work], slow=(gpt,))
+    q = Qemu("change", [gpt, mbr, work], slow=(gpt,), extra=TEXT)
     try:
         check("list", q.wait(r"Select a disk", 90), "partmgr did not start")
         # the boot disk (first row) cannot be changed
         q.key("ret")
-        check("boot disk opened", q.wait(r"blk1 +disk"), "")
+        check("boot disk opened", q.wait(r"blk\d +disk +504\.0 MiB"), "")
         q.key("z")
         check("boot disk refuses", q.wait(r"cannot be changed"), "no refusal")
         q.key("spc")
@@ -469,6 +479,114 @@ try:
             check(name + ": closed", q.wait(r"gfxdemo: closed"), "")
         finally:
             q.stop()
+
+    # ------------------------------------------------------------ the window
+    gpt = disk("gpt-gui.img", 512, 'label: gpt\nsize=100M, type=U, name="EFI system"\n'
+               'size=16M, type=E3C9E316-0B5C-4DB8-817D-F92DF00215AE\nsize=200M, type=L, name="Linux root"\n')
+    mbr = disk("mbr-gui.img", 512, "label: dos\n1 : start=2048, size=102400, type=c, bootable\n"
+               "2 : start=104448, size=614400, type=5\n5 : start=106496, size=204800, type=83\n"
+               "6 : start=397312, size=81920, type=82\n")
+    before = {d: digest(d) for d in (gpt, mbr)}
+    q = Qemu("window", [gpt, mbr], extra=usb + ("-device", "usb-mouse"))
+
+    def frame():
+        """The last complete description of the window."""
+        t = q.text()
+        end = t.rfind("gui: shown")
+        start = t.rfind("gui: window", 0, end)
+        return t[start:end] if start >= 0 and end >= 0 else ""
+
+    def where(pattern):
+        """The position logged after PATTERN in the last frame ("... at X,Y")."""
+        m = re.search(pattern + r".*? at (\d+),(\d+)", frame())
+        return (int(m.group(1)), int(m.group(2))) if m else None
+
+    def move_to(x, y):
+        """Moves QEMU's mouse until partmgr's pointer is at X, Y."""
+        m = re.findall(r"gui: pointer (\d+),(\d+)", q.text())
+        px, py = (int(m[-1][0]), int(m[-1][1])) if m else (0, 0)
+        while (px, py) != (x, y):
+            dx, dy = max(-100, min(100, x - px)), max(-100, min(100, y - py))
+            q.monitor("mouse_move %d %d" % (dx, dy))
+            px, py = px + dx, py + dy
+        return q.wait(r"gui: pointer %d,%d" % (x, y), 10)
+
+    def click_at(pos):
+        if not pos or not move_to(*pos):
+            return False
+        q.monitor("mouse_button 1")
+        q.monitor("mouse_button 0")
+        return True
+
+    try:
+        check("window: pointer", q.wait(r"gui: pointer devices: firmware 0, partmgr's USB driver 1", 90), q.text()[-300:])
+        check("window: shown", q.wait(r"gui: window 1280x800 font 20"), "")
+        check("window: boot disk", q.wait(r"gui: disk blk1 disk 504\.0 MiB MBR, 1 partition, "
+                                          r"started from here: read only at"), "")
+        check("window: gpt disk opened", q.wait(r"gui: disk blk3 disk 512\.0 MiB GPT, 3 partitions < at"), "")
+        check("window: mbr disk", q.wait(r"gui: disk blk7 disk 512\.0 MiB MBR, 3 partitions at"), "")
+        check("window: shows gpt", q.wait(r"gui: shows blk3 disk 512\.0 MiB GPT"), "")
+        check("window: row 1", q.wait(r"gui: row 1 1\.0 MiB 100\.0 MiB EFI system EFI system < at"), "")
+        check("window: row 2", q.wait(r"gui: row 2 101\.0 MiB 16\.0 MiB Microsoft reserved at"), "")
+        check("window: row 3", q.wait(r"gui: row 3 117\.0 MiB 200\.0 MiB Linux filesystem Linux root at"), "")
+        check("window: free", q.wait(r"gui: row - 317\.0 MiB 194\.9 MiB free space at"), "")
+        check("window: buttons", q.wait(r"gui: button Esc Quit at \d+,\d+ .*gui: button F5 Rescan at"), "")
+        check("window: shown whole", q.wait(r"gui: shown"), "")
+        # what is on the screen: the title bar and the selected row
+        time.sleep(0.5)
+        screen = os.path.join(WORK, "window.ppm")
+        q.screendump(screen)
+        sw, sh, sp = ppm(screen)
+        pixel = lambda x, y: tuple(sp[3 * (y * sw + x):3 * (y * sw + x) + 3])
+        row1 = where(r"gui: row 1 ")
+        check("window: title bar on the screen", (sw, sh) == (1280, 800) and pixel(5, 5) == (0x1B, 0x4F, 0x9C),
+              str(pixel(5, 5)))
+        check("window: selected row on the screen", row1 and pixel(row1[0], row1[1]) == (0x1F, 0x6F, 0xEB), str(row1))
+        # keys
+        q.key("down")
+        check("key: down", q.wait(r"gui: row 2 101\.0 MiB 16\.0 MiB Microsoft reserved < at"), "")
+        q.key("tab")
+        check("key: tab to the disks", q.wait(r"gui: focus disks"), "")
+        q.key("down")
+        check("key: next disk", q.wait(r"gui: shows blk7 disk 512\.0 MiB MBR"), "")
+        check("mbr: logical", q.wait(r"gui: row 5 52\.0 MiB 100\.0 MiB Linux logical at"), "")
+        check("mbr: free inside", q.wait(r"gui: row - 153\.0 MiB 40\.9 MiB free space \(for logical partitions\) at"), "")
+        check("mbr: swap", q.wait(r"gui: row 6 194\.0 MiB 40\.0 MiB Linux swap logical at"), "")
+        q.key("up")
+        check("key: previous disk", q.wait(r"gui: shows blk3 disk"), "")
+        q.key("tab")
+        check("key: tab to the rows", q.wait(r"gui: focus partitions"), "")
+        q.key("pgdn")
+        check("key: page down", q.wait(r"gui: shows blk7 disk"), "")
+        q.key("pgup")
+        check("key: page up", q.wait(r"gui: shows blk3 disk"), "")
+        q.key("f5")
+        check("key: F5", q.wait(r"gui: message Disks read again\."), "")
+        q.key("n")
+        check("key: an action", q.wait(r"gui: message Not in the graphical interface yet"), "")
+        # the mouse
+        check("click: a disk", click_at(where(r"gui: disk blk7 ")) and q.wait(r"gui: shows blk7 disk"), "")
+        check("click: focus on the disks", q.wait(r"gui: focus disks"), "")
+        check("click: a row", click_at(where(r"gui: row 6 ")) and
+              q.wait(r"gui: row 6 194\.0 MiB 40\.0 MiB Linux swap logical < at"), "")
+        check("click: focus on the rows", q.wait(r"gui: focus partitions"), "")
+        m = re.search(r"gui: row 5 .*? bar (\d+),(\d+)", frame())
+        check("click: a block of the bar", m and click_at((int(m.group(1)), int(m.group(2)))) and
+              q.wait(r"gui: row 5 52\.0 MiB 100\.0 MiB Linux logical < at"), "")
+        btn = where(r"gui: button N New")
+        # the window is drawn again, the button highlighted, as soon as the pointer
+        # enters it: the last complete description says so
+        check("hover: a button", btn and move_to(*btn) and
+              re.search(r"gui: button N New at \d+,\d+ hover", frame()), frame()[-400:])
+        q.monitor("mouse_button 1")
+        q.monitor("mouse_button 0")
+        check("click: a button is its key", q.wait(r"gui: message Not in the graphical interface yet"), "")
+        check("click: Quit", click_at(where(r"gui: button Esc Quit")) and q.wait(r"gui: closed"), "")
+        check("window: back to the firmware", q.wait(r"starting Boot\d+ \"UiApp\""), "")
+    finally:
+        q.stop()
+    for d in (gpt, mbr):
+        check("window: untouched", digest(d) == before[d], os.path.basename(d) + " changed")
 finally:
     shutil.rmtree(WORK, ignore_errors=True)
 

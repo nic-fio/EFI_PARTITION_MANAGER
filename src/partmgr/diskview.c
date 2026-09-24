@@ -6,24 +6,7 @@
  * is; restore and wipe write it at once, after their own warning. The
  * disk partmgr was started from, or a write-protected one, can only be
  * looked at and backed up. */
-#include "partmgr.h"
-
-typedef struct {
-    bool free;
-    int part;   /* index in t.parts */
-    PtFree f;
-    uint64_t start;
-} Row;
-
-typedef struct {
-    PmDisk *d;
-    PtTable t;
-    bool loaded;
-    Row *rows;
-    int nrows, sel, top;
-    char msg[240];
-    bool msg_err;
-} View;
+#include "view.h"
 
 /* the file of the last backup or restore, proposed again for the whole session */
 static char last_file[200];
@@ -33,81 +16,7 @@ static uint64_t bs(const View *v)
     return v->d->dev.bsize;
 }
 
-static void say(View *v, bool err, const char *fmt, ...) __attribute__((format(printf, 3, 4)));
-static void say(View *v, bool err, const char *fmt, ...)
-{
-    va_list ap;
-    va_start(ap, fmt);
-    vsnprintf(v->msg, sizeof(v->msg), fmt, ap);
-    va_end(ap);
-    v->msg_err = err;
-}
-
-static int row_cmp(const void *a, const void *b)
-{
-    const Row *x = a, *y = b;
-    return x->start < y->start ? -1 : x->start > y->start;
-}
-
-/* The rows of the screen: partitions and free areas in disk order. */
-static void build_rows(View *v)
-{
-    free(v->rows);
-    PtFree *fr;
-    int nf = pt_free_space(&v->t, &fr);
-    v->rows = xcalloc(v->t.nparts + nf + 1, sizeof(Row));
-    v->nrows = 0;
-    for (int i = 0; i < v->t.nparts; i++)
-        v->rows[v->nrows++] = (Row){ false, i, { 0 }, v->t.parts[i].start };
-    for (int i = 0; i < nf; i++)
-        v->rows[v->nrows++] = (Row){ true, -1, fr[i], fr[i].start };
-    free(fr);
-    qsort(v->rows, v->nrows, sizeof(Row), row_cmp);
-    if (v->sel >= v->nrows)
-        v->sel = v->nrows ? v->nrows - 1 : 0;
-}
-
-static void select_start(View *v, uint64_t start, bool is_free)
-{
-    for (int i = 0; i < v->nrows; i++)
-        if (v->rows[i].start == start && v->rows[i].free == is_free)
-            v->sel = i;
-}
-
-static bool load(View *v)
-{
-    if (v->loaded)
-        pt_free(&v->t);
-    v->loaded = !pt_read(&v->d->dev, &v->t);
-    if (!v->loaded) {
-        memset(&v->t, 0, sizeof(v->t));
-        return false;
-    }
-    build_rows(v);
-    return true;
-}
-
-static PtPart *selected_part(View *v)
-{
-    if (!v->nrows || v->rows[v->sel].free)
-        return NULL;
-    return &v->t.parts[v->rows[v->sel].part];
-}
-
 /* ---- drawing ---- */
-
-static void type_text(const View *v, const PtPart *p, char *out, size_t n)
-{
-    const char *tn = pt_type_name(&v->t, p);
-    if (tn)
-        snprintf(out, n, "%s", tn);
-    else if (v->t.kind == PT_GPT) {
-        char g[37];
-        pt_guid_str(p->type_guid, g);
-        snprintf(out, n, "%.18s...", g);
-    } else
-        snprintf(out, n, "type %02X", p->mbr_type);
-}
 
 static void draw(View *v)
 {
@@ -150,7 +59,7 @@ static void draw(View *v)
         } else {
             const PtPart *p = &v->t.parts[r->part];
             char type[48], flags[16] = "", num[8];
-            type_text(v, p, type, sizeof(type));
+            pm_type_text(v, p, type, sizeof(type));
             if (!gpt)
                 snprintf(flags, sizeof(flags), "%s",
                          p->active ? "active" : p->role == PT_LOGICAL ? "logical" : "");
@@ -192,8 +101,6 @@ static bool may_change(View *v)
     }
     return true;
 }
-
-static void draw(View *v);
 
 /* Chooses a type from the list, or types one ("Other..."). */
 static bool choose_type(View *v, uint8_t *mbr, uint8_t guid[16], int current)
@@ -337,10 +244,10 @@ static void new_partition(View *v, const PtFree *f)
         ui_message(true, "New partition", err);
         return;
     }
-    build_rows(v);
-    select_start(v, start, false);
-    PtPart *p = selected_part(v);
-    say(v, false, "Partition %d added.", p ? p->num : 0);
+    pm_view_rows(v);
+    pm_view_select(v, start, false);
+    PtPart *p = pm_view_part(v);
+    pm_say(v, false, "Partition %d added.", p ? p->num : 0);
 }
 
 static void delete_partition(View *v, PtPart *p)
@@ -363,8 +270,8 @@ static void delete_partition(View *v, PtPart *p)
         ui_message(true, "Delete partition", err);
         return;
     }
-    build_rows(v);
-    say(v, false, "Partition %d deleted.", num);
+    pm_view_rows(v);
+    pm_say(v, false, "Partition %d deleted.", num);
 }
 
 static void change_type(View *v, PtPart *p)
@@ -383,13 +290,13 @@ static void change_type(View *v, PtPart *p)
     if (err)
         ui_message(true, "Type", err);
     else
-        say(v, false, "Partition %d: type changed.", num);
+        pm_say(v, false, "Partition %d: type changed.", num);
 }
 
 static void rename_partition(View *v, PtPart *p)
 {
     if (v->t.kind != PT_GPT) {
-        say(v, true, "MBR partitions have no name.");
+        pm_say(v, true, "MBR partitions have no name.");
         return;
     }
     if (!may_change(v))
@@ -403,13 +310,13 @@ static void rename_partition(View *v, PtPart *p)
     if (err)
         ui_message(true, "Rename", err);
     else
-        say(v, false, "Partition %d renamed.", num);
+        pm_say(v, false, "Partition %d renamed.", num);
 }
 
 static void toggle_active(View *v, PtPart *p)
 {
     if (v->t.kind != PT_MBR) {
-        say(v, true, "GPT partitions have no active flag.");
+        pm_say(v, true, "GPT partitions have no active flag.");
         return;
     }
     if (!may_change(v))
@@ -420,7 +327,7 @@ static void toggle_active(View *v, PtPart *p)
     if (err)
         ui_message(true, "Active", err);
     else
-        say(v, false, on ? "Partition %d active." : "Partition %d no longer active.", num);
+        pm_say(v, false, on ? "Partition %d active." : "Partition %d no longer active.", num);
 }
 
 static void new_table(View *v)
@@ -433,8 +340,8 @@ static void new_table(View *v)
         return;
     pt_new(&v->t, &v->d->dev, c ? PT_MBR : PT_GPT);
     v->sel = 0;
-    build_rows(v);
-    say(v, false, "New empty %s table.", c ? "MBR" : "GPT");
+    pm_view_rows(v);
+    pm_say(v, false, "New empty %s table.", c ? "MBR" : "GPT");
 }
 
 static void delete_table(View *v)
@@ -443,8 +350,8 @@ static void delete_table(View *v)
         return;
     pt_new(&v->t, &v->d->dev, PT_NONE);
     v->sel = 0;
-    build_rows(v);
-    say(v, false, "Partition table deleted.");
+    pm_view_rows(v);
+    pm_say(v, false, "Partition table deleted.");
 }
 
 /* ---- writing ---- */
@@ -457,14 +364,14 @@ static bool confirm_destroy(View *v, const char *title, const char *question)
     draw(v);
     if (ui_yesno(true, title, question))
         return true;
-    say(v, false, "Nothing was written.");
+    pm_say(v, false, "Nothing was written.");
     return false;
 }
 
 static void write_table(View *v)
 {
     if (!v->t.changed) {
-        say(v, false, "No changes to write.");
+        pm_say(v, false, "No changes to write.");
         return;
     }
     if (!may_change(v))
@@ -480,11 +387,11 @@ static void write_table(View *v)
     int rc = pt_write(&v->d->dev, &v->t);
     if (rc) {
         ui_message(true, "Write", pal_strerror(rc));
-        say(v, true, "Not written: %s.", pal_strerror(rc));
+        pm_say(v, true, "Not written: %s.", pal_strerror(rc));
         return;
     }
-    load(v);
-    say(v, false, "Written.");
+    pm_view_load(v);
+    pm_say(v, false, "Written.");
 }
 
 /* ---- wipe ---- */
@@ -571,7 +478,7 @@ static void wipe_partition(View *v, PtPart *p)
     }
     char size[32], type[48], q[300];
     pm_fmt_size(size, sizeof(size), p->size * bs(v));
-    type_text(v, p, type, sizeof(type));
+    pm_type_text(v, p, type, sizeof(type));
     snprintf(q, sizeof(q), "Wipe partition %d of %s (%s, %s%s%s%s)? (Y/N)", p->num, v->d->name, type, size,
              p->name[0] ? ", \"" : "", p->name, p->name[0] ? "\"" : "");
     if (!confirm_destroy(v, "Wipe", q))
@@ -581,11 +488,11 @@ static void wipe_partition(View *v, PtPart *p)
     int rc = pt_wipe(&v->d->dev, p->start, p->size, wipe_progress, &w);
     uint64_t secs = (pal_ticks_ms() - w.t0 + 500) / 1000;
     if (rc == PAL_EABORT)
-        say(v, true, "Wipe of partition %d stopped in pass %d: partly overwritten.", w.num, w.pass);
+        pm_say(v, true, "Wipe of partition %d stopped in pass %d: partly overwritten.", w.num, w.pass);
     else if (rc)
-        say(v, true, "Wipe of partition %d failed: %s.", w.num, pal_strerror(rc));
+        pm_say(v, true, "Wipe of partition %d failed: %s.", w.num, pal_strerror(rc));
     else
-        say(v, false, "Partition %d wiped (%s, 2 passes, %llu s).", w.num, size, (unsigned long long)secs);
+        pm_say(v, false, "Partition %d wiped (%s, 2 passes, %llu s).", w.num, size, (unsigned long long)secs);
 }
 
 /* ---- backup and restore ---- */
@@ -694,7 +601,7 @@ static void backup(View *v)
         ui_message(true, "Backup", text);
     } else {
         snprintf(last_file, sizeof(last_file), "%s", path);
-        say(v, false, "Saved %s (%zu bytes).", path, len);
+        pm_say(v, false, "Saved %s (%zu bytes).", path, len);
     }
     free(path);
 }
@@ -742,10 +649,10 @@ static void restore(View *v)
         const char *err = pt_restore(&v->d->dev, data, st.size);
         if (err)
             ui_message(true, "Restore", err);
-        load(v);
+        pm_view_load(v);
         if (!err) {
             snprintf(last_file, sizeof(last_file), "%s", path);
-            say(v, false, "Restored from %s.", path);
+            pm_say(v, false, "Restored from %s.", path);
         }
     }
     free(data);
@@ -758,7 +665,7 @@ void pm_disk_screen(PmDisk *d)
 {
     View v = { 0 };
     v.d = d;
-    if (!load(&v)) {
+    if (!pm_view_load(&v)) {
         ui_message(true, d->name, "The disk could not be read.");
         return;
     }
@@ -767,7 +674,7 @@ void pm_disk_screen(PmDisk *d)
         draw(&v);
         PalKey k = ui_key();
         v.msg[0] = 0;
-        PtPart *p = selected_part(&v);
+        PtPart *p = pm_view_part(&v);
         Row *r = v.nrows ? &v.rows[v.sel] : NULL;
         int ch = k.ch < 128 ? toupper((int)k.ch) : 0;
         if (ui_is_esc(&k)) {
@@ -786,9 +693,9 @@ void pm_disk_screen(PmDisk *d)
         else if (ch == 'N' && r && r->free)
             new_partition(&v, &r->f);
         else if (ch == 'N')
-            say(&v, true, v.t.kind == PT_NONE ? "No partition table: Z makes one." : "Select a free area.");
+            pm_say(&v, true, v.t.kind == PT_NONE ? "No partition table: Z makes one." : "Select a free area.");
         else if (strchr("DTRAW", ch) && ch && !p)
-            say(&v, true, "Select a partition first.");
+            pm_say(&v, true, "Select a partition first.");
         else if (ch == 'D')
             delete_partition(&v, p);
         else if (ch == 'T')
