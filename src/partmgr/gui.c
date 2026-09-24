@@ -53,6 +53,7 @@ typedef struct {
     int W, H;
     const GfxFont *f, *fb;
     int L, pad, title_h;
+    int bl, bg, br; /* inside a button: left margin, key to label, right margin */
     Rect list, head, bar, table, msg, keys;
     int list_top, disk_h, row_h, nvis, notes_y;
     int col[5];
@@ -67,6 +68,10 @@ typedef struct {
 
 typedef struct {
     GfxCanvas c, patch;
+    int scale;       /* screen pixels per canvas pixel: 2 on very large screens */
+    int sw, sh;      /* the screen */
+    int spx, spy;    /* the pointer on the screen */
+    uint32_t *big;   /* a canvas area doubled, on its way to the screen */
     Layout l;
     PmDisk *disks;
     int ndisks, dsel, dtop;
@@ -87,39 +92,53 @@ static int font_size(int h)
 
 static int button_w(const Layout *l, int i)
 {
-    return gfx_text_width(l->f, buttons[i].key) + 8 + gfx_text_width(l->f, buttons[i].label) + 26;
+    return l->bl + gfx_text_width(l->f, buttons[i].key) + 8 + l->bg + gfx_text_width(l->f, buttons[i].label) + l->br;
 }
 
-/* The two rows of buttons: with the group names when they fit, else
- * without; a row that is still too wide gets narrower gaps. */
+/* The rows of buttons: the two rows of the key bars, with the group names
+ * when they fit, else without, else with narrower buttons and gaps; on a
+ * screen too narrow even for that, the buttons of each group go on as many
+ * rows as they need. */
 static void layout_buttons(Layout *l)
 {
-    int bh = l->L + 6, gap = 8;
-    int y0 = l->H - 2 * (bh + 6) - 2;
-    l->keys = (Rect){ 0, y0 - 4, l->W, l->H - y0 + 4 };
+    int bh = l->L + 6, gap = 8, right = l->W - 8;
     int gw = MAX(gfx_text_width(l->f, "Partition:"), gfx_text_width(l->f, "Disk:")) + 20;
-    for (int pass = 0; pass < 3; pass++) {
+    int rows = 2;
+    for (int pass = 0; pass < 4; pass++) {
         l->group_w = pass == 0 ? gw : 0;
-        gap = pass < 2 ? 8 : 3;
+        gap = pass < 2 ? 8 : 4;
+        l->bl = pass < 2 ? 6 : 4, l->bg = pass < 2 ? 8 : 5, l->br = pass < 2 ? 12 : 6;
         bool fits = true;
         for (int row = 0; row < 2; row++) {
             int x = 14 + l->group_w;
             for (int i = 0; i < NBUTTONS; i++)
                 if (buttons[i].row == row)
                     x += button_w(l, i) + gap;
-            fits &= x - gap <= l->W - 8;
+            fits &= x - gap <= right;
         }
-        if (fits)
+        if (fits || pass == 3)
             break;
     }
-    for (int row = 0; row < 2; row++) {
-        int x = 14 + l->group_w, y = y0 + row * (bh + 6);
-        for (int i = 0; i < NBUTTONS; i++)
-            if (buttons[i].row == row) {
-                l->btn[i] = (Rect){ x, y, button_w(l, i), bh };
-                x += l->btn[i].w + gap;
-            }
+    /* place them, starting a new row where one is full */
+    int x = 14 + l->group_w, row = 0, placed_row[NBUTTONS];
+    for (int i = 0, group = 0; i < NBUTTONS; i++) {
+        if (buttons[i].row == 2)
+            continue;
+        if (buttons[i].row != group) {
+            group = buttons[i].row;
+            row++, x = 14 + l->group_w;
+        } else if (x > 14 + l->group_w && x + button_w(l, i) > right)
+            row++, x = 14 + l->group_w;
+        placed_row[i] = row;
+        l->btn[i] = (Rect){ x, 0, button_w(l, i), bh };
+        x += l->btn[i].w + gap;
     }
+    rows = row + 1;
+    int y0 = l->H - rows * (bh + 6) - 2;
+    l->keys = (Rect){ 0, y0 - 4, l->W, l->H - y0 + 4 };
+    for (int i = 0; i < NBUTTONS; i++)
+        if (buttons[i].row != 2)
+            l->btn[i].y = y0 + placed_row[i] * (bh + 6);
 }
 
 static void layout(Gui *g, int nnotes)
@@ -134,7 +153,8 @@ static void layout(Gui *g, int nnotes)
     layout_buttons(l);
     l->msg = (Rect){ 0, l->keys.y - l->L - 8, l->W, l->L + 8 };
     int body_y = l->title_h + 1, body_h = l->msg.y - body_y;
-    int pw = MAX(10 * l->L, MIN(14 * l->L, l->W * 300 / 1280));
+    /* the list of disks: as in the mockup, narrower on a small screen */
+    int pw = MAX((l->W < 800 ? 8 : 10) * l->L, MIN(14 * l->L, l->W * 300 / 1280));
     l->list = (Rect){ 0, body_y, pw, body_h };
     int hb = l->L + 16; /* the header of the list: "Disks" and F5 */
     int f5w = button_w(l, NBUTTONS - 1);
@@ -149,9 +169,14 @@ static void layout(Gui *g, int nnotes)
     l->notes_y = l->msg.y - 6 - nnotes * l->L;
     l->nvis = MAX(1, (l->notes_y - 6 - l->table.y - l->row_h) / l->row_h);
     l->table.h = l->row_h * (1 + l->nvis);
-    static const int frac[5] = { 0, 63, 215, 367, 658 }; /* of the width, as in the mockup */
+    /* the columns at the proportions of the mockup, never narrower than
+     * what they hold: a number, a start and a size, a type */
+    static const int frac[5] = { 0, 63, 215, 367, 658 };
+    int num = gfx_text_width(l->f, "00*") + 14, size = gfx_text_width(l->f, "000.0 MiB") + 14;
+    int least[5] = { 0, num, num + size, num + 2 * size, num + 2 * size + gfx_text_width(l->f, "Linux filesystem") + 14 };
+    least[4] = MIN(least[4], l->table.w - 60);
     for (int i = 0; i < 5; i++)
-        l->col[i] = l->table.x + 10 + l->table.w * frac[i] / 1000;
+        l->col[i] = l->table.x + 10 + MAX(l->table.w * frac[i] / 1000, least[i]);
 }
 
 /* ---- the disks ---- */
@@ -218,9 +243,9 @@ static void draw_button(Gui *g, int i)
     bool hover = g->hover == i;
     gfx_round_rect(&g->c, r->x, r->y, r->w, r->h, 5, hover ? C_HOVER : C_PANEL, hover ? 2 : 1, hover ? C_BLUE : C_LINE);
     int kw = gfx_text_width(l->f, buttons[i].key) + 8;
-    gfx_round_rect(&g->c, r->x + 6, r->y + 4, kw, r->h - 8, 3, C_KEY, 0, 0);
-    gfx_text(&g->c, r->x + 10, r->y + 3, l->f, C_PANEL, buttons[i].key);
-    gfx_text(&g->c, r->x + 6 + kw + 8, r->y + 3, l->f, C_TEXT, buttons[i].label);
+    gfx_round_rect(&g->c, r->x + l->bl, r->y + 4, kw, r->h - 8, 3, C_KEY, 0, 0);
+    gfx_text(&g->c, r->x + l->bl + 4, r->y + 3, l->f, C_PANEL, buttons[i].key);
+    gfx_text(&g->c, r->x + l->bl + kw + l->bg, r->y + 3, l->f, C_TEXT, buttons[i].label);
 }
 
 static void disk_lines(Gui *g, int i, char *l2, size_t n2, const char **note)
@@ -235,9 +260,17 @@ static void disk_lines(Gui *g, int i, char *l2, size_t n2, const char **note)
     *note = g->disks[i].boot ? "started from here: read only" : g->disks[i].readonly ? "write-protected" : NULL;
 }
 
+/* The note under a disk takes two lines when it does not fit in one: it
+ * is split after its colon. */
+static bool note_split(const Gui *g, const char *note)
+{
+    return note && strchr(note, ':') && 14 + gfx_text_width(g->l.f, note) > g->l.list.w - 6;
+}
+
 static int disk_height(const Gui *g, int i)
 {
-    return g->l.disk_h + (g->disks[i].boot || g->disks[i].readonly ? g->l.L : 0);
+    const char *note = g->disks[i].boot ? "started from here: read only" : g->disks[i].readonly ? "write-protected" : NULL;
+    return g->l.disk_h + (note ? g->l.L : 0) + (note_split(g, note) ? g->l.L : 0);
 }
 
 static void draw_disks(Gui *g)
@@ -277,11 +310,27 @@ static void draw_disks(Gui *g)
         if (sel && g->v.t.changed)
             strcat(l2, " *");
         gfx_text(&g->c, 14, y + 4, l->fb, fg, g->disks[i].name);
-        gfx_text(&g->c, 14 + gfx_text_width(l->fb, "blk00") + l->pad, y + 4, l->fb, fg, g->disks[i].kind);
+        int kx = 14 + gfx_text_width(l->fb, "blk00") + l->pad;
+        bool kind_fits = kx + gfx_text_width(l->fb, g->disks[i].kind) + l->pad <= r->w - 14 - gfx_text_width(l->fb, size);
+        if (kind_fits)
+            gfx_text(&g->c, kx, y + 4, l->fb, fg, g->disks[i].kind);
         text_right(&g->c, r->w - 14, y + 4, l->fb, fg, size);
+        if (!kind_fits) {
+            /* a narrow list: the kind of disk leads the second line */
+            char both[96];
+            snprintf(both, sizeof(both), "%s, %s", g->disks[i].kind, l2);
+            snprintf(l2, sizeof(l2), "%.63s", both);
+        }
         gfx_text(&g->c, 14, y + 4 + l->L, l->f, sub, l2);
-        if (note)
-            gfx_text(&g->c, 14, y + 4 + 2 * l->L, l->f, strong ? C_TITLE_NOTE : C_AMBER, note);
+        GfxColor nc = strong ? C_TITLE_NOTE : C_AMBER;
+        if (note && note_split(g, note)) {
+            const char *colon = strchr(note, ':');
+            char first[64];
+            snprintf(first, sizeof(first), "%.*s", (int)(colon - note + 1), note);
+            gfx_text(&g->c, 14, y + 4 + 2 * l->L, l->f, nc, first);
+            gfx_text(&g->c, 14, y + 4 + 3 * l->L, l->f, nc, colon + 2);
+        } else if (note)
+            gfx_text(&g->c, 14, y + 4 + 2 * l->L, l->f, nc, note);
         y += h + 4;
     }
     gfx_unclip(&g->c);
@@ -508,6 +557,27 @@ static void draw_window(Gui *g)
         draw_button(g, i);
 }
 
+/* Copies an area of an image in canvas pixels to the screen, doubled when
+ * the window is drawn at half the resolution. */
+static void blit(Gui *g, const uint32_t *px, int stride, int sx, int sy, int dx, int dy, int w, int h)
+{
+    int s = g->scale;
+    if (s == 1) {
+        pal_gfx_show(px, stride, sx, sy, dx, dy, w, h);
+        return;
+    }
+    for (int j = 0; j < h; j++) {
+        const uint32_t *src = px + (size_t)(sy + j) * (size_t)stride + sx;
+        uint32_t *row = g->big + (size_t)j * s * (size_t)w * s;
+        for (int i = 0; i < w; i++)
+            for (int k = 0; k < s; k++)
+                row[i * s + k] = src[i];
+        for (int k = 1; k < s; k++)
+            memcpy(row + (size_t)k * w * s, row, (size_t)w * s * 4);
+    }
+    pal_gfx_show(g->big, w * s, 0, 0, dx * s, dy * s, w * s, h * s);
+}
+
 /* ---- the pointer: drawn over the canvas, which stays as it is ---- */
 
 static void pointer_show(Gui *g)
@@ -518,7 +588,7 @@ static void pointer_show(Gui *g)
     for (int j = 0; j < h; j++)
         memcpy(g->patch.px + j * g->patch.w, g->c.px + (g->py + j) * g->c.w + g->px, (size_t)w * 4);
     gfx_arrow(&g->patch, 0, 0, 1);
-    pal_gfx_show(g->patch.px, g->patch.w, 0, 0, g->px, g->py, w, h);
+    blit(g, g->patch.px, g->patch.w, 0, 0, g->px, g->py, w, h);
 }
 
 static void pointer_hide(Gui *g)
@@ -526,7 +596,7 @@ static void pointer_hide(Gui *g)
     if (!g->pointer)
         return;
     int w = MIN(g->patch.w, g->c.w - g->px), h = MIN(g->patch.h, g->c.h - g->py);
-    pal_gfx_show(g->c.px, g->c.w, g->px, g->py, g->px, g->py, w, h);
+    blit(g, g->c.px, g->c.w, g->px, g->py, g->px, g->py, w, h);
 }
 
 /* ---- what the window shows, for the tests ---- */
@@ -546,7 +616,7 @@ static void log_window(Gui *g)
 {
     const Layout *l = &g->l;
     View *v = &g->v;
-    logf("window %dx%d font %d", l->W, l->H, gfx_font_size(l->f));
+    logf("window %dx%d font %d scale %d", l->W, l->H, gfx_font_size(l->f), g->scale);
     int y = l->list_top;
     for (int i = MAX(g->dtop, 0); i < g->ndisks && y < l->list.y + l->list.h; i++) {
         char size[32], l2[64];
@@ -584,6 +654,12 @@ static void log_window(Gui *g)
     for (int i = 0; i < NBUTTONS; i++)
         logf("button %s %s at %d,%d%s", buttons[i].key, buttons[i].label, l->btn[i].x + l->btn[i].w / 2,
              l->btn[i].y + l->btn[i].h / 2, g->hover == i ? " hover" : "");
+    int rows = 0, right = 0;
+    for (int i = 0; i < NBUTTONS - 1; i++) {
+        right = MAX(right, l->btn[i].x + l->btn[i].w);
+        rows = MAX(rows, (l->btn[i].y - l->btn[0].y) / (l->btn[i].h + 6) + 1);
+    }
+    logf("buttons %d rows, right edge %d", rows, right);
     logf("focus %s", g->focus_disks ? "disks" : "partitions");
     if (v->msg[0])
         logf("message %s", v->msg);
@@ -595,7 +671,7 @@ static void log_window(Gui *g)
 static void redraw(Gui *g)
 {
     draw_window(g);
-    pal_gfx_show(g->c.px, g->c.w, 0, 0, 0, 0, g->c.w, g->c.h);
+    blit(g, g->c.px, g->c.w, 0, 0, 0, 0, g->c.w, g->c.h);
     pointer_show(g);
     log_window(g);
 }
@@ -603,6 +679,22 @@ static void redraw(Gui *g)
 /* ---- input ---- */
 
 static Gui *G; /* the window: one at a time */
+
+/* Moves the pointer as the device says, on the screen's pixels (so that it
+ * keeps its speed when the window is doubled); true when it moved on the
+ * canvas. */
+static bool pointer_move(Gui *g, const PalPointer *p)
+{
+    g->spx = p->abs ? (int)((long)p->ax * (g->sw - 1) / 65535) : g->spx + p->dx;
+    g->spy = p->abs ? (int)((long)p->ay * (g->sh - 1) / 65535) : g->spy + p->dy;
+    g->spx = MAX(0, MIN(g->spx, g->sw - 1)), g->spy = MAX(0, MIN(g->spy, g->sh - 1));
+    int nx = MIN(g->spx / g->scale, g->c.w - 1), ny = MIN(g->spy / g->scale, g->c.h - 1);
+    if (nx == g->px && ny == g->py)
+        return false;
+    pointer_hide(g);
+    g->px = nx, g->py = ny;
+    return true;
+}
 
 static int button_at(const Gui *g, int x, int y)
 {
@@ -623,15 +715,10 @@ static int wait_input(Gui *g, PalKey *k, bool hover)
         PalPointer p;
         if (!g->pointer || !pal_pointer_read(&p))
             continue;
-        int nx = p.abs ? (int)((long)p.ax * (g->c.w - 1) / 65535) : g->px + p.dx;
-        int ny = p.abs ? (int)((long)p.ay * (g->c.h - 1) / 65535) : g->py + p.dy;
-        nx = MAX(0, MIN(nx, g->c.w - 1)), ny = MAX(0, MIN(ny, g->c.h - 1));
         bool pressed = p.left && !g->down;
         g->down = p.left;
-        if (nx != g->px || ny != g->py) {
-            pointer_hide(g);
-            g->px = nx, g->py = ny;
-            int hv = hover ? button_at(g, nx, ny) : g->hover;
+        if (pointer_move(g, &p)) {
+            int hv = hover ? button_at(g, g->px, g->py) : g->hover;
             if (hv != g->hover) {
                 g->hover = hv;
                 redraw(g);
@@ -882,7 +969,7 @@ static void dlg_open(Gui *g, Dlg *d, bool warn, const char *title, const char *t
 
 static void dlg_show(Gui *g, const Dlg *d)
 {
-    pal_gfx_show(g->c.px, g->c.w, 0, 0, 0, 0, g->c.w, g->c.h);
+    blit(g, g->c.px, g->c.w, 0, 0, 0, 0, g->c.w, g->c.h);
     pointer_show(g);
     logf("dialog shown");
 }
@@ -891,7 +978,7 @@ static void dlg_close(Gui *g, Dlg *d)
 {
     memcpy(g->c.px, d->saved, (size_t)g->c.w * (size_t)g->c.h * 4);
     free(d->saved);
-    pal_gfx_show(g->c.px, g->c.w, 0, 0, 0, 0, g->c.w, g->c.h);
+    blit(g, g->c.px, g->c.w, 0, 0, 0, 0, g->c.w, g->c.h);
     pointer_show(g);
     logf("dialog closed");
 }
@@ -972,7 +1059,7 @@ static void draw_field(Gui *g, const Dlg *d, const char *buf, size_t cur, bool f
         gfx_fill(&g->c, x + gfx_text_width(l->f, before), y + 3, 2, l->L - 6, C_TEXT);
     }
     gfx_unclip(&g->c);
-    pal_gfx_show(g->c.px, g->c.w, r->x, r->y, r->x, r->y, r->w, r->h);
+    blit(g, g->c.px, g->c.w, r->x, r->y, r->x, r->y, r->w, r->h);
     logf("field %s", buf);
 }
 
@@ -1069,7 +1156,7 @@ static void draw_list(Gui *g, const Dlg *d, const char *const *items, int n, int
         gfx_fill(&g->c, r->x + r->w - 5, ty, 5, th, C_EDGE);
     }
     gfx_frame(&g->c, r->x, r->y, r->w, r->h, 1, C_LINE);
-    pal_gfx_show(g->c.px, g->c.w, r->x, r->y, r->x, r->y, r->w, r->h);
+    blit(g, g->c.px, g->c.w, r->x, r->y, r->x, r->y, r->w, r->h);
 }
 
 static int gui_menu(const char *title, const char *const *items, int n, int sel)
@@ -1175,7 +1262,7 @@ static void gui_wipe(const char *title, int pass, int percent, const char *amoun
     wipe_stop_btn.x = b.x + b.w - l->L - wipe_stop_btn.w;
     wipe_stop_btn.y = b.y + b.h - l->pad - bh;
     dlg_button(g, &wipe_stop_btn, "Esc", "Stop", false);
-    pal_gfx_show(c->px, c->w, b.x, b.y, b.x, b.y, b.w, b.h);
+    blit(g, c->px, c->w, b.x, b.y, b.x, b.y, b.w, b.h);
     pointer_show(g);
     logf("wipe %s pass %d %d%% %s stop at %d,%d", title, pass, percent, amount,
          wipe_stop_btn.x + wipe_stop_btn.w / 2, wipe_stop_btn.y + wipe_stop_btn.h / 2);
@@ -1191,14 +1278,9 @@ static bool gui_wipe_stop(void)
     PalPointer p;
     if (!g->pointer || !pal_pointer_read(&p))
         return false;
-    int nx = p.abs ? (int)((long)p.ax * (g->c.w - 1) / 65535) : g->px + p.dx;
-    int ny = p.abs ? (int)((long)p.ay * (g->c.h - 1) / 65535) : g->py + p.dy;
-    nx = MAX(0, MIN(nx, g->c.w - 1)), ny = MAX(0, MIN(ny, g->c.h - 1));
     bool pressed = p.left && !g->down;
     g->down = p.left;
-    if (nx != g->px || ny != g->py) {
-        pointer_hide(g);
-        g->px = nx, g->py = ny;
+    if (pointer_move(g, &p)) {
         pointer_show(g);
         logf("pointer %d,%d", g->px, g->py);
     }
@@ -1220,8 +1302,14 @@ bool pm_gui(void)
         return false;
     Gui g = { 0 };
     g.hover = -1;
-    if (!gfx_canvas_init(&g.c, w, h) || !gfx_canvas_init(&g.patch, GFX_ARROW_W, GFX_ARROW_H)) {
+    /* very large screens: the window at half the resolution, every pixel
+     * doubled, so that it keeps the proportions of an ordinary screen (P23) */
+    g.scale = h >= 1600 ? 2 : 1;
+    g.sw = w, g.sh = h;
+    if (!gfx_canvas_init(&g.c, w / g.scale, h / g.scale) || !gfx_canvas_init(&g.patch, GFX_ARROW_W, GFX_ARROW_H) ||
+        (g.scale > 1 && !(g.big = malloc((size_t)w * (size_t)h * 4)))) {
         gfx_canvas_free(&g.c);
+        gfx_canvas_free(&g.patch);
         pal_gfx_close();
         return false;
     }
@@ -1230,7 +1318,8 @@ bool pm_gui(void)
     pm_screen = &screen;
     g.pointer = pal_pointer_open() > 0;
     logf("pointer devices: %s", pal_pointer_info());
-    g.px = w / 2, g.py = h / 2;
+    g.spx = w / 2, g.spy = h / 2;
+    g.px = g.spx / g.scale, g.py = g.spy / g.scale;
     scan(&g);
     for (;;) {
         redraw(&g);
@@ -1247,6 +1336,7 @@ bool pm_gui(void)
     free(g.sum);
     gfx_canvas_free(&g.patch);
     gfx_canvas_free(&g.c);
+    free(g.big);
     pal_gfx_close();
     logf("closed");
     return true;

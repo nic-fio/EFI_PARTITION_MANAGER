@@ -47,6 +47,10 @@ card: no graphics screen, so partmgr shows the text screens (its fallback).
    and a second one stopped with the Stop button; on the MBR disk a logical
    partition chosen from the list with a click, the active flag, a backup,
    Write, delete the table, restore. Then the same checks as part 2.
+7. Sizes: the window at 640 x 480, 1024 x 768, 1920 x 1080 and 3200 x 1800 -
+   the font chosen by the height, the buttons inside the screen, the colours
+   on the screen, a click on a disk; at 3200 x 1800 the window is drawn at
+   half the resolution and every pixel doubled.
 
     tests/partmgr/qemu-test.py OVMF.fd build/partmgr.efi build/tests/gfxdemo.efi build/tests/gfxtool
 """
@@ -517,12 +521,15 @@ try:
         return (int(m.group(1)), int(m.group(2))) if m else None
 
     def move_to(x, y):
-        """Moves QEMU's mouse until partmgr's pointer is at X, Y."""
+        """Moves QEMU's mouse until partmgr's pointer is at X, Y (in the
+        window's pixels: the mouse moves in the screen's, SCALE times as many)."""
         m = re.findall(r"gui: pointer (\d+),(\d+)", q.text())
         px, py = (int(m[-1][0]), int(m[-1][1])) if m else (0, 0)
+        sc = re.findall(r"gui: window \d+x\d+ font \d+ scale (\d+)", q.text())
+        scale = int(sc[-1]) if sc else 1
         while (px, py) != (x, y):
-            dx, dy = max(-100, min(100, x - px)), max(-100, min(100, y - py))
-            q.monitor("mouse_move %d %d" % (dx, dy))
+            dx, dy = max(-60, min(60, x - px)), max(-60, min(60, y - py))
+            q.monitor("mouse_move %d %d" % (dx * scale, dy * scale))
             px, py = px + dx, py + dy
         return q.wait(r"gui: pointer %d,%d" % (x, y), 10)
 
@@ -744,6 +751,41 @@ try:
     finally:
         q.stop()
     verify_changes(W, gpt, mbr, mbr_before, P1, P3, P4)
+
+    # ------------------------------------------------------------ sizes
+    gpt = disk("gpt-s.img", 512, 'label: gpt\nsize=100M, type=U, name="EFI system"\n')
+    mbr = disk("mbr-s.img", 512, "label: dos\n1 : start=2048, size=102400, type=c, bootable\n")
+    for xres, yres, win, font, scale in ((640, 480, "640x480", 16, 1), (1024, 768, "1024x768", 20, 1),
+                                        (1920, 1080, "1920x1080", 26, 1), (3200, 1800, "1600x900", 20, 2)):
+        S = "%dx%d: " % (xres, yres)
+        vga = "VGA,edid=on,xres=%d,yres=%d%s" % (xres, yres, ",vgamem_mb=64" if xres * yres > 4000000 else "")
+        q = Qemu("size-%d" % xres, [gpt, mbr], extra=("-vga", "none", "-device", vga) + usb + ("-device", "usb-mouse"))
+        try:
+            check(S + "window", q.wait(r"gui: window %s font %d scale %d" % (win, font, scale), 90), q.text()[-200:])
+            q.wait(r"gui: shown")
+            width = int(win.split("x")[0])
+            m = re.search(r"gui: buttons (\d+) rows, right edge (\d+)", frame())
+            check(S + "buttons inside the screen", m and int(m.group(2)) <= width, m.group(0) if m else "")
+            time.sleep(0.5)
+            screen = os.path.join(WORK, "size-%d.ppm" % xres)
+            q.screendump(screen)
+            sw, sh, sp = ppm(screen)
+            pixel = lambda x, y: sp[3 * (y * sw + x):3 * (y * sw + x) + 3]
+            check(S + "the screen", (sw, sh) == (xres, yres) and pixel(5, 5) == bytes((0x1B, 0x4F, 0x9C)),
+                  "%dx%d %s" % (sw, sh, pixel(5, 5)))
+            if scale == 2:
+                doubled = all(pixel(x, y) == pixel(x + 1, y) == pixel(x, y + 1) == pixel(x + 1, y + 1)
+                              for y in range(0, sh, 14) for x in range(0, sw, 6))
+                check(S + "every pixel doubled", doubled, "")
+            # the MBR test disk, whatever its number (blkN counts the partitions too)
+            m = re.search(r"gui: disk (blk\d+) disk 512\.0 MiB MBR, 1 partition at", frame())
+            name = m.group(1) if m else "?"
+            check(S + "a click on a disk", click_at(where(r"gui: disk %s " % name)) and
+                  q.wait(r"gui: shows %s disk 512\.0 MiB MBR" % name), frame()[-300:])
+            q.key("esc")
+            check(S + "closed", q.wait(r"gui: closed"), "")
+        finally:
+            q.stop()
 finally:
     shutil.rmtree(WORK, ignore_errors=True)
 

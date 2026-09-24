@@ -288,6 +288,13 @@ real code is tested instead.
 - **Consequences.** The layout is computed from the screen size, and the text
   grows on large screens (sizes of the font chosen by resolution). The tests
   try more than one resolution.
+- **Built** in stage 5. From 640 × 480 to 2560 × 1440 the font grows with the
+  height (16, 20, 26, 32 pixels); small screens get narrower buttons, then
+  more rows of them, and columns never narrower than what they hold. From
+  1600 rows the window is drawn at half the resolution and every pixel
+  doubled, as operating systems scale: larger faces of the font would have
+  been sharper but about 150 KB bigger. Tried in QEMU from 640 × 480 to
+  3200 × 1800; OVMF does not offer 3840 × 2160.
 
 ### P24. The font: Inter
 
@@ -343,4 +350,4 @@ The work took place on 2026-09-23 (phases 1–9) and 2026-09-24 (phase 10).
 | Real hardware | Not tried yet. The owner will try it when possible; reports are asked for with an issue template. |
 | Releases | 0.1.0, 0.1.1 and 0.1.2, published as pre-releases: releases stay pre-releases while real hardware has not been tried (0.x versions). |
 | Disk names | The kind comes from the device path (NVMe, SATA, USB...); the model name of the disk is not shown yet. |
-| Graphical interface | Being built (P18–P25): drawing, font, pointer, window and actions done; resolutions and the manuals next. A firmware that owns the mouse can only be tried on real hardware (P21). |
+| Graphical interface | Being built (P18–P25): drawing, font, pointer, window, actions and screen sizes done; the user manual and the release next. A firmware that owns the mouse can only be tried on real hardware (P21). |

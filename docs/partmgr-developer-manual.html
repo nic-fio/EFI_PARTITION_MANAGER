@@ -82,12 +82,12 @@ way it reads or writes tables without breaking a disk.</p>
 <table>
   <thead><tr><th>Area</th><th>Directory</th><th>Lines</th><th>Content</th></tr></thead>
   <tbody>
-    <tr><td>partmgr</td><td><code>src/partmgr</code></td><td>6,091</td><td>table code, the UEFI program, the screens</td></tr>
+    <tr><td>partmgr</td><td><code>src/partmgr</code></td><td>6,181</td><td>table code, the UEFI program, the screens</td></tr>
     <tr><td>Platform layer</td><td><code>src/pal</code></td><td>1,624</td><td>console, keys, time, files, volumes, entry point</td></tr>
     <tr><td>Runtime</td><td><code>src/lib</code></td><td>1,003</td><td>libc subset, printf, string buffer, UTF-8, CRC-32</td></tr>
     <tr><td>UEFI definitions</td><td><code>include</code></td><td>742</td><td>the UEFI types and protocols partmgr uses</td></tr>
     <tr><td>Tools</td><td><code>tools</code></td><td>705</td><td>ELF→PE converter, linker script, documentation and font tools, setup script</td></tr>
-    <tr><td>Tests</td><td><code>tests/partmgr</code></td><td>2,162</td><td>the Linux test tools, the table tests, the drawing checks, the QEMU test</td></tr>
+    <tr><td>Tests</td><td><code>tests/partmgr</code></td><td>2,204</td><td>the Linux test tools, the table tests, the drawing checks, the QEMU test</td></tr>
   </tbody>
 </table>
 <p><code>partmgr.efi</code> is about 370 KB, 278 KB of which are the glyphs of the font. The line counts here and in the <a href="#file-map">source file map</a> are
@@ -633,8 +633,8 @@ exact, so that a proposed start reads back to the same block.</p>
 <!-- ===================================================================== -->
 <h2 id="graphics">The graphical interface</h2>
 
-<p class="chapter-intro">Being built (decisions P18–P25): the drawing, the font, the pointer, the window and its
-actions are done; resolutions and the manuals come next. Without a graphics screen <code>partmgr.efi</code> shows the text
+<p class="chapter-intro">Being built (decisions P18–P25): the drawing, the font, the pointer, the window, its actions
+and every screen size are done; the user manual comes next. Without a graphics screen <code>partmgr.efi</code> shows the text
 screens of 0.1.2.</p>
 
 <h3 id="gfx" data-index="gfx.c;GfxCanvas;gfx_round_rect">Drawing: gfx.c</h3>
@@ -692,11 +692,18 @@ connected its USB controllers.</p>
 the screen too); it returns false, with nothing changed, when <code>pal_gfx_open</code> finds no graphics screen, and the
 text screens run. The window follows the approved mockup (<code>docs/assets/gui-mockup.png</code>):</p>
 <ul>
-  <li><strong>Layout</strong> (<code>layout</code>): the font by the screen's height — 16 pixels up to 600 rows, 20 up to
+  <li><strong>Layout</strong> (<code>layout</code>): the font by the window's height — 16 pixels up to 600 rows, 20 up to
       900, 26 up to 1300, 32 above — and every measure from its line height: the title bar, the list of disks (a
-      quarter of the width, within 10 and 14 lines), the disk's line, the bar (two lines high), the table (as many rows
-      as fit above the notes), the message line and the two rows of buttons. The buttons keep the group names
-      <em>Partition:</em> and <em>Disk:</em> when both rows fit, else lose them, else get narrower gaps.</li>
+      quarter of the width, within 10 and 14 lines; 8 below 800 pixels), the disk's line, the bar (two lines high), the
+      table (as many rows as fit above the notes), the message line and the rows of buttons. The buttons keep the group
+      names <em>Partition:</em> and <em>Disk:</em> when both rows fit, else lose them, else get narrower margins and
+      gaps, else go on as many rows as they need. The columns of the table keep the proportions of the mockup but are
+      never narrower than a number, a size or a type. In a narrow list the kind of disk moves to the second line, and a
+      note that does not fit is split after its colon.</li>
+  <li><strong>Very large screens</strong>: from 1600 rows the window is drawn at half the resolution and every pixel
+      shown as four (<code>blit</code>), so that it keeps the proportions of an ordinary screen: 3200 × 1800 is drawn as
+      1600 × 900. The pointer is followed in the screen's pixels (<code>pointer_move</code>), so that it keeps its
+      speed. Larger faces of the font would have been sharper, and about 150 KB bigger.</li>
   <li><strong>The disks</strong>: name, kind and size, the table and the number of partitions (read once, and again with
       <kbd>F5</kbd>), and <em>started from here: read only</em> or <em>write-protected</em>. At start the first disk partmgr may
       change is opened.</li>
@@ -738,7 +745,8 @@ list is read again.</p>
 (<code>pal_serial_log</code>), one line per item, each with the point to click on: <code>gui: disk …</code>,
 <code>gui: shows …</code>, <code>gui: row …</code> (the cells as the text screen writes them, <code>&lt;</code> on the
 selection, the place in the table and in the bar), <code>gui: button …</code> (<code>hover</code> under the pointer),
-<code>gui: focus …</code>, <code>gui: message …</code>, <code>gui: pointer …</code>, then <code>gui: shown</code>. Dialogs
+<code>gui: buttons …</code> (their rows and right edge), <code>gui: focus …</code>, <code>gui: message …</code>,
+<code>gui: pointer …</code>, then <code>gui: shown</code>; <code>gui: window W×H font F scale S</code> opens it. Dialogs
 add <code>gui: dialog TITLE: TEXT</code> (the whole text, not wrapped), <code>gui: dbutton …</code>, <code>gui: field …</code>
 after every change, <code>gui: item …</code> for the visible items of a list, <code>gui: dialog shown</code> and
 <code>gui: dialog closed</code>; a wipe adds a <code>gui: wipe …</code> line at every update, with the place of Stop. The QEMU test
@@ -850,6 +858,11 @@ rows come before the message line under them. The first two parts run QEMU witho
       Write, delete the table, restore. Afterwards the same checks as part 2, by <code>verify_changes</code>. Broken on
       purpose — <kbd>Enter</kbd> answering Yes — the check <em>Enter does nothing</em> fails, and with it the rest of the
       journey and the checks of the data: 31 in all.</li>
+  <li><strong>Sizes:</strong> the window at 640 × 480, 1024 × 768, 1920 × 1080 and 3200 × 1800 (QEMU's VGA with
+      <code>xres</code>, <code>yres</code> and enough video memory): the font chosen by the height, the buttons inside the
+      screen, the title bar's colour on the screen, a click on a disk; at 3200 × 1800 the window of 1600 × 900 and every
+      pixel of the screen doubled. OVMF does not offer 3840 × 2160: 4K screens are not tried. Broken on
+      purpose — the second row of every doubled pixel left black — the two checks of the screen at 3200 × 1800 fail.</li>
 </ol>
 
 <!-- ===================================================================== -->
@@ -919,7 +932,7 @@ name matters.</p>
     <tr><td><code>src/partmgr/font_inter.S</code></td><td>10</td><td>Includes the glyphs of font_inter.bin as read-only data</td></tr>
     <tr><td><code>src/partmgr/gfx.c</code></td><td>314</td><td>Drawing on a canvas in memory: rectangles, frames, rounded rectangles, hatching, the pointer, text with the embedded glyphs and kerning</td></tr>
     <tr><td><code>src/partmgr/gfx.h</code></td><td>62</td><td>Canvases, colours, the drawing and text functions</td></tr>
-    <tr><td><code>src/partmgr/gui.c</code></td><td>1253</td><td>The graphical window: layout from the screen and the font, the disks, the bar, the table, the buttons, keys and clicks, the pointer, the description for the tests</td></tr>
+    <tr><td><code>src/partmgr/gui.c</code></td><td>1343</td><td>The graphical window: layout from the screen and the font, the disks, the bar, the table, the buttons, keys and clicks, the pointer, the description for the tests</td></tr>
     <tr><td><code>src/partmgr/gui.h</code></td><td>11</td><td>pm_gui: the window, when there is a graphics screen</td></tr>
     <tr><td><code>src/partmgr/main.c</code></td><td>91</td><td>app_main and the list of disks</td></tr>
     <tr><td><code>src/partmgr/partmgr.h</code></td><td>17</td><td>What the screens share: version, table names, the disk screen</td></tr>
@@ -944,7 +957,7 @@ name matters.</p>
     <tr><td><code>tests/partmgr/gfxscene.c</code></td><td>120</td><td>The test picture: every drawing primitive and every face of the font, laid out like the window</td></tr>
     <tr><td><code>tests/partmgr/gfxtool.c</code></td><td>164</td><td>The drawing code on Linux: the checks, and the test picture as a PPM file</td></tr>
     <tr><td><code>tests/partmgr/pttool.c</code></td><td>257</td><td>Drives the table code on a disk image file: reads, changes, writes, backs up, restores, parses sizes (Linux only)</td></tr>
-    <tr><td><code>tests/partmgr/qemu-test.py</code></td><td>753</td><td>partmgr.efi in QEMU/OVMF: started by the firmware, driven with keys, checked on the serial console and with sfdisk afterwards</td></tr>
+    <tr><td><code>tests/partmgr/qemu-test.py</code></td><td>795</td><td>partmgr.efi in QEMU/OVMF: started by the firmware, driven with keys, checked on the serial console and with sfdisk afterwards</td></tr>
     <tr><td><code>tests/partmgr/run-tests.py</code></td><td>779</td><td>The table tests: the reader and the writer compared with sfdisk and parted, damaged images, sizes, backups restored byte for byte</td></tr>
   </tbody>
 </table>

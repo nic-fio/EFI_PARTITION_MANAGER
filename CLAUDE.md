@@ -83,8 +83,8 @@ not been tried yet.
 Version 0.1.2; 0.1.0 and 0.1.1 were released as pre-releases. Next: the
 graphical interface, designed on 2026-09-24 (P18–P25), built in six stages:
 (1) drawing and font — done; (2) the USB mouse driver — done; (3) the window, read
-only — done; (4) the actions — done; (5) resolutions and the text fallback;
-(6) manuals and release 0.2.0. With a graphics screen `partmgr.efi` opens the
+only — done; (4) the actions — done; (5) resolutions and the text fallback —
+done; (6) manuals and release 0.2.0. With a graphics screen `partmgr.efi` opens the
 window, with every action of 0.1.2 and graphical dialogs; without one, the
 text screens of 0.1.2. The user manual does not describe the window yet
 (stage 6). The QEMU test runs parts 1-2 with `-vga none` for the text screens.
