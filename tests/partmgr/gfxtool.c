@@ -58,7 +58,8 @@ static void checks(void)
     check("20 px regular", gfx_font_size(gfx_font(20, false)) == 20);
     check("23 px gives 20", gfx_font_size(gfx_font(23, true)) == 20);
     check("10 px gives the smallest", gfx_font_size(gfx_font(10, false)) == 16);
-    check("100 px gives the largest", gfx_font_size(gfx_font(100, false)) == 32);
+    check("100 px gives the largest", gfx_font_size(gfx_font(100, false)) == 52);
+    check("45 px gives 40", gfx_font_size(gfx_font(45, true)) == 40);
     const GfxFont *f = gfx_font(20, false);
     check("kerning: AV narrower than A + V",
           gfx_text_width(f, "AV") < gfx_text_width(f, "A") + gfx_text_width(f, "V"));

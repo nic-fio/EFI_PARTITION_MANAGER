@@ -68,10 +68,7 @@ typedef struct {
 
 typedef struct {
     GfxCanvas c, patch;
-    int scale;       /* screen pixels per canvas pixel: 2 on very large screens */
-    int sw, sh;      /* the screen */
-    int spx, spy;    /* the pointer on the screen */
-    uint32_t *big;   /* a canvas area doubled, on its way to the screen */
+    int arrow;       /* the pointer's size: twice as large on very large screens */
     Layout l;
     PmDisk *disks;
     int ndisks, dsel, dtop;
@@ -84,10 +81,11 @@ typedef struct {
 
 /* ---- layout ---- */
 
-/* The font by the screen's height: the text grows on large screens (P23). */
+/* The font by the screen's height: the text grows with the screen, in the
+ * same proportion from 1080 rows (26 pixels) to 2160 (52) (P23). */
 static int font_size(int h)
 {
-    return h <= 600 ? 16 : h <= 900 ? 20 : h <= 1300 ? 26 : 32;
+    return h <= 600 ? 16 : h <= 900 ? 20 : h <= 1300 ? 26 : h <= 1700 ? 32 : h <= 2000 ? 40 : 52;
 }
 
 static int button_w(const Layout *l, int i)
@@ -429,12 +427,13 @@ static void draw_bar(Gui *g)
             else
                 row_label(v, r, lab, sizeof(lab), false); /* the number only */
         }
-        if (gfx_text_width(l->f, lab) + 6 <= b - a)
-            gfx_text(&g->c, a + 4, y + 4, l->f, r->free ? C_MUTED : C_TEXT, lab);
+        int m = MAX(4, l->L / 6); /* the margin grows with the font */
+        if (gfx_text_width(l->f, lab) + m + 2 <= b - a)
+            gfx_text(&g->c, a + m, y + m, l->f, r->free ? C_MUTED : C_TEXT, lab);
         if (p && h >= 2 * l->L) {
             pm_fmt_size(size, sizeof(size), p->size * v->d->dev.bsize);
-            if (gfx_text_width(l->f, size) + 8 <= b - a)
-                gfx_text(&g->c, a + 4, y + 4 + l->L, l->f, 0x3D444D, size);
+            if (gfx_text_width(l->f, size) + m + 4 <= b - a)
+                gfx_text(&g->c, a + m, y + m + l->L, l->f, 0x3D444D, size);
         }
     }
     if (v->nrows) {
@@ -557,27 +556,6 @@ static void draw_window(Gui *g)
         draw_button(g, i);
 }
 
-/* Copies an area of an image in canvas pixels to the screen, doubled when
- * the window is drawn at half the resolution. */
-static void blit(Gui *g, const uint32_t *px, int stride, int sx, int sy, int dx, int dy, int w, int h)
-{
-    int s = g->scale;
-    if (s == 1) {
-        pal_gfx_show(px, stride, sx, sy, dx, dy, w, h);
-        return;
-    }
-    for (int j = 0; j < h; j++) {
-        const uint32_t *src = px + (size_t)(sy + j) * (size_t)stride + sx;
-        uint32_t *row = g->big + (size_t)j * s * (size_t)w * s;
-        for (int i = 0; i < w; i++)
-            for (int k = 0; k < s; k++)
-                row[i * s + k] = src[i];
-        for (int k = 1; k < s; k++)
-            memcpy(row + (size_t)k * w * s, row, (size_t)w * s * 4);
-    }
-    pal_gfx_show(g->big, w * s, 0, 0, dx * s, dy * s, w * s, h * s);
-}
-
 /* ---- the pointer: drawn over the canvas, which stays as it is ---- */
 
 static void pointer_show(Gui *g)
@@ -587,8 +565,8 @@ static void pointer_show(Gui *g)
     int w = MIN(g->patch.w, g->c.w - g->px), h = MIN(g->patch.h, g->c.h - g->py);
     for (int j = 0; j < h; j++)
         memcpy(g->patch.px + j * g->patch.w, g->c.px + (g->py + j) * g->c.w + g->px, (size_t)w * 4);
-    gfx_arrow(&g->patch, 0, 0, 1);
-    blit(g, g->patch.px, g->patch.w, 0, 0, g->px, g->py, w, h);
+    gfx_arrow(&g->patch, 0, 0, g->arrow);
+    pal_gfx_show(g->patch.px, g->patch.w, 0, 0, g->px, g->py, w, h);
 }
 
 static void pointer_hide(Gui *g)
@@ -596,7 +574,7 @@ static void pointer_hide(Gui *g)
     if (!g->pointer)
         return;
     int w = MIN(g->patch.w, g->c.w - g->px), h = MIN(g->patch.h, g->c.h - g->py);
-    blit(g, g->c.px, g->c.w, g->px, g->py, g->px, g->py, w, h);
+    pal_gfx_show(g->c.px, g->c.w, g->px, g->py, g->px, g->py, w, h);
 }
 
 /* ---- what the window shows, for the tests ---- */
@@ -616,7 +594,7 @@ static void log_window(Gui *g)
 {
     const Layout *l = &g->l;
     View *v = &g->v;
-    logf("window %dx%d font %d scale %d", l->W, l->H, gfx_font_size(l->f), g->scale);
+    logf("window %dx%d font %d", l->W, l->H, gfx_font_size(l->f));
     int y = l->list_top;
     for (int i = MAX(g->dtop, 0); i < g->ndisks && y < l->list.y + l->list.h; i++) {
         char size[32], l2[64];
@@ -671,7 +649,7 @@ static void log_window(Gui *g)
 static void redraw(Gui *g)
 {
     draw_window(g);
-    blit(g, g->c.px, g->c.w, 0, 0, 0, 0, g->c.w, g->c.h);
+    pal_gfx_show(g->c.px, g->c.w, 0, 0, 0, 0, g->c.w, g->c.h);
     pointer_show(g);
     log_window(g);
 }
@@ -680,15 +658,12 @@ static void redraw(Gui *g)
 
 static Gui *G; /* the window: one at a time */
 
-/* Moves the pointer as the device says, on the screen's pixels (so that it
- * keeps its speed when the window is doubled); true when it moved on the
- * canvas. */
+/* Moves the pointer as the device says; true when it moved. */
 static bool pointer_move(Gui *g, const PalPointer *p)
 {
-    g->spx = p->abs ? (int)((long)p->ax * (g->sw - 1) / 65535) : g->spx + p->dx;
-    g->spy = p->abs ? (int)((long)p->ay * (g->sh - 1) / 65535) : g->spy + p->dy;
-    g->spx = MAX(0, MIN(g->spx, g->sw - 1)), g->spy = MAX(0, MIN(g->spy, g->sh - 1));
-    int nx = MIN(g->spx / g->scale, g->c.w - 1), ny = MIN(g->spy / g->scale, g->c.h - 1);
+    int nx = p->abs ? (int)((long)p->ax * (g->c.w - 1) / 65535) : g->px + p->dx;
+    int ny = p->abs ? (int)((long)p->ay * (g->c.h - 1) / 65535) : g->py + p->dy;
+    nx = MAX(0, MIN(nx, g->c.w - 1)), ny = MAX(0, MIN(ny, g->c.h - 1));
     if (nx == g->px && ny == g->py)
         return false;
     pointer_hide(g);
@@ -969,7 +944,7 @@ static void dlg_open(Gui *g, Dlg *d, bool warn, const char *title, const char *t
 
 static void dlg_show(Gui *g, const Dlg *d)
 {
-    blit(g, g->c.px, g->c.w, 0, 0, 0, 0, g->c.w, g->c.h);
+    pal_gfx_show(g->c.px, g->c.w, 0, 0, 0, 0, g->c.w, g->c.h);
     pointer_show(g);
     logf("dialog shown");
 }
@@ -978,7 +953,7 @@ static void dlg_close(Gui *g, Dlg *d)
 {
     memcpy(g->c.px, d->saved, (size_t)g->c.w * (size_t)g->c.h * 4);
     free(d->saved);
-    blit(g, g->c.px, g->c.w, 0, 0, 0, 0, g->c.w, g->c.h);
+    pal_gfx_show(g->c.px, g->c.w, 0, 0, 0, 0, g->c.w, g->c.h);
     pointer_show(g);
     logf("dialog closed");
 }
@@ -1059,7 +1034,7 @@ static void draw_field(Gui *g, const Dlg *d, const char *buf, size_t cur, bool f
         gfx_fill(&g->c, x + gfx_text_width(l->f, before), y + 3, 2, l->L - 6, C_TEXT);
     }
     gfx_unclip(&g->c);
-    blit(g, g->c.px, g->c.w, r->x, r->y, r->x, r->y, r->w, r->h);
+    pal_gfx_show(g->c.px, g->c.w, r->x, r->y, r->x, r->y, r->w, r->h);
     logf("field %s", buf);
 }
 
@@ -1156,7 +1131,7 @@ static void draw_list(Gui *g, const Dlg *d, const char *const *items, int n, int
         gfx_fill(&g->c, r->x + r->w - 5, ty, 5, th, C_EDGE);
     }
     gfx_frame(&g->c, r->x, r->y, r->w, r->h, 1, C_LINE);
-    blit(g, g->c.px, g->c.w, r->x, r->y, r->x, r->y, r->w, r->h);
+    pal_gfx_show(g->c.px, g->c.w, r->x, r->y, r->x, r->y, r->w, r->h);
 }
 
 static int gui_menu(const char *title, const char *const *items, int n, int sel)
@@ -1262,7 +1237,7 @@ static void gui_wipe(const char *title, int pass, int percent, const char *amoun
     wipe_stop_btn.x = b.x + b.w - l->L - wipe_stop_btn.w;
     wipe_stop_btn.y = b.y + b.h - l->pad - bh;
     dlg_button(g, &wipe_stop_btn, "Esc", "Stop", false);
-    blit(g, c->px, c->w, b.x, b.y, b.x, b.y, b.w, b.h);
+    pal_gfx_show(c->px, c->w, b.x, b.y, b.x, b.y, b.w, b.h);
     pointer_show(g);
     logf("wipe %s pass %d %d%% %s stop at %d,%d", title, pass, percent, amount,
          wipe_stop_btn.x + wipe_stop_btn.w / 2, wipe_stop_btn.y + wipe_stop_btn.h / 2);
@@ -1302,12 +1277,9 @@ bool pm_gui(void)
         return false;
     Gui g = { 0 };
     g.hover = -1;
-    /* very large screens: the window at half the resolution, every pixel
-     * doubled, so that it keeps the proportions of an ordinary screen (P23) */
-    g.scale = h >= 1600 ? 2 : 1;
-    g.sw = w, g.sh = h;
-    if (!gfx_canvas_init(&g.c, w / g.scale, h / g.scale) || !gfx_canvas_init(&g.patch, GFX_ARROW_W, GFX_ARROW_H) ||
-        (g.scale > 1 && !(g.big = malloc((size_t)w * (size_t)h * 4)))) {
+    g.arrow = h > 1700 ? 2 : 1; /* with the fonts of 40 and 52 pixels */
+    if (!gfx_canvas_init(&g.c, w, h) ||
+        !gfx_canvas_init(&g.patch, GFX_ARROW_W * g.arrow, GFX_ARROW_H * g.arrow)) {
         gfx_canvas_free(&g.c);
         gfx_canvas_free(&g.patch);
         pal_gfx_close();
@@ -1318,8 +1290,7 @@ bool pm_gui(void)
     pm_screen = &screen;
     g.pointer = pal_pointer_open() > 0;
     logf("pointer devices: %s", pal_pointer_info());
-    g.spx = w / 2, g.spy = h / 2;
-    g.px = g.spx / g.scale, g.py = g.spy / g.scale;
+    g.px = w / 2, g.py = h / 2;
     scan(&g);
     for (;;) {
         redraw(&g);
@@ -1336,7 +1307,6 @@ bool pm_gui(void)
     free(g.sum);
     gfx_canvas_free(&g.patch);
     gfx_canvas_free(&g.c);
-    free(g.big);
     pal_gfx_close();
     logf("closed");
     return true;

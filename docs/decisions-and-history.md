@@ -288,13 +288,15 @@ real code is tested instead.
 - **Consequences.** The layout is computed from the screen size, and the text
   grows on large screens (sizes of the font chosen by resolution). The tests
   try more than one resolution.
-- **Built** in stage 5. From 640 × 480 to 2560 × 1440 the font grows with the
-  height (16, 20, 26, 32 pixels); small screens get narrower buttons, then
-  more rows of them, and columns never narrower than what they hold. From
-  1600 rows the window is drawn at half the resolution and every pixel
-  doubled, as operating systems scale: larger faces of the font would have
-  been sharper but about 150 KB bigger. Tried in QEMU from 640 × 480 to
-  3200 × 1800; OVMF does not offer 3840 × 2160.
+- **Built** in stage 5. The font grows with the height - 16, 20, 26, 32, 40
+  and 52 pixels, in the same proportion at 1080 and 2160 rows; small screens
+  get narrower buttons, then more rows of them, and columns never narrower
+  than what they hold. Very large screens were first drawn at half the
+  resolution with every pixel doubled; the owner preferred sharp text over a
+  smaller file ("preferisco la nitidezza"; "se anche l'eseguibile dovesse
+  essere di qualche mega va' benissimo"), so the faces of 40 and 52 pixels
+  were added. Tried in QEMU from 640 × 480 to 3200 × 1800; OVMF does not
+  offer 3840 × 2160.
 
 ### P24. The font: Inter
 
@@ -307,9 +309,9 @@ real code is tested instead.
   "il mockup-inter mi sembra il migliore tra tutti". **Decision:** Inter.
 - **How.** The glyphs are rendered once, at a few sizes, into small grey-level
   images stored in partmgr; partmgr only blends them on the screen, with no
-  font engine inside. The glyphs take about 280 KB (four sizes, two weights,
-  kerning pairs), so `partmgr.efi` grows from about 70 KB to about 350 KB, more
-  than the 200–300 KB first estimated. Letters have different widths: columns
+  font engine inside. The glyphs take about 700 KB (six sizes, two weights,
+  kerning pairs), so `partmgr.efi` grows from about 70 KB to about 800 KB; the
+  size of the file is not a concern (P23). Letters have different widths: columns
   are aligned by pixel position.
 - **Licence.** SIL Open Font License 1.1: it may be bundled with software; its
   copyright notice and licence go in `NOTICE.md`.

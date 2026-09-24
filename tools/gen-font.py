@@ -42,7 +42,7 @@ SHA256 = "9883fdd4a49d4fb66bd8177ba6625ef9a64aa45899767dde3d36aa425756b11e"
 FILES = {False: "extras/ttf/Inter-Regular.ttf", True: "extras/ttf/Inter-SemiBold.ttf"}
 
 # pixel sizes: the screen's size chooses one (decision P23)
-SIZES = (16, 20, 26, 32)
+SIZES = (16, 20, 26, 32, 40, 52)
 # ASCII, Latin-1, and the punctuation and arrows the screens use
 POINTS = sorted(set(range(0x20, 0x7F)) | set(range(0xA0, 0x100)) |
                 {0x2013, 0x2014, 0x2018, 0x2019, 0x201C, 0x201D, 0x2022, 0x2026,

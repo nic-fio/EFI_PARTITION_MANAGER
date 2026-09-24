@@ -51,8 +51,10 @@ int app_main(int argc, char **argv)
     (void)argc, (void)argv;
     /* the graphical window when the firmware has a graphics screen (P18);
      * decided before the text mode changes, which may change the screen */
+#ifndef PARTMGR_TEXT_ONLY /* a build for the pictures of the text screens (tools/screenshots.py) */
     if (pm_gui())
         return 0;
+#endif
     /* at least 100 columns when the firmware has such a mode: the screens and
      * the key bars are much easier to read than at 80; the old mode comes
      * back on exit */

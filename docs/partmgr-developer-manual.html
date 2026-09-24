@@ -82,15 +82,15 @@ way it reads or writes tables without breaking a disk.</p>
 <table>
   <thead><tr><th>Area</th><th>Directory</th><th>Lines</th><th>Content</th></tr></thead>
   <tbody>
-    <tr><td>partmgr</td><td><code>src/partmgr</code></td><td>6,181</td><td>table code, the UEFI program, the screens</td></tr>
+    <tr><td>partmgr</td><td><code>src/partmgr</code></td><td>7,247</td><td>table code, the UEFI program, the screens</td></tr>
     <tr><td>Platform layer</td><td><code>src/pal</code></td><td>1,624</td><td>console, keys, time, files, volumes, entry point</td></tr>
     <tr><td>Runtime</td><td><code>src/lib</code></td><td>1,003</td><td>libc subset, printf, string buffer, UTF-8, CRC-32</td></tr>
     <tr><td>UEFI definitions</td><td><code>include</code></td><td>742</td><td>the UEFI types and protocols partmgr uses</td></tr>
     <tr><td>Tools</td><td><code>tools</code></td><td>705</td><td>ELF→PE converter, linker script, documentation and font tools, setup script</td></tr>
-    <tr><td>Tests</td><td><code>tests/partmgr</code></td><td>2,204</td><td>the Linux test tools, the table tests, the drawing checks, the QEMU test</td></tr>
+    <tr><td>Tests</td><td><code>tests/partmgr</code></td><td>2,197</td><td>the Linux test tools, the table tests, the drawing checks, the QEMU test</td></tr>
   </tbody>
 </table>
-<p><code>partmgr.efi</code> is about 370 KB, 278 KB of which are the glyphs of the font. The line counts here and in the <a href="#file-map">source file map</a> are
+<p><code>partmgr.efi</code> is about 800 KB, 698 KB of which are the glyphs of the font. The line counts here and in the <a href="#file-map">source file map</a> are
 not typed by hand: <code>make docs</code> counts the files and writes them into this page, and <code>make test</code> fails
 when they no longer match the tree — a new source file without a row in the map fails as well.</p>
 
@@ -656,13 +656,13 @@ point), so the same canvases are drawn on Linux by the tests.</p>
 </table>
 
 <h3 id="font" data-index="font_inter.bin;gen-font.py;kerning">The font</h3>
-<p>partmgr has no font engine. <code>tools/gen-font.py</code> renders Inter once with Pillow — sizes 16, 20, 26 and 32
-pixels, regular and semibold, ASCII, Latin-1 and a few punctuation marks and arrows — into grey levels of 4 bits per
+<p>partmgr has no font engine. <code>tools/gen-font.py</code> renders Inter once with Pillow — sizes 16, 20, 26, 32, 40
+and 52 pixels, regular and semibold, ASCII, Latin-1 and a few punctuation marks and arrows — into grey levels of 4 bits per
 pixel, and records for each glyph its advance in 1/64 pixel (unrounded, as Raqm lays text out), its offset from the
 baseline and its size, and for each face the kerning of the ASCII pairs that differ by at least an eighth of a pixel.
 <code>gfx_text</code> places each glyph at the rounded position, adds the kerning of the pair, and blends the grey levels
 between the background and the colour. Characters Inter lacks are drawn as <code>?</code>. <code>gfx_font</code> picks the
-largest size not above the one asked for. The file is about 280 KB; its layout is described at the top of
+largest size not above the one asked for. The file is about 700 KB; its layout is described at the top of
 <code>gen-font.py</code>, and <code>gfx_fonts_init</code> checks every offset before the first use.</p>
 
 <h3 id="pointer" data-index="pal_mouse_efi.c;USB mouse;boot protocol;PalPointer">The pointer</h3>
@@ -692,18 +692,17 @@ connected its USB controllers.</p>
 the screen too); it returns false, with nothing changed, when <code>pal_gfx_open</code> finds no graphics screen, and the
 text screens run. The window follows the approved mockup (<code>docs/assets/gui-mockup.png</code>):</p>
 <ul>
-  <li><strong>Layout</strong> (<code>layout</code>): the font by the window's height — 16 pixels up to 600 rows, 20 up to
-      900, 26 up to 1300, 32 above — and every measure from its line height: the title bar, the list of disks (a
+  <li><strong>Layout</strong> (<code>layout</code>): the font by the screen's height — 16 pixels up to 600 rows, 20 up to
+      900, 26 up to 1300, 32 up to 1700, 40 up to 2000, 52 above, so that 1080 and 2160 rows have the same proportions —
+      and every measure from its line height: the title bar, the list of disks (a
       quarter of the width, within 10 and 14 lines; 8 below 800 pixels), the disk's line, the bar (two lines high), the
       table (as many rows as fit above the notes), the message line and the rows of buttons. The buttons keep the group
       names <em>Partition:</em> and <em>Disk:</em> when both rows fit, else lose them, else get narrower margins and
       gaps, else go on as many rows as they need. The columns of the table keep the proportions of the mockup but are
       never narrower than a number, a size or a type. In a narrow list the kind of disk moves to the second line, and a
       note that does not fit is split after its colon.</li>
-  <li><strong>Very large screens</strong>: from 1600 rows the window is drawn at half the resolution and every pixel
-      shown as four (<code>blit</code>), so that it keeps the proportions of an ordinary screen: 3200 × 1800 is drawn as
-      1600 × 900. The pointer is followed in the screen's pixels (<code>pointer_move</code>), so that it keeps its
-      speed. Larger faces of the font would have been sharper, and about 150 KB bigger.</li>
+  <li><strong>Very large screens</strong> are drawn at their own resolution, with the faces of 40 and 52 pixels: the text
+      stays sharp. Above 1700 rows the pointer is drawn twice as large.</li>
   <li><strong>The disks</strong>: name, kind and size, the table and the number of partitions (read once, and again with
       <kbd>F5</kbd>), and <em>started from here: read only</em> or <em>write-protected</em>. At start the first disk partmgr may
       change is opened.</li>
@@ -746,7 +745,7 @@ list is read again.</p>
 <code>gui: shows …</code>, <code>gui: row …</code> (the cells as the text screen writes them, <code>&lt;</code> on the
 selection, the place in the table and in the bar), <code>gui: button …</code> (<code>hover</code> under the pointer),
 <code>gui: buttons …</code> (their rows and right edge), <code>gui: focus …</code>, <code>gui: message …</code>,
-<code>gui: pointer …</code>, then <code>gui: shown</code>; <code>gui: window W×H font F scale S</code> opens it. Dialogs
+<code>gui: pointer …</code>, then <code>gui: shown</code>; <code>gui: window W×H font F</code> opens it. Dialogs
 add <code>gui: dialog TITLE: TEXT</code> (the whole text, not wrapped), <code>gui: dbutton …</code>, <code>gui: field …</code>
 after every change, <code>gui: item …</code> for the visible items of a list, <code>gui: dialog shown</code> and
 <code>gui: dialog closed</code>; a wipe adds a <code>gui: wipe …</code> line at every update, with the place of Stop. The QEMU test
@@ -859,10 +858,9 @@ rows come before the message line under them. The first two parts run QEMU witho
       purpose — <kbd>Enter</kbd> answering Yes — the check <em>Enter does nothing</em> fails, and with it the rest of the
       journey and the checks of the data: 31 in all.</li>
   <li><strong>Sizes:</strong> the window at 640 × 480, 1024 × 768, 1920 × 1080 and 3200 × 1800 (QEMU's VGA with
-      <code>xres</code>, <code>yres</code> and enough video memory): the font chosen by the height, the buttons inside the
-      screen, the title bar's colour on the screen, a click on a disk; at 3200 × 1800 the window of 1600 × 900 and every
-      pixel of the screen doubled. OVMF does not offer 3840 × 2160: 4K screens are not tried. Broken on
-      purpose — the second row of every doubled pixel left black — the two checks of the screen at 3200 × 1800 fail.</li>
+      <code>xres</code>, <code>yres</code> and enough video memory): the font chosen by the height (16, 20, 26 and 40
+      pixels), the buttons inside the screen, the title bar's colour on the screen, a click on a disk. OVMF does not
+      offer 3840 × 2160: the face of 52 pixels is not tried on a screen.</li>
 </ol>
 
 <!-- ===================================================================== -->
@@ -932,9 +930,9 @@ name matters.</p>
     <tr><td><code>src/partmgr/font_inter.S</code></td><td>10</td><td>Includes the glyphs of font_inter.bin as read-only data</td></tr>
     <tr><td><code>src/partmgr/gfx.c</code></td><td>314</td><td>Drawing on a canvas in memory: rectangles, frames, rounded rectangles, hatching, the pointer, text with the embedded glyphs and kerning</td></tr>
     <tr><td><code>src/partmgr/gfx.h</code></td><td>62</td><td>Canvases, colours, the drawing and text functions</td></tr>
-    <tr><td><code>src/partmgr/gui.c</code></td><td>1343</td><td>The graphical window: layout from the screen and the font, the disks, the bar, the table, the buttons, keys and clicks, the pointer, the description for the tests</td></tr>
+    <tr><td><code>src/partmgr/gui.c</code></td><td>1313</td><td>The graphical window: layout from the screen and the font, the disks, the bar, the table, the buttons, keys and clicks, the pointer, the description for the tests</td></tr>
     <tr><td><code>src/partmgr/gui.h</code></td><td>11</td><td>pm_gui: the window, when there is a graphics screen</td></tr>
-    <tr><td><code>src/partmgr/main.c</code></td><td>91</td><td>app_main and the list of disks</td></tr>
+    <tr><td><code>src/partmgr/main.c</code></td><td>93</td><td>app_main and the list of disks</td></tr>
     <tr><td><code>src/partmgr/partmgr.h</code></td><td>17</td><td>What the screens share: version, table names, the disk screen</td></tr>
     <tr><td><code>src/partmgr/ptable.c</code></td><td>402</td><td>Reads GPT (both copies checked, the backup used when the primary is damaged) and MBR tables, extended and logical partitions included; partition type names and the list to choose from</td></tr>
     <tr><td><code>src/partmgr/ptable.h</code></td><td>145</td><td>The description of a disk's partition table and the functions that read, change and write it</td></tr>
@@ -955,9 +953,9 @@ name matters.</p>
     <tr><td><code>tools/setup-dev.sh</code></td><td>85</td><td>Checks (or installs) the packages a clone needs and sets the git identity of the working copy</td></tr>
     <tr><td><code>tests/partmgr/gfxdemo.c</code></td><td>89</td><td>gfxdemo.efi: the test picture on the graphics screen, then the pointer following the mouse; announced on the serial port</td></tr>
     <tr><td><code>tests/partmgr/gfxscene.c</code></td><td>120</td><td>The test picture: every drawing primitive and every face of the font, laid out like the window</td></tr>
-    <tr><td><code>tests/partmgr/gfxtool.c</code></td><td>164</td><td>The drawing code on Linux: the checks, and the test picture as a PPM file</td></tr>
+    <tr><td><code>tests/partmgr/gfxtool.c</code></td><td>165</td><td>The drawing code on Linux: the checks, and the test picture as a PPM file</td></tr>
     <tr><td><code>tests/partmgr/pttool.c</code></td><td>257</td><td>Drives the table code on a disk image file: reads, changes, writes, backs up, restores, parses sizes (Linux only)</td></tr>
-    <tr><td><code>tests/partmgr/qemu-test.py</code></td><td>795</td><td>partmgr.efi in QEMU/OVMF: started by the firmware, driven with keys, checked on the serial console and with sfdisk afterwards</td></tr>
+    <tr><td><code>tests/partmgr/qemu-test.py</code></td><td>787</td><td>partmgr.efi in QEMU/OVMF: started by the firmware, driven with keys, checked on the serial console and with sfdisk afterwards</td></tr>
     <tr><td><code>tests/partmgr/run-tests.py</code></td><td>779</td><td>The table tests: the reader and the writer compared with sfdisk and parted, damaged images, sizes, backups restored byte for byte</td></tr>
   </tbody>
 </table>

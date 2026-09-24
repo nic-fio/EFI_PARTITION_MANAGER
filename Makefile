@@ -53,6 +53,21 @@ $(BUILD)/efi/%.o: %.S src/partmgr/font_inter.bin
 	@mkdir -p $(dir $@)
 	$(CC) -c $< -o $@
 
+# the pictures of the text screens need them on a graphics screen: a build
+# without the window, for tools/screenshots.py only
+TEXT_OBJ := $(filter-out $(BUILD)/efi/src/partmgr/main.o,$(EFI_OBJ)) $(BUILD)/efi/main-text.o
+
+$(BUILD)/efi/main-text.o: src/partmgr/main.c
+	@mkdir -p $(dir $@)
+	$(CC) $(EFI_CFLAGS) -DPARTMGR_TEXT_ONLY -MMD -c $< -o $@
+
+$(BUILD)/tests/partmgr-text.so: $(TEXT_OBJ) tools/efi.lds
+	@mkdir -p $(dir $@)
+	$(LD) $(EFI_LDFLAGS) $(TEXT_OBJ) -o $@
+
+$(BUILD)/tests/partmgr-text.efi: $(BUILD)/tests/partmgr-text.so tools/elf2efi.py
+	$(PYTHON) tools/elf2efi.py $< $@
+
 $(BUILD)/partmgr.so: $(EFI_OBJ) tools/efi.lds
 	$(LD) $(EFI_LDFLAGS) $(EFI_OBJ) -o $@
 
