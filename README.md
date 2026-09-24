@@ -4,11 +4,11 @@
 [![Licence: Apache 2.0 with the Commons Clause](https://img.shields.io/badge/licence-Apache%202.0%20with%20Commons%20Clause-blue)](LICENSE)
 [Documentation](https://nic-fio.github.io/EFI_PARTITION_MANAGER/) · [Download](https://github.com/nic-fio/EFI_PARTITION_MANAGER/releases/latest)
 
-A full-screen partition manager for UEFI firmware. One file, `partmgr.efi`:
-start it from the firmware boot menu or from a UEFI shell, and prepare disks
-before any operating system is there.
+A partition manager for UEFI firmware, with a window used with the mouse or
+the keyboard. One file, `partmgr.efi`: start it from the firmware boot menu or
+from a UEFI shell, and prepare disks before any operating system is there.
 
-![The screen of a GPT disk in partmgr: three partitions, a new one marked with a star, the free space, the keys](docs/assets/partmgr-disk.png)
+![The window of partmgr: the disks on the left, a GPT disk as a bar to scale above its partitions, a new partition marked with a star, the buttons](docs/assets/partmgr-disk.png)
 
 > **Status.** partmgr is new. It is tested automatically in QEMU with OVMF
 > firmware and on disk images checked by `sfdisk` and `parted`, but it has not
@@ -19,11 +19,16 @@ before any operating system is there.
 
 ## Highlights
 
+- **A window and the mouse**: a graphical window at the screen's own
+  resolution, with sharp text from 640 × 480 up (tried up to 3200 × 1800),
+  used with the mouse or the keyboard. partmgr drives a USB mouse itself when
+  the firmware cannot; where there is no graphics screen, text screens do the
+  same.
 - **GPT and MBR**, read and written in full: MBR with primary, extended and
   logical partitions; GPT with both copies checked and, when written, repaired.
 - **See first, write later**: every change is shown on the screen, marked with
   a star, and the disk changes only on **Write**, after a red warning confirmed
-  with **Y**.
+  with **Y** or **Yes**.
 - **Backup and restore** of the partition table to a small file, restored
   byte for byte.
 - **Wipe** a partition: random data, then zeros, with a progress bar, the speed

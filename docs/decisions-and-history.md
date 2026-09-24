@@ -342,6 +342,7 @@ The work took place on 2026-09-23 (phases 1–9) and 2026-09-24 (phase 10).
 | **8. After the first try** | Release 0.1.0 as a pre-release. The owner tried it in QEMU: the key bar was reorganised in two fixed groups, the typed disk name gave way to a Y/N confirmation, and the screens became terse for expert users (P8, P10, P16). Release 0.1.1. |
 | **9. A finished look** | Every key drawn the same way, with a message for the keys that do not apply; a text mode of 100 columns at start (P10, P17). Release 0.1.2. |
 | **10. A graphical interface, designed** | 2026-09-24. The graphical interface was designed (P18–P25): the graphics screen, the pointer and screen captures were checked in QEMU/OVMF first, which showed that OVMF has no mouse driver; partmgr will carry its own (P21). A mockup, drawn with four fonts, was approved with Inter. |
+| **11. The graphical interface, built** | 2026-09-24. Six stages, each tested in QEMU/OVMF and pushed: the drawing and the Inter font; partmgr's own USB mouse driver; the window; the actions with graphical dialogs; every screen size, with faces of 40 and 52 pixels for very large screens; the manuals and version 0.2.0. |
 
 ---
 

@@ -16,7 +16,7 @@
 <nav class="sidebar" aria-label="Table of contents">
   <div class="brand">
     <div class="brand-logo">[#]</div>
-    <div class="brand-text"><strong>User Manual</strong><span>EFI Partition Manager 0.1.2</span></div>
+    <div class="brand-text"><strong>User Manual</strong><span>EFI Partition Manager 0.2.0</span></div>
   </div>
   <div class="search">
     <input type="search" placeholder="Search  ( / )" aria-label="Search">
@@ -34,10 +34,11 @@
 <header class="titlepage">
   <div class="kicker">User manual</div>
   <h1>EFI Partition Manager</h1>
-  <p class="lead">A full-screen program for UEFI firmware that shows, creates and changes GPT and MBR partition tables.
-  Every change is shown on the screen first and written only when you ask for it, after a clear warning.</p>
+  <p class="lead">A program for UEFI firmware that shows, creates and changes GPT and MBR partition tables, in a
+  window used with the mouse or the keyboard. Every change is shown on the screen first and written only when you ask
+  for it, after a clear warning.</p>
   <div class="meta">
-    <span><b>Version</b> 0.1.2</span>
+    <span><b>Version</b> 0.2.0</span>
     <span><b>Platform</b> UEFI x86-64</span>
     <span><b>File</b> partmgr.efi (one file)</span>
     <span><b>Audience</b> experienced users and technicians</span>
@@ -77,6 +78,8 @@ environment just to run a partitioning tool.</p>
     <p>The disk partmgr was started from is never written; damaged tables are recognised and explained.</p></div>
   <div class="card"><div class="icon">&#8801;</div><h4>Readable</h4>
     <p>Types chosen from a list, sizes such as <code>512M</code> or <code>rest</code>, no codes to remember.</p></div>
+  <div class="card"><div class="icon">&#9707;</div><h4>A window, and the mouse</h4>
+    <p>A graphical window used with the mouse or the keyboard; text screens where the firmware has no graphics.</p></div>
   <div class="card"><div class="icon">&gt;_</div><h4>No EDK2 code</h4>
     <p>Written from scratch, with its own UEFI definitions: one small file.</p></div>
 </div>
@@ -94,14 +97,15 @@ the short name this manual uses for the program.</p>
 
 <h3 id="audience" data-index="audience">Who it is for</h3>
 <p>partmgr is made for people who know what a partition table is and how to reach a UEFI shell or the firmware boot
-menu. The screens are therefore terse: short questions, fields with just a label, no explanations. The explanations are
+menu. The window is therefore terse: short questions, fields with just a label, no explanations. The explanations are
 in this manual. What partmgr never drops is the confirmation of every operation that writes to a disk.</p>
 
 <h3 id="conventions">Conventions used in this manual</h3>
 <table>
   <thead><tr><th>You see</th><th>It means</th></tr></thead>
   <tbody>
-    <tr><td><kbd>N</kbd>, <kbd>Enter</kbd>, <kbd>Esc</kbd></td><td>Keys to press. Letters work in upper or lower case.</td></tr>
+    <tr><td><kbd>N</kbd>, <kbd>Enter</kbd>, <kbd>Esc</kbd></td><td>Keys to press. Letters work in upper or lower case.
+        Every key has a button in the window, and the manual names the key.</td></tr>
     <tr><td><code>512M</code></td><td>Something you type.</td></tr>
     <tr><td><code>blk3</code></td><td>A disk, as partmgr names it.</td></tr>
     <tr><td><em>Delete</em> / <em>wipe</em></td><td>To <em>delete</em> a partition removes it from the table; to <em>wipe</em> it
@@ -117,9 +121,11 @@ in this manual. What partmgr never drops is the confirmation of every operation 
 <h3 id="requirements">Requirements</h3>
 <ul>
   <li>A computer or virtual machine with <strong>UEFI firmware</strong> on <strong>x86-64</strong>.</li>
-  <li>A text console of at least 80 columns and 25 rows (every firmware has one). When the firmware offers a text mode
-      of 100 columns or more, partmgr switches to it at start — the narrowest such mode, for the largest characters — and
-      puts the previous mode back when it ends. At 80 columns the key bars are drawn narrower.</li>
+  <li>A graphics screen of at least 640 × 480 for the window — practically every UEFI machine with a monitor has one.
+      Without it partmgr shows <a href="#text-screens">text screens</a>, which need a text console of at least 80 columns
+      and 25 rows.</li>
+  <li>A mouse is optional: a USB mouse works even when the firmware has no mouse support (see
+      <a href="#mouse-keys">Mouse and keys</a>). The keyboard does everything.</li>
   <li>A FAT volume the firmware can read, for <code>partmgr.efi</code> itself — and, for backups, a FAT volume that can
       be written.</li>
 </ul>
@@ -148,7 +154,7 @@ $ ls -l build/partmgr.efi</pre>
 <p>From the firmware boot menu — usually opened with <kbd>F12</kbd>, <kbd>F11</kbd>, <kbd>F8</kbd> or <kbd>Esc</kbd> during
 power-on — choose the stick. From a UEFI shell, type the file with its volume and folder:</p>
 <pre class="terminal">fs0:\> fs0:\EFI\tools\partmgr.efi</pre>
-<p>When you leave partmgr (<kbd>Q</kbd> on the list of disks) the screen is cleared and you are back where you started
+<p>When you leave partmgr (<kbd>Esc</kbd> or the Quit button; <kbd>Q</kbd> on the text list of disks) the screen is cleared and you are back where you started
 it from: the shell, or the firmware, which goes on with its boot order or its setup menu.</p>
 
 <h3 id="secure-boot" data-index="Secure Boot">Secure Boot</h3>
@@ -163,19 +169,32 @@ firmware setup while you use partmgr.</p>
 and does not get around the protection of the firmware.</p>
 
 <!-- ===================================================================== -->
-<h2 id="screens">The screens</h2>
+<h2 id="screens">The window</h2>
 
-<p class="chapter-intro">partmgr has two screens: the list of disks, and the screen of one disk.</p>
+<p class="chapter-intro">partmgr shows everything in one window, used with the mouse or with the keyboard. Where the
+firmware has no graphics screen it shows text screens instead (see <a href="#text-screens">The text screens</a>).</p>
 
-<h3 id="disk-list" data-index="list of disks;blkN;rescan">The list of disks</h3>
+<h3 id="window" data-index="window;list of disks;blkN;disk bar">The parts of the window</h3>
 <figure class="demo">
-  <img src="assets/partmgr-list.png" width="816" height="608"
-       alt="The list of disks: blk1 marked as the disk partmgr was started from, blk3 with GPT and three partitions, blk7 with MBR, blk12 without a table">
-  <figcaption>The list of disks. The highlighted row is the one <kbd>Enter</kbd> opens.</figcaption>
+  <img src="assets/partmgr-window.png" width="1024" height="768"
+       alt="The window of partmgr: on the left the disks blk1 (started from here: read only), blk3, blk7 and blk12; on the right blk3, a GPT disk, as a coloured bar to scale above the table of its three partitions and the free space; at the bottom the buttons">
+  <figcaption>The window: the disks on the left, the selected disk on the right, the buttons at the bottom.</figcaption>
 </figure>
-<p>Every whole disk with a medium in it has a row: its name, the kind of connection (NVMe, SATA, USB, SCSI, SD… or
-just <em>disk</em> when the firmware does not say), its size, the kind of partition table and the number of partitions.
-Empty drives and single partitions are not listed.</p>
+<ul>
+  <li><strong>The disks</strong>, on the left. Every whole disk with a medium in it: its name, the kind of connection
+      (NVMe, SATA, USB, SCSI, SD… or just <em>disk</em> when the firmware does not say), its size, the kind of partition
+      table and the number of partitions. Empty drives and single partitions are not listed. At start partmgr opens the
+      first disk it may change.</li>
+  <li><strong>The selected disk</strong>, on the right: its name, kind, size and table, then a <strong>bar</strong> that
+      draws the disk to scale — one coloured block per partition (EFI system orange, Linux green, swap red, Microsoft and
+      FAT blue, others lilac), the free space hatched, on an MBR disk the extended partition as a band around its logical
+      partitions — and under it the <strong>table</strong> of its partitions and free areas.</li>
+  <li><strong>The message line</strong>: the result of the last action, green, or why it could not be done, red.</li>
+  <li><strong>The buttons</strong>, in two rows that never change. <strong>Partition:</strong> the actions on the selected
+      row — New, Delete, Type, Rename, Active, Wipe. <strong>Disk:</strong> the actions on the whole disk — Write, New
+      table, Delete table, Backup, Restore, Quit. Each button shows its key.</li>
+</ul>
+<p>Names and marks on the disks:</p>
 <ul>
   <li><strong>Names.</strong> Disks are called <code>blkN</code>, where N counts every block device of the firmware,
       partitions included — which is why the numbers are not consecutive. They stay the same from one start to the next
@@ -185,25 +204,40 @@ Empty drives and single partitions are not listed.</p>
   <li><strong>write-protected</strong> marks a medium the firmware reports as read-only.</li>
   <li><strong>no table</strong>: the disk has no partition table — new, erased, or with a file system written directly on
       the whole disk.</li>
+  <li>A star after the number of partitions, and <em>* = changes not written</em> in the title bar, say that the
+      selected disk has changes that are not written yet.</li>
 </ul>
+
+<h3 id="mouse-keys" data-index="mouse;Tab;Page Up;Page Down;F5;rescan">Mouse and keys</h3>
+<p>Everything can be done with the mouse and everything with the keyboard; the two can be mixed.</p>
 <table>
-  <thead><tr><th>Key</th><th>Does</th></tr></thead>
+  <thead><tr><th>With the mouse</th><th>With the keyboard</th><th>Does</th></tr></thead>
   <tbody>
-    <tr><td><kbd>&uarr;</kbd> <kbd>&darr;</kbd> <kbd>Home</kbd> <kbd>End</kbd></td><td>Move.</td></tr>
-    <tr><td><kbd>Enter</kbd></td><td>Opens the disk.</td></tr>
-    <tr><td><kbd>R</kbd></td><td>Reads the disks again (after plugging in a stick).</td></tr>
-    <tr><td><kbd>Q</kbd> or <kbd>Esc</kbd></td><td>Leaves partmgr.</td></tr>
+    <tr><td>Click a disk</td><td><kbd>Page Up</kbd> <kbd>Page Down</kbd>, or <kbd>Tab</kbd> then <kbd>&uarr;</kbd>
+        <kbd>&darr;</kbd></td><td>Opens another disk.</td></tr>
+    <tr><td>Click a row of the table, or a block of the bar</td><td><kbd>&uarr;</kbd> <kbd>&darr;</kbd> <kbd>Home</kbd>
+        <kbd>End</kbd></td><td>Selects a partition or a free area.</td></tr>
+    <tr><td>Click a button</td><td>The key shown on it</td><td>The action.</td></tr>
+    <tr><td>Click <em>F5 Rescan</em></td><td><kbd>F5</kbd></td><td>Reads the disks again (after plugging in a stick).</td></tr>
+    <tr><td>Click <em>Esc Quit</em></td><td><kbd>Esc</kbd></td><td>Leaves partmgr.</td></tr>
   </tbody>
 </table>
+<p><kbd>Tab</kbd> moves the arrow keys between the table of the disk and the list of disks: the one they move in has its
+selection in strong blue, the other in pale blue. <kbd>Page Up</kbd> and <kbd>Page Down</kbd> change the disk at any time.
+The button under the mouse pointer is highlighted.</p>
+<p><strong>The mouse.</strong> partmgr uses the firmware's mouse when the firmware has one; when it has not — many do not —
+partmgr drives a USB mouse itself. Every USB mouse works; tablets and touch screens work only when the firmware supports
+them, and so do PS/2 mice. Without a mouse the pointer is not shown, and the keyboard does everything.</p>
+<p>Leaving a disk that has changes not written — opening another disk, <kbd>F5</kbd>, <kbd>Esc</kbd> — asks
+<em>Discard the unwritten changes? (Y/N)</em> first (see <a href="#leaving">Leaving without writing</a>).</p>
 
-<h3 id="disk-screen" data-index="screen of a disk;free space;changes not written">The screen of a disk</h3>
+<h3 id="disk-screen" data-index="table of a disk;free space;changes not written">The table of a disk</h3>
 <figure class="demo">
-  <img src="assets/partmgr-disk.png" width="816" height="608"
-       alt="The screen of a GPT disk: partitions 1 to 3, a new partition 4 marked with a star, the free space after it, and the message Partition 4 added">
+  <img src="assets/partmgr-disk.png" width="1024" height="768"
+       alt="A GPT disk after adding partition 4: the row 4* in the table, its block in the bar, the message Partition 4 added and the title * = changes not written">
   <figcaption>A GPT disk after adding partition 4: the star and the title say it is not written yet.</figcaption>
 </figure>
-<p>The title bar names the disk, its kind, its size and its table. Below it are the partitions <strong>and the free
-areas, in the order they have on the disk</strong>:</p>
+<p>The table lists the partitions <strong>and the free areas, in the order they have on the disk</strong>:</p>
 <table>
   <thead><tr><th>Column</th><th>Content</th></tr></thead>
   <tbody>
@@ -219,24 +253,60 @@ areas, in the order they have on the disk</strong>:</p>
 </table>
 <p>Free areas appear in grey: <em>free space</em>, or on an MBR disk <em>free space (for logical partitions)</em>
 when the area is inside the extended partition. Only areas of at least 1 MiB are shown, starting on a 1 MiB boundary.
-Changed rows are yellow, and the title says <em>* = changes not written</em> as long as there is something to write.</p>
-<p>Under the list, <em>Note:</em> lines explain anything unusual partmgr found in the table (see <a href="#notes">What the
-notes mean</a>), and a green or red line reports the result of the last action.</p>
-<p>The two bars at the bottom show the keys, each highlighted in blue with its action after it. <strong>Partition:</strong>
-the actions on the selected row — <kbd>N</kbd> New, <kbd>D</kbd> Delete, <kbd>T</kbd> Type, <kbd>R</kbd> Rename,
-<kbd>A</kbd> Active, <kbd>W</kbd> Wipe. <strong>Disk:</strong> the actions on the whole disk — <kbd>Enter</kbd> Write,
-<kbd>Z</kbd> New table, <kbd>X</kbd> Delete table, <kbd>B</kbd> Backup, <kbd>S</kbd> Restore, <kbd>Esc</kbd> Back. The
-bars never change. A key that does not apply to the selected row says why in one short line: <kbd>N</kbd> on a
-partition, <em>Select a free area.</em>; <kbd>D</kbd>, <kbd>T</kbd>, <kbd>R</kbd>, <kbd>A</kbd> or <kbd>W</kbd> on free
-space, <em>Select a partition first.</em>; <kbd>R</kbd> on an MBR disk, <em>MBR partitions have no name.</em>;
-<kbd>A</kbd> on a GPT disk, <em>GPT partitions have no active flag.</em>; <kbd>Enter</kbd> with nothing to write,
-<em>No changes to write.</em> On a disk that can only be read, every change answers <em>Read only</em>.</p>
+Changed rows are amber, with their star.</p>
+<p>Under the table, <em>Note:</em> lines explain anything unusual partmgr found in the table (see <a href="#notes">What the
+notes mean</a>).</p>
+<p>A button or key that does not apply to the selected row says why in one short line: New on a partition,
+<em>Select a free area.</em>; Delete, Type, Rename, Active or Wipe on free space, <em>Select a partition first.</em>;
+Rename on an MBR disk, <em>MBR partitions have no name.</em>; Active on a GPT disk, <em>GPT partitions have no active
+flag.</em>; Write with nothing to write, <em>No changes to write.</em> On a disk that can only be read, every change
+answers <em>Read only</em>.</p>
 
 <figure class="demo">
-  <img src="assets/partmgr-mbr.png" width="816" height="608"
-       alt="The screen of an MBR disk: an active FAT32 partition, the extended partition, logical partitions 5 and 6 and free space inside and outside the extended partition">
-  <figcaption>An MBR disk: the extended partition 2 holds the logical partitions 5 and 6 and two free areas.</figcaption>
+  <img src="assets/partmgr-mbr.png" width="1024" height="768"
+       alt="An MBR disk: an active FAT32 partition, the extended partition, logical partitions 5 and 6 and free space inside and outside the extended partition, in the table and in the bar">
+  <figcaption>An MBR disk: the extended partition 2 holds the logical partitions 5 and 6 and two free areas — in the bar,
+  the band behind them.</figcaption>
 </figure>
+
+<h3 id="dialogs" data-index="dialogs;Y/N;OK;Cancel">Dialogs</h3>
+<p>Questions appear in a box over the window, which is dimmed meanwhile. A box with a <strong>red</strong> title asks
+before something that destroys data. The buttons show their keys:</p>
+<ul>
+  <li><strong>A message</strong>: <em>OK</em>, or any key, closes it.</li>
+  <li><strong>A field</strong>: the proposed text is selected, and the first key you type replaces it;
+      <kbd>&larr;</kbd> <kbd>&rarr;</kbd> <kbd>Home</kbd> <kbd>End</kbd> <kbd>Backspace</kbd> <kbd>Del</kbd> edit it.
+      <em>OK</em> or <kbd>Enter</kbd> accepts, <em>Cancel</em> or <kbd>Esc</kbd> cancels.</li>
+  <li><strong>A list</strong>: a click on an item chooses it; or move with the arrows, <kbd>Page Up</kbd>,
+      <kbd>Page Down</kbd>, and <em>Choose</em> or <kbd>Enter</kbd>.</li>
+  <li><strong>A question</strong>, ending in <em>(Y/N)</em>: <em>Yes</em> or <kbd>Y</kbd>; <em>No</em>, <kbd>N</kbd> or
+      <kbd>Esc</kbd>. <kbd>Enter</kbd> does nothing there (see <a href="#write">Write</a>).</li>
+</ul>
+
+<h3 id="screen-sizes" data-index="resolution;screen size">Screen sizes</h3>
+<p>partmgr keeps the resolution the firmware set — usually the monitor's own — and fits the window to it, from
+640 × 480 up. The text grows with the screen, in the same proportion on a 1080-row and on a 2160-row (4K) monitor; on a
+narrow screen the buttons get narrower, and take more rows if they must.</p>
+
+<h3 id="text-screens" data-index="text screens;serial console">The text screens</h3>
+<p>Where the firmware has no graphics screen of at least 640 × 480 — a server reached only through a serial console,
+for example — partmgr shows two text screens instead: the list of disks, and the screen of one disk. They do the same
+things with the same keys, answer with the same messages and ask the same questions.</p>
+<figure class="demo">
+  <img src="assets/partmgr-text-list.png" width="816" height="608"
+       alt="The text list of disks: blk1 marked as the disk partmgr was started from, blk3 with GPT and three partitions, blk7 with MBR, blk12 without a table">
+  <figcaption>The list of disks in text. <kbd>Enter</kbd> opens the highlighted disk.</figcaption>
+</figure>
+<figure class="demo">
+  <img src="assets/partmgr-text-disk.png" width="816" height="608"
+       alt="The text screen of a GPT disk: partitions 1 to 3 and the free space, the key bars at the bottom">
+  <figcaption>The screen of a disk in text: the key bars at the bottom are the buttons of the window.</figcaption>
+</figure>
+<p>On the list: <kbd>&uarr;</kbd> <kbd>&darr;</kbd> to move, <kbd>Enter</kbd> to open a disk, <kbd>R</kbd> to read the
+disks again, <kbd>Q</kbd> or <kbd>Esc</kbd> to leave. On the screen of a disk the keys are those of the window's buttons,
+and <kbd>Esc</kbd> goes back to the list. When the firmware offers a text mode of 100 columns or more, partmgr switches
+to the narrowest such mode, for the largest characters, and puts the previous mode back when it ends; at 80 columns
+the key bars are drawn narrower.</p>
 
 <!-- ===================================================================== -->
 <h2 id="concepts">Partition tables in brief</h2>
@@ -278,7 +348,7 @@ disks with 4096-byte sectors. A start you type is rounded up to the next MiB.</p
 <a href="#writing">Write</a>.</p>
 
 <h3 id="new-partition" data-index="N;new partition;size;rest">New partition</h3>
-<p>Select a free area and press <kbd>N</kbd>. partmgr asks, one at a time:</p>
+<p>Select a free area and press <kbd>N</kbd> — or click New. partmgr asks, one at a time:</p>
 <ol class="steps">
   <li><strong>On an MBR disk, primary or logical</strong> — only when the disk has no extended partition yet. A logical
       partition <em>creates the extended partition</em> over the whole free area. In a free area inside the extended
@@ -288,7 +358,7 @@ disks with 4096-byte sectors. A start you type is rounded up to the next MiB.</p
       area: that first MiB holds the table of the chain.</li>
 </ol>
 <figure class="demo">
-  <img src="assets/partmgr-start.png" width="816" height="608"
+  <img src="assets/partmgr-start.png" width="1024" height="768"
        alt="The New partition dialog: Start (free: 317 MiB to 511.9 MiB), proposing 317 MiB">
   <figcaption>The start is proposed; the dialog says where the free area begins and ends.</figcaption>
 </figure>
@@ -296,12 +366,12 @@ disks with 4096-byte sectors. A start you type is rounded up to the next MiB.</p
   <li><strong>Size</strong>, proposed as <code>rest</code>: all the free space after the start. Or type a size:
       <code>512M</code>, <code>20G</code>, <code>1.5T</code> (see <a href="#sizes">Writing sizes</a>). If it does not fit,
       partmgr says how much does.</li>
-  <li><strong>Type</strong>, chosen from a list; <em>Other…</em> at the end takes a type GUID (GPT) or a type byte in
+  <li><strong>Type</strong>, chosen from a list with a click, or with the arrows and <kbd>Enter</kbd>; <em>Other…</em> at the end takes a type GUID (GPT) or a type byte in
       hexadecimal (MBR). See <a href="#types">Partition types</a>.</li>
   <li><strong>Name</strong>, on GPT only: up to 36 characters, or empty.</li>
 </ol>
 <figure class="demo">
-  <img src="assets/partmgr-type.png" width="816" height="608"
+  <img src="assets/partmgr-type.png" width="1024" height="768"
        alt="The Type list of a GPT disk, with Linux filesystem selected">
   <figcaption>Types are chosen from a list: no codes to remember.</figcaption>
 </figure>
@@ -339,17 +409,17 @@ partitions is not touched.</p>
 <p class="chapter-intro">The one moment the disk changes, and how partmgr protects it.</p>
 
 <h3 id="write" data-index="Enter;Write;confirmation">Write</h3>
-<p>When the screen shows the table you want, press <kbd>Enter</kbd>. partmgr asks, in red, for example
+<p>When the window shows the table you want, press <kbd>Enter</kbd> or click Write. partmgr asks, in red, for example
 <strong>Write the GPT table to blk3 (512.0 MiB)? (Y/N)</strong> — or, after <kbd>X</kbd>, <strong>Delete the partition
 table of blk3 (512.0 MiB)? (Y/N)</strong>:</p>
 <figure class="demo">
-  <img src="assets/partmgr-write.png" width="816" height="608"
+  <img src="assets/partmgr-write.png" width="1024" height="768"
        alt="The red question: Write the GPT table to blk3 (512.0 MiB)? (Y/N)">
-  <figcaption>Nothing is written until you press Y.</figcaption>
+  <figcaption>Nothing is written until you press Y or click Yes.</figcaption>
 </figure>
-<p>Press <kbd>Y</kbd>: the table is written, read back from the disk and shown again, and the message line says
-<em>Written.</em> <kbd>N</kbd> or <kbd>Esc</kbd> cancel, and the message line says <em>Nothing was written.</em>
-<kbd>Enter</kbd> does nothing in this window: you reach it with <kbd>Enter</kbd>, so pressing that key twice by mistake
+<p>Press <kbd>Y</kbd> or click Yes: the table is written, read back from the disk and shown again, and the message line
+says <em>Written.</em> <kbd>N</kbd>, <kbd>Esc</kbd> or No cancel, and the message line says <em>Nothing was written.</em>
+<kbd>Enter</kbd> does nothing in this question: you reach it with <kbd>Enter</kbd>, so pressing that key twice by mistake
 cannot write. There is <strong>no automatic copy</strong> of the old table: if you want one, press <kbd>N</kbd> and make
 a <a href="#backup">backup</a> first.</p>
 
@@ -366,8 +436,10 @@ a <a href="#backup">backup</a> first.</p>
 <p>Write never touches the data inside the partitions.</p>
 
 <h3 id="leaving" data-index="Esc;leaving with changes">Leaving without writing</h3>
-<p><kbd>Esc</kbd> goes back to the list of disks. If there are changes not written, partmgr asks <em>Discard the unwritten changes? (Y/N)</em>:
-<kbd>Y</kbd> leaves them, <kbd>N</kbd> stays. Leaving without writing leaves the disk exactly as it was.</p>
+<p>Opening another disk, reading the disks again (<kbd>F5</kbd>) or leaving partmgr (<kbd>Esc</kbd>) with changes not
+written asks first, in red, <em>Discard the unwritten changes? (Y/N)</em>: <kbd>Y</kbd> leaves them, <kbd>N</kbd> stays.
+In the text screens <kbd>Esc</kbd> goes back to the list of disks and asks the same. Leaving without writing leaves the
+disk exactly as it was.</p>
 
 <!-- ===================================================================== -->
 <h2 id="backup-restore">Backup and restore</h2>
@@ -415,14 +487,14 @@ name: only its contents are gone.</p>
 
 <h3 id="wipe-progress" data-index="progress bar;Esc (wipe)">Progress, and stopping</h3>
 <figure class="demo">
-  <img src="assets/partmgr-wipe.png" width="816" height="608"
-       alt="Wiping blk3 partition 3 (1.0 GiB): pass 1 of 2, random data, the bar at 51 percent, 524.0 MiB of 1.0 GiB, 57.4 MiB/s, about 26 s left">
-  <figcaption>The progress of a wipe: pass, bar, amount, speed and time left.</figcaption>
+  <img src="assets/partmgr-wipe.png" width="1024" height="768"
+       alt="Wiping blk3 partition 3 (1.0 GiB): pass 1 of 2, random data, the bar at 48 percent, 500.0 MiB of 1.0 GiB, 54.3 MiB/s, about 28 s left, and the Stop button">
+  <figcaption>The progress of a wipe: pass, bar, amount, speed, time left, and Stop.</figcaption>
 </figure>
 <p>While it runs, partmgr shows which pass it is in, a bar with the percentage of the pass, how much of the partition
 the pass has written, the speed, and the time left for both passes (estimated after the first half second). A
 large disk takes time: at 150 MiB/s, a 1 TiB partition takes about four hours for the two passes.</p>
-<p><kbd>Esc</kbd> asks whether to stop. Stopping leaves the partition partly overwritten — its old data is damaged
+<p><kbd>Esc</kbd>, or a click on Stop, asks whether to stop. Stopping leaves the partition partly overwritten — its old data is damaged
 either way — and the message line says in which pass it stopped. At the end the message line says how much was
 overwritten and how long it took.</p>
 
@@ -515,30 +587,31 @@ Write then writes a clean table — which is also how most of these are repaired
 <h2 id="reference">Reference</h2>
 
 <h3 id="keys" data-index="keys">Keys</h3>
+<p>Every key of the window has a button showing it; a click on the button does the same.</p>
 <table>
   <thead><tr><th>Key</th><th>Where</th><th>Does</th></tr></thead>
   <tbody>
-    <tr><td><kbd>&uarr;</kbd> <kbd>&darr;</kbd> <kbd>Home</kbd> <kbd>End</kbd></td><td>both screens</td><td>Move.</td></tr>
-    <tr><td><kbd>Enter</kbd></td><td>list</td><td>Open the disk.</td></tr>
-    <tr><td><kbd>R</kbd></td><td>list</td><td>Read the disks again.</td></tr>
-    <tr><td><kbd>Q</kbd> <kbd>Esc</kbd></td><td>list</td><td>Leave partmgr.</td></tr>
-    <tr><td><kbd>N</kbd></td><td>disk, on free space</td><td><a href="#new-partition">New partition</a>.</td></tr>
-    <tr><td><kbd>D</kbd></td><td>disk, on a partition</td><td><a href="#delete-partition">Delete it</a>.</td></tr>
-    <tr><td><kbd>T</kbd></td><td>disk, on a partition</td><td><a href="#change-type">Change its type</a>.</td></tr>
-    <tr><td><kbd>R</kbd></td><td>disk, GPT partition</td><td><a href="#rename">Rename it</a>.</td></tr>
-    <tr><td><kbd>A</kbd></td><td>disk, MBR partition</td><td><a href="#active">Active flag</a>.</td></tr>
-    <tr><td><kbd>W</kbd></td><td>disk, on a partition</td><td><a href="#wipe">Wipe it</a> (at once).</td></tr>
+    <tr><td><kbd>&uarr;</kbd> <kbd>&darr;</kbd> <kbd>Home</kbd> <kbd>End</kbd></td><td>table, or list of disks after <kbd>Tab</kbd></td><td>Move.</td></tr>
+    <tr><td><kbd>Tab</kbd></td><td>window</td><td>Moves the arrow keys between the table and the list of disks.</td></tr>
+    <tr><td><kbd>Page Up</kbd> <kbd>Page Down</kbd></td><td>window</td><td>The previous or next disk.</td></tr>
+    <tr><td><kbd>F5</kbd></td><td>window</td><td>Read the disks again.</td></tr>
+    <tr><td><kbd>N</kbd></td><td>on free space</td><td><a href="#new-partition">New partition</a>.</td></tr>
+    <tr><td><kbd>D</kbd></td><td>on a partition</td><td><a href="#delete-partition">Delete it</a>.</td></tr>
+    <tr><td><kbd>T</kbd></td><td>on a partition</td><td><a href="#change-type">Change its type</a>.</td></tr>
+    <tr><td><kbd>R</kbd></td><td>on a GPT partition</td><td><a href="#rename">Rename it</a>.</td></tr>
+    <tr><td><kbd>A</kbd></td><td>on an MBR partition</td><td><a href="#active">Active flag</a>.</td></tr>
+    <tr><td><kbd>W</kbd></td><td>on a partition</td><td><a href="#wipe">Wipe it</a> (at once).</td></tr>
+    <tr><td><kbd>Enter</kbd></td><td>disk</td><td><a href="#write">Write</a> the changes.</td></tr>
     <tr><td><kbd>Z</kbd></td><td>disk</td><td><a href="#new-table">New table</a> (GPT or MBR).</td></tr>
     <tr><td><kbd>X</kbd></td><td>disk</td><td><a href="#delete-table">Delete the table</a>.</td></tr>
     <tr><td><kbd>B</kbd></td><td>disk</td><td><a href="#backup">Backup</a> to a file.</td></tr>
     <tr><td><kbd>S</kbd></td><td>disk</td><td><a href="#restore">Restore</a> from a file (at once).</td></tr>
-    <tr><td><kbd>Enter</kbd></td><td>disk</td><td><a href="#write">Write</a> the changes.</td></tr>
-    <tr><td><kbd>Esc</kbd></td><td>disk</td><td>Back to the list (asks if changes are not written).</td></tr>
+    <tr><td><kbd>Esc</kbd></td><td>window</td><td>Leave partmgr (asks if changes are not written).</td></tr>
   </tbody>
 </table>
-<p>In a dialog: <kbd>Enter</kbd> accepts, <kbd>Esc</kbd> cancels. In a text field the first key you type replaces the
-proposed text; <kbd>&larr;</kbd> <kbd>&rarr;</kbd> <kbd>Home</kbd> <kbd>End</kbd> <kbd>Backspace</kbd> <kbd>Del</kbd>
-edit it. In a question, <kbd>Y</kbd> means yes, <kbd>N</kbd> or <kbd>Esc</kbd> no.</p>
+<p>In the <a href="#text-screens">text screens</a>: on the list of disks <kbd>Enter</kbd> opens a disk, <kbd>R</kbd>
+reads the disks again and <kbd>Q</kbd> or <kbd>Esc</kbd> leave; on the screen of a disk the keys above, and
+<kbd>Esc</kbd> back to the list. In a dialog, see <a href="#dialogs">Dialogs</a>.</p>
 
 <h3 id="sizes" data-index="sizes;units;MiB;GiB">Writing sizes</h3>
 <table>
@@ -623,7 +696,7 @@ recognised but never chosen by hand: partmgr creates the extended partition itse
 <div id="index-list"></div>
 
 <footer class="doc-footer">
-  EFI Partition Manager User Manual — for partmgr 0.1.2. See also the
+  EFI Partition Manager User Manual — for partmgr 0.2.0. See also the
   <a href="partmgr-developer-manual.html">technical manual</a> and the
   <a href="https://github.com/nic-fio/EFI_PARTITION_MANAGER/blob/main/docs/decisions-and-history.md">design decisions</a>.
   <br>Copyright (c) 2026 nic-fio, licensed

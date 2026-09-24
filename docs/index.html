@@ -19,20 +19,20 @@
   <header class="titlepage">
     <div class="kicker">Documentation</div>
     <h1>EFI Partition Manager</h1>
-    <p class="lead">A full-screen partition manager for UEFI firmware, in one file: GPT and MBR partition tables,
-    changes shown before they are written, backup and restore, and wipe.</p>
-    <div class="meta"><span><b>Version</b> 0.1.2</span><span><b>Platform</b> UEFI x86-64</span><span><b>File</b> partmgr.efi</span></div>
+    <p class="lead">A partition manager for UEFI firmware, in one file: a window used with the mouse or the keyboard,
+    GPT and MBR partition tables, changes shown before they are written, backup and restore, and wipe.</p>
+    <div class="meta"><span><b>Version</b> 0.2.0</span><span><b>Platform</b> UEFI x86-64</span><span><b>File</b> partmgr.efi</span></div>
   </header>
 
   <figure class="demo">
-    <img src="assets/partmgr-disk.png" width="816" height="608"
-         alt="The screen of a GPT disk in partmgr: three partitions, a new one marked with a star, the free space and the keys">
-    <figcaption>The screen of a disk: a new partition is marked with a star until Write writes it.</figcaption>
+    <img src="assets/partmgr-disk.png" width="1024" height="768"
+         alt="The window of partmgr: the disks on the left, a GPT disk as a bar to scale above its partitions, a new partition marked with a star, the buttons at the bottom">
+    <figcaption>The window: a new partition is marked with a star until Write writes it.</figcaption>
   </figure>
 
   <div class="cards">
     <a class="card" href="partmgr-user-manual.html"><div class="icon">[#]</div><h4>User manual</h4>
-      <p>The screens, every key, writing, backup and restore, wipe, and what the notes about damaged tables mean.</p></a>
+      <p>The window, the mouse and every key, writing, backup and restore, wipe, and what the notes about damaged tables mean.</p></a>
     <a class="card" href="partmgr-developer-manual.html"><div class="icon">{ }</div><h4>Technical manual</h4>
       <p>How partmgr reads, changes and writes partition tables, the backup format, the tests, how to extend it.</p></a>
     <a class="card" href="https://github.com/nic-fio/EFI_PARTITION_MANAGER/blob/main/docs/decisions-and-history.md"><div class="icon">&#8801;</div><h4>Decisions and history</h4>

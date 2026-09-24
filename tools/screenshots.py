@@ -1,13 +1,16 @@
 #!/usr/bin/env python3
 """Take the screenshots of the manuals again: boot partmgr.efi in QEMU/OVMF on
 test disks, type the keys of each scene through the QEMU monitor and save the
-screen, cropped to the 100 x 31 text console, as a PNG.
+screen as a PNG - the whole window at 1024 x 768, or, for the text screens,
+the 100 x 31 text console.
 
-    make
+    make && make build/tests/partmgr-text.efi
     tools/screenshots.py [OVMF.fd [OUTDIR]]    # default: docs/assets
 
 Run by hand before a release (the title bar shows the version). Needs
-qemu-system-x86_64, OVMF, sfdisk and mkfs.fat; nothing else. The wipe scene
+qemu-system-x86_64, OVMF, sfdisk and mkfs.fat; nothing else. The text screens
+are taken with build/tests/partmgr-text.efi, partmgr built without the
+window: with a video card partmgr always opens its window. The wipe scene
 uses a slowed-down disk so that the progress bar is caught half-way; its
 speed and time left change from run to run.
 """
@@ -25,22 +28,26 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 OVMF = sys.argv[1] if len(sys.argv) > 1 else "/usr/share/ovmf/OVMF.fd"
 OUT = sys.argv[2] if len(sys.argv) > 2 else os.path.join(ROOT, "docs", "assets")
 EFI = os.path.join(ROOT, "build", "partmgr.efi")
+TEXT_EFI = os.path.join(ROOT, "build", "tests", "partmgr-text.efi")
 SFDISK = shutil.which("sfdisk") or "/sbin/sfdisk"
 MKFS = shutil.which("mkfs.fat") or "/sbin/mkfs.fat"
 
 # At 1024x768 the firmware offers 100 x 31 (8 x 19 pixel cells), centred:
-# this box is the text console with a margin of one cell.
-CROP = (104, 80, 920, 688)
+# this box is the text console with a margin of one cell. The window is
+# taken whole.
+CROP_TEXT = (104, 80, 920, 688)
+CROP_WINDOW = (0, 0, 1024, 768)
 
-# Scenes: (disk size of the GPT test disk in MiB, slow disk, steps). A step is
-# "key:NAME" (a QEMU sendkey name), "type:TEXT", "sleep:SECONDS" or "shot:NAME".
+# Scenes: (program, disk size of the GPT test disk in MiB, slow disk, steps).
+# A step is "key:NAME" (a QEMU sendkey name), "type:TEXT", "sleep:SECONDS" or
+# "shot:NAME". The window opens on the GPT disk; the text screens on the list.
 SCENES = [
-    (512, False, ["key:down", "shot:partmgr-list", "key:ret", "key:end", "key:n", "shot:partmgr-start",
-                  "key:ret", "type:20M\n"] + ["key:down"] * 7 + ["shot:partmgr-type", "key:ret",
-                  "type:Test part\n", "shot:partmgr-disk", "key:ret", "shot:partmgr-write", "key:n",
-                  "key:esc", "key:y", "key:down", "key:ret", "shot:partmgr-mbr"]),
-    (1300, True, ["key:down", "key:ret", "key:down", "key:down", "key:w", "key:y", "sleep:8",
-                  "shot:partmgr-wipe"]),
+    ("window", 512, False,
+     ["shot:partmgr-window", "key:end", "key:n", "shot:partmgr-start", "key:ret", "type:20M\n"] +
+     ["key:down"] * 7 + ["shot:partmgr-type", "key:ret", "type:Test part\n", "shot:partmgr-disk", "key:ret",
+                         "shot:partmgr-write", "key:n", "key:pgdn", "key:y", "shot:partmgr-mbr"]),
+    ("window", 1300, True, ["key:down", "key:down", "key:w", "key:y", "sleep:8", "shot:partmgr-wipe"]),
+    ("text", 512, False, ["key:down", "shot:partmgr-text-list", "key:ret", "shot:partmgr-text-disk"]),
 ]
 
 KEYS = {" ": "spc", "\n": "ret", ".": "dot"}
@@ -52,7 +59,7 @@ def disk(path, mb, script):
     subprocess.run([SFDISK, "-q", path], input=script.encode(), check=True, stdout=subprocess.DEVNULL)
 
 
-def save_png(ppm, png):
+def save_png(ppm, png, crop):
     """Crop a binary PPM (what QEMU's screendump writes) and save it as PNG."""
     data = open(ppm, "rb").read()
     fields, pos = [], 0
@@ -69,7 +76,7 @@ def save_png(ppm, png):
         pos = end
     pos += 1
     width = int(fields[1])
-    x0, y0, x1, y1 = CROP
+    x0, y0, x1, y1 = crop
     rows = b"".join(b"\0" + data[pos + (y * width + x0) * 3:pos + (y * width + x1) * 3] for y in range(y0, y1))
 
     def chunk(kind, body):
@@ -80,10 +87,12 @@ def save_png(ppm, png):
                 chunk(b"IDAT", zlib.compress(rows, 9)) + chunk(b"IEND", b""))
 
 
-def run(work, gpt_mb, slow, steps):
+def run(work, program, gpt_mb, slow, steps):
     esp = os.path.join(work, "esp", "EFI", "BOOT")
     os.makedirs(esp)
-    shutil.copy(EFI, os.path.join(esp, "BOOTX64.EFI"))
+    shutil.copy(EFI if program == "window" else TEXT_EFI, os.path.join(esp, "BOOTX64.EFI"))
+    ready = "gui: shown" if program == "window" else "Select a disk"
+    crop = CROP_WINDOW if program == "window" else CROP_TEXT
     gpt, mbr, fat = (os.path.join(work, n) for n in ("gpt.img", "mbr.img", "fat.img"))
     third = "size=1G" if gpt_mb > 1000 else "size=200M"
     disk(gpt, gpt_mb, 'label: gpt\nsize=100M, type=U, name="EFI system"\nsize=16M, '
@@ -126,7 +135,7 @@ def run(work, gpt_mb, slow, steps):
             time.sleep(0.15)
 
         start = time.time()
-        while "Select a disk" not in (open(log, "rb").read().decode("utf-8", "replace") if os.path.exists(log) else ""):
+        while ready not in (open(log, "rb").read().decode("utf-8", "replace") if os.path.exists(log) else ""):
             if time.time() - start > 60:
                 sys.exit("partmgr did not start (see %s)" % log)
             time.sleep(0.3)
@@ -145,7 +154,7 @@ def run(work, gpt_mb, slow, steps):
                 ppm = os.path.join(work, arg + ".ppm")
                 cmd("screendump " + ppm)
                 time.sleep(0.5)
-                save_png(ppm, os.path.join(OUT, arg + ".png"))
+                save_png(ppm, os.path.join(OUT, arg + ".png"), crop)
                 print(os.path.join(OUT, arg + ".png"))
     finally:
         qemu.kill()
@@ -153,14 +162,15 @@ def run(work, gpt_mb, slow, steps):
 
 
 def main():
-    if not os.path.exists(EFI):
-        sys.exit("build/partmgr.efi not found: run make first")
+    for f in (EFI, TEXT_EFI):
+        if not os.path.exists(f):
+            sys.exit("%s not found: run make and make build/tests/partmgr-text.efi first" % os.path.relpath(f, ROOT))
     os.makedirs(OUT, exist_ok=True)
-    for gpt_mb, slow, steps in SCENES:
+    for program, gpt_mb, slow, steps in SCENES:
         # a short directory: unix socket paths must stay under 108 bytes
         work = tempfile.mkdtemp(prefix="pmshot")
         try:
-            run(work, gpt_mb, slow, steps)
+            run(work, program, gpt_mb, slow, steps)
         finally:
             shutil.rmtree(work, ignore_errors=True)
 

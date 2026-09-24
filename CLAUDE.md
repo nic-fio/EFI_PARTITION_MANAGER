@@ -47,7 +47,7 @@ The reasoning for each is in [docs/decisions-and-history.md](docs/decisions-and-
 | **One window** | Disks left; disk bar to scale and table right; two button rows. Esc quits, F5 rescans. Mockup: `docs/assets/gui-mockup.png`. |
 | **Own USB mouse driver** | Boot-protocol USB mice, only when no firmware driver owns the mouse. No tablets, touchscreens or PS/2. |
 | **The firmware's resolution** | The layout adapts; the text grows on large screens. |
-| **Font: Inter, light look** | Pre-rendered glyphs blended on screen, no font engine; OFL licence in NOTICE.md. |
+| **Font: Inter, light look** | Pre-rendered glyphs blended on screen, no font engine; faces of 16 to 52 px, sharp on every screen; the size of partmgr.efi is no concern; OFL licence in NOTICE.md. |
 
 ## The repository
 
@@ -80,17 +80,19 @@ not been tried yet.
 
 ## Where the project stands
 
-Version 0.1.2; 0.1.0 and 0.1.1 were released as pre-releases. Next: the
-graphical interface, designed on 2026-09-24 (P18–P25), built in six stages:
-(1) drawing and font — done; (2) the USB mouse driver — done; (3) the window, read
-only — done; (4) the actions — done; (5) resolutions and the text fallback —
-done; (6) manuals and release 0.2.0. With a graphics screen `partmgr.efi` opens the
-window, with every action of 0.1.2 and graphical dialogs; without one, the
-text screens of 0.1.2. The user manual does not describe the window yet
-(stage 6). The QEMU test runs parts 1-2 with `-vga none` for the text screens.
-Run it with `TMPDIR=/var/tmp` when `/tmp` is small: its disk images are big. Tested in QEMU with OVMF and on disk images
-checked by sfdisk and parted. **Not tried on real hardware yet**: the user will
-do it when they can. Open: real hardware.
+Version 0.2.0: the graphical interface (P18–P25), built on 2026-09-24 in six
+stages, all done. 0.1.0, 0.1.1 and 0.1.2 were released as pre-releases; 0.2.0
+is released when the owner has seen the manual. With a graphics screen
+`partmgr.efi` opens the window, with every action and graphical dialogs;
+without one, the text screens of 0.1.2. Tested in QEMU with OVMF and on disk
+images checked by sfdisk and parted. **Not tried on real hardware yet**: the
+user will do it when they can. Open: real hardware, a firmware that has its
+own mouse driver, a 4K screen.
+
+Testing notes: `make qemu-test` takes about ten minutes; run it with
+`TMPDIR=/var/tmp` when `/tmp` is small (its disk images are big). Parts 1-2 run
+QEMU with `-vga none` for the text screens. The pictures of the manuals:
+`make build/tests/partmgr-text.efi && tools/screenshots.py`.
 
 ## Announcements
 

@@ -16,7 +16,7 @@
 <nav class="sidebar" aria-label="Table of contents">
   <div class="brand">
     <div class="brand-logo">{ }</div>
-    <div class="brand-text"><strong>Technical Manual</strong><span>EFI Partition Manager 0.1.2</span></div>
+    <div class="brand-text"><strong>Technical Manual</strong><span>EFI Partition Manager 0.2.0</span></div>
   </div>
   <div class="search">
     <input type="search" placeholder="Search  ( / )" aria-label="Search">
@@ -37,7 +37,7 @@
   <p class="lead">Everything a programmer needs to understand, build, test and extend partmgr: the partition table code,
   the rules it writes by, the backup format, the UEFI program around it and the way it is tested.</p>
   <div class="meta">
-    <span><b>Version</b> 0.1.2</span>
+    <span><b>Version</b> 0.2.0</span>
     <span><b>Language</b> C (gnu11), Python 3 tests</span>
     <span><b>Size</b> ~6,000 lines of C</span>
     <span><b>Target</b> UEFI x86-64 · Linux test tool</span>
@@ -86,7 +86,7 @@ way it reads or writes tables without breaking a disk.</p>
     <tr><td>Platform layer</td><td><code>src/pal</code></td><td>1,624</td><td>console, keys, time, files, volumes, entry point</td></tr>
     <tr><td>Runtime</td><td><code>src/lib</code></td><td>1,003</td><td>libc subset, printf, string buffer, UTF-8, CRC-32</td></tr>
     <tr><td>UEFI definitions</td><td><code>include</code></td><td>742</td><td>the UEFI types and protocols partmgr uses</td></tr>
-    <tr><td>Tools</td><td><code>tools</code></td><td>705</td><td>ELF→PE converter, linker script, documentation and font tools, setup script</td></tr>
+    <tr><td>Tools</td><td><code>tools</code></td><td>715</td><td>ELF→PE converter, linker script, documentation and font tools, setup script</td></tr>
     <tr><td>Tests</td><td><code>tests/partmgr</code></td><td>2,197</td><td>the Linux test tools, the table tests, the drawing checks, the QEMU test</td></tr>
   </tbody>
 </table>
@@ -949,7 +949,7 @@ name matters.</p>
     <tr><td><code>tools/elf2efi.py</code></td><td>172</td><td>Converts the ELF shared object into a PE32+ EFI application with native base relocations</td></tr>
     <tr><td><code>tools/gen-docs.py</code></td><td>92</td><td>Writes and checks the line counts of this manual</td></tr>
     <tr><td><code>tools/gen-font.py</code></td><td>161</td><td>Renders the Inter font into font_inter.bin: sizes, weights, 4-bit glyphs, kerning pairs; describes the format</td></tr>
-    <tr><td><code>tools/screenshots.py</code></td><td>169</td><td>Takes the screenshots of the manuals again: partmgr in QEMU on test disks, keys through the monitor</td></tr>
+    <tr><td><code>tools/screenshots.py</code></td><td>179</td><td>Takes the screenshots of the manuals again: partmgr in QEMU on test disks, keys through the monitor; the window at 1024 x 768, and the text screens with build/tests/partmgr-text.efi, a build without the window</td></tr>
     <tr><td><code>tools/setup-dev.sh</code></td><td>85</td><td>Checks (or installs) the packages a clone needs and sets the git identity of the working copy</td></tr>
     <tr><td><code>tests/partmgr/gfxdemo.c</code></td><td>89</td><td>gfxdemo.efi: the test picture on the graphics screen, then the pointer following the mouse; announced on the serial port</td></tr>
     <tr><td><code>tests/partmgr/gfxscene.c</code></td><td>120</td><td>The test picture: every drawing primitive and every face of the font, laid out like the window</td></tr>
@@ -979,7 +979,7 @@ name matters.</p>
 <div id="index-list"></div>
 
 <footer class="doc-footer">
-  EFI Partition Manager Technical Manual — for partmgr 0.1.2. See also the
+  EFI Partition Manager Technical Manual — for partmgr 0.2.0. See also the
   <a href="partmgr-user-manual.html">user manual</a> and the
   <a href="https://github.com/nic-fio/EFI_PARTITION_MANAGER/blob/main/docs/decisions-and-history.md">design decisions</a>.
   <br>Copyright (c) 2026 nic-fio, licensed

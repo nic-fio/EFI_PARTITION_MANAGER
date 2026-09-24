@@ -14,8 +14,8 @@ body:
         backup (B) to a stick. Try changes, Write and wipe only on a disk or
         stick whose contents you do not need.
 
-        A photograph of the list of disks and of the screen of a disk is the
-        most useful thing you can attach.
+        A photograph of the window (or of the list of disks and of the screen
+        of a disk, in text) is the most useful thing you can attach.
   - type: input
     id: machine
     attributes:
@@ -58,8 +58,36 @@ body:
     id: version
     attributes:
       label: partmgr version
-      description: In the title bar, e.g. "EFI Partition Manager 0.1.2".
-      placeholder: "0.1.2"
+      description: In the title bar, e.g. "EFI Partition Manager 0.2.0".
+      placeholder: "0.2.0"
+    validations:
+      required: true
+  - type: dropdown
+    id: interface
+    attributes:
+      label: What did partmgr show?
+      options:
+        - "The window (graphics)"
+        - "The text screens"
+        - "Nothing: the screen stayed black or the machine hung"
+    validations:
+      required: true
+  - type: input
+    id: screen
+    attributes:
+      label: Screen
+      description: The monitor's resolution, if you know it, and whether the window fitted it.
+      placeholder: 1920 x 1080, the window filled the screen
+  - type: dropdown
+    id: mouse
+    attributes:
+      label: The mouse
+      options:
+        - "A USB mouse, and it worked"
+        - "A USB mouse, and it did not work"
+        - "A PS/2 mouse, a tablet or a touch screen, and it worked"
+        - "A PS/2 mouse, a tablet or a touch screen, and it did not work"
+        - "No mouse: keyboard only"
     validations:
       required: true
   - type: textarea
