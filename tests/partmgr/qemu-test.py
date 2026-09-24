@@ -22,8 +22,12 @@ waits there for the lines it expects.
    before anything was written) - and the data must be right: the wiped
    partition all zeros, the stopped one overwritten only at its start, the
    others untouched.
+3. Drawing: gfxdemo.efi draws the test picture of the graphical interface on
+   the graphics screen, at the firmware's resolution and at 1024 x 768; QEMU's
+   screen must be the picture gfxtool draws on Linux, pixel for pixel. The
+   picture is announced on the serial port, which the interface writes to.
 
-    tests/partmgr/qemu-test.py OVMF.fd build/partmgr.efi
+    tests/partmgr/qemu-test.py OVMF.fd build/partmgr.efi build/tests/gfxdemo.efi build/tests/gfxtool
 """
 import hashlib
 import json
@@ -36,7 +40,7 @@ import sys
 import tempfile
 import time
 
-OVMF, PARTMGR = sys.argv[1:3]
+OVMF, PARTMGR, GFXDEMO, GFXTOOL = sys.argv[1:5]
 # the version the title bar must show, from the source
 VERSION = re.search(r'PARTMGR_VERSION "([^"]+)"',
                     open(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "src", "partmgr",
@@ -81,10 +85,10 @@ def disk(name, mb, script):
 
 
 class Qemu:
-    def __init__(self, name, disks, slow=()):
+    def __init__(self, name, disks, slow=(), efi=PARTMGR, extra=()):
         esp = os.path.join(WORK, name)
         os.makedirs(os.path.join(esp, "EFI", "BOOT"))
-        shutil.copy(PARTMGR, os.path.join(esp, "EFI", "BOOT", "BOOTX64.EFI"))
+        shutil.copy(efi, os.path.join(esp, "EFI", "BOOT", "BOOTX64.EFI"))
         self.log = os.path.join(WORK, name + ".log")
         mon = os.path.join(WORK, name + ".monitor")
         drives = ["-drive", "if=virtio,format=raw,readonly=on,file=fat:" + esp]
@@ -95,7 +99,7 @@ class Qemu:
         self.proc = subprocess.Popen(
             ["qemu-system-x86_64"] + kvm + ["-m", "512", "-machine", "q35", "-bios", OVMF] + drives +
             ["-net", "none", "-display", "none", "-serial", "file:" + self.log,
-             "-monitor", "unix:%s,server,nowait" % mon, "-no-reboot"],
+             "-monitor", "unix:%s,server,nowait" % mon, "-no-reboot"] + list(extra),
             stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         for _ in range(300):
             if os.path.exists(mon):
@@ -133,6 +137,22 @@ class Qemu:
     def key(self, name):
         self.mon.sendall(("sendkey %s\n" % name).encode())
         time.sleep(0.15)
+        try:
+            while self.mon.recv(65536):
+                pass
+        except BlockingIOError:
+            pass
+
+    def screendump(self, path):
+        """QEMU's screen as a PPM file; waits until it is written."""
+        self.mon.sendall(("screendump %s\n" % path).encode())
+        end = time.time() + 20
+        size = -1
+        while time.time() < end:
+            if os.path.exists(path) and os.path.getsize(path) == size and size > 0:
+                break
+            size = os.path.getsize(path) if os.path.exists(path) else -1
+            time.sleep(0.3)
         try:
             while self.mon.recv(65536):
                 pass
@@ -349,6 +369,47 @@ try:
     # the MBR disk as it was: the backup was made before writing
     after = sfdisk_json(mbr)
     check("mbr restored", after == mbr_before, "\n%s\n%s" % (mbr_before, after))
+
+    # ------------------------------------------------------------ drawing
+    def ppm(path):
+        """Width, height and the RGB bytes of a binary PPM."""
+        data = open(path, "rb").read()
+        fields, pos = [], 0
+        while len(fields) < 4:
+            while data[pos:pos + 1].isspace():
+                pos += 1
+            start = pos
+            while not data[pos:pos + 1].isspace():
+                pos += 1
+            fields.append(data[start:pos])
+        return int(fields[1]), int(fields[2]), data[pos + 1:]
+
+    for name, extra, size in (("gfx-default", (), None),
+                              ("gfx-1024", ("-vga", "none", "-device", "VGA,edid=on,xres=1024,yres=768"),
+                               (1024, 768))):
+        q = Qemu(name, [], efi=GFXDEMO, extra=extra)
+        try:
+            shown = q.wait(r"gfxdemo: shown (\d+)x(\d+)", 90)
+            check(name + ": shown", shown, "gfxdemo did not show its picture")
+            m = re.findall(r"gfxdemo: shown (\d+)x(\d+)", q.text())
+            if shown and m:
+                w, h = int(m[-1][0]), int(m[-1][1])
+                if size:
+                    check(name + ": resolution", (w, h) == size, "%dx%d" % (w, h))
+                time.sleep(0.5)
+                screen = os.path.join(WORK, name + "-screen.ppm")
+                q.screendump(screen)
+                ref = os.path.join(WORK, name + "-ref.ppm")
+                subprocess.run([GFXTOOL, "scene", str(w), str(h), ref], check=True)
+                sw, sh, sp = ppm(screen)
+                rw, rh, rp = ppm(ref)
+                diff = sum(1 for i in range(0, min(len(sp), len(rp)), 3) if sp[i:i + 3] != rp[i:i + 3])
+                check(name + ": the screen is the picture", (sw, sh) == (rw, rh) and sp == rp,
+                      "screen %dx%d, picture %dx%d, %d pixels differ" % (sw, sh, rw, rh, diff))
+                q.key("ret")
+                check(name + ": closed", q.wait(r"gfxdemo: closed"), "gfxdemo did not end")
+        finally:
+            q.stop()
 finally:
     shutil.rmtree(WORK, ignore_errors=True)
 

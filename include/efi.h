@@ -535,6 +535,73 @@ typedef struct {
     SHELL_FILE_HANDLE StdErr;
 } EFI_SHELL_PARAMETERS_PROTOCOL;
 
+/* ---- Graphics output (UEFI 2.10, section 12.9) ---- */
+
+typedef enum {
+    PixelRedGreenBlueReserved8BitPerColor,
+    PixelBlueGreenRedReserved8BitPerColor,
+    PixelBitMask,
+    PixelBltOnly,
+} EFI_GRAPHICS_PIXEL_FORMAT;
+
+typedef struct {
+    UINT32 RedMask, GreenMask, BlueMask, ReservedMask;
+} EFI_PIXEL_BITMASK;
+
+typedef struct {
+    UINT32 Version;
+    UINT32 HorizontalResolution;
+    UINT32 VerticalResolution;
+    EFI_GRAPHICS_PIXEL_FORMAT PixelFormat;
+    EFI_PIXEL_BITMASK PixelInformation;
+    UINT32 PixelsPerScanLine;
+} EFI_GRAPHICS_OUTPUT_MODE_INFORMATION;
+
+typedef struct {
+    UINT32 MaxMode;
+    UINT32 Mode;
+    EFI_GRAPHICS_OUTPUT_MODE_INFORMATION *Info;
+    UINTN SizeOfInfo;
+    EFI_PHYSICAL_ADDRESS FrameBufferBase;
+    UINTN FrameBufferSize;
+} EFI_GRAPHICS_OUTPUT_PROTOCOL_MODE;
+
+/* A pixel of a Blt buffer: blue, green, red, reserved; as a little-endian
+ * UINT32 it reads 0x00RRGGBB. */
+typedef struct {
+    UINT8 Blue, Green, Red, Reserved;
+} EFI_GRAPHICS_OUTPUT_BLT_PIXEL;
+
+typedef enum {
+    EfiBltVideoFill,
+    EfiBltVideoToBltBuffer,
+    EfiBltBufferToVideo,
+    EfiBltVideoToVideo,
+} EFI_GRAPHICS_OUTPUT_BLT_OPERATION;
+
+typedef struct EFI_GRAPHICS_OUTPUT_PROTOCOL {
+    EFI_STATUS(EFIAPI *QueryMode)(struct EFI_GRAPHICS_OUTPUT_PROTOCOL *This, UINT32 ModeNumber, UINTN *SizeOfInfo,
+                                  EFI_GRAPHICS_OUTPUT_MODE_INFORMATION **Info);
+    EFI_STATUS(EFIAPI *SetMode)(struct EFI_GRAPHICS_OUTPUT_PROTOCOL *This, UINT32 ModeNumber);
+    EFI_STATUS(EFIAPI *Blt)(struct EFI_GRAPHICS_OUTPUT_PROTOCOL *This, EFI_GRAPHICS_OUTPUT_BLT_PIXEL *BltBuffer,
+                            EFI_GRAPHICS_OUTPUT_BLT_OPERATION BltOperation, UINTN SourceX, UINTN SourceY,
+                            UINTN DestinationX, UINTN DestinationY, UINTN Width, UINTN Height, UINTN Delta);
+    EFI_GRAPHICS_OUTPUT_PROTOCOL_MODE *Mode;
+} EFI_GRAPHICS_OUTPUT_PROTOCOL;
+
+/* ---- Serial I/O (UEFI 2.10, section 12.8) ---- */
+
+typedef struct EFI_SERIAL_IO_PROTOCOL {
+    UINT32 Revision;
+    EFI_STATUS(EFIAPI *Reset)(struct EFI_SERIAL_IO_PROTOCOL *This);
+    void *SetAttributes;
+    void *SetControl;
+    void *GetControl;
+    EFI_STATUS(EFIAPI *Write)(struct EFI_SERIAL_IO_PROTOCOL *This, UINTN *BufferSize, void *Buffer);
+    EFI_STATUS(EFIAPI *Read)(struct EFI_SERIAL_IO_PROTOCOL *This, UINTN *BufferSize, void *Buffer);
+    void *Mode;
+} EFI_SERIAL_IO_PROTOCOL;
+
 /* ---- GUIDs ---- */
 
 #define EFI_LOADED_IMAGE_PROTOCOL_GUID \
@@ -563,6 +630,10 @@ typedef struct {
     { 0x3152BCA5, 0xEADE, 0x433D, { 0x86, 0x2E, 0xC0, 0x1C, 0xDC, 0x29, 0x1F, 0x44 } }
 #define EFI_SHELL_PARAMETERS_PROTOCOL_GUID \
     { 0x752F3136, 0x4E16, 0x4FDC, { 0xA2, 0x2A, 0xE5, 0xF4, 0x68, 0x12, 0xF4, 0xCA } }
+#define EFI_GRAPHICS_OUTPUT_PROTOCOL_GUID \
+    { 0x9042A9DE, 0x23DC, 0x4A38, { 0x96, 0xFB, 0x7A, 0xDE, 0xD0, 0x80, 0x51, 0x6A } }
+#define EFI_SERIAL_IO_PROTOCOL_GUID \
+    { 0xBB25CF6F, 0xF1D4, 0x11D2, { 0x9A, 0x0C, 0x00, 0x90, 0x27, 0x3F, 0xC1, 0xFD } }
 #define EFI_GLOBAL_VARIABLE_GUID \
     { 0x8BE4DF61, 0x93CA, 0x11D2, { 0xAA, 0x0D, 0x00, 0xE0, 0x98, 0x03, 0x2B, 0x8C } }
 #define EFI_IMAGE_SECURITY_DATABASE_GUID \

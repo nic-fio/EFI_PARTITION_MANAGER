@@ -81,6 +81,19 @@ bool pal_con_interactive(void);
 void pal_con_raw(bool on); /* host: termios raw mode; no-op on EFI */
 bool pal_con_ansi(void);   /* true: ANSI terminal (host), false: absolute cursor positioning (EFI) */
 
+/* ---- Graphics (pal_gfx_efi.c) ----
+ * The graphics screen, when the firmware has one of at least 640 x 480:
+ * pal_gfx_open gives its size and keeps the text console off it until
+ * pal_gfx_close, which gives the screen back to the text console.
+ * pal_gfx_show copies a rectangle of an image in memory (0x00RRGGBB pixels,
+ * STRIDE pixels per row) to the same place on the screen. */
+bool pal_gfx_open(int *w, int *h);
+void pal_gfx_show(const uint32_t *px, int stride, int x, int y, int w, int h);
+void pal_gfx_close(void);
+/* One line on the serial port the firmware's console goes to, if any: what
+ * the graphical interface shows, for the tests. */
+void pal_serial_log(const char *line);
+
 /* ---- Time ---- */
 typedef struct {
     int year, month, day, hour, min, sec;

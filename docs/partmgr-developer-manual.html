@@ -82,12 +82,12 @@ way it reads or writes tables without breaking a disk.</p>
 <table>
   <thead><tr><th>Area</th><th>Directory</th><th>Lines</th><th>Content</th></tr></thead>
   <tbody>
-    <tr><td>partmgr</td><td><code>src/partmgr</code></td><td>3,113</td><td>table code, the UEFI program, the screens</td></tr>
-    <tr><td>Platform layer</td><td><code>src/pal</code></td><td>1,281</td><td>console, keys, time, files, volumes, entry point</td></tr>
+    <tr><td>partmgr</td><td><code>src/partmgr</code></td><td>4,712</td><td>table code, the UEFI program, the screens</td></tr>
+    <tr><td>Platform layer</td><td><code>src/pal</code></td><td>1,401</td><td>console, keys, time, files, volumes, entry point</td></tr>
     <tr><td>Runtime</td><td><code>src/lib</code></td><td>1,003</td><td>libc subset, printf, string buffer, UTF-8, CRC-32</td></tr>
-    <tr><td>UEFI definitions</td><td><code>include</code></td><td>579</td><td>the UEFI types and protocols partmgr uses</td></tr>
-    <tr><td>Tools</td><td><code>tools</code></td><td>544</td><td>ELF→PE converter, linker script, documentation tool, setup script</td></tr>
-    <tr><td>Tests</td><td><code>tests/partmgr</code></td><td>1,394</td><td>the Linux test tool, the table tests, the QEMU test</td></tr>
+    <tr><td>UEFI definitions</td><td><code>include</code></td><td>650</td><td>the UEFI types and protocols partmgr uses</td></tr>
+    <tr><td>Tools</td><td><code>tools</code></td><td>705</td><td>ELF→PE converter, linker script, documentation and font tools, setup script</td></tr>
+    <tr><td>Tests</td><td><code>tests/partmgr</code></td><td>1,762</td><td>the Linux test tools, the table tests, the drawing checks, the QEMU test</td></tr>
   </tbody>
 </table>
 <p><code>partmgr.efi</code> is about 70 KB. The line counts here and in the <a href="#file-map">source file map</a> are
@@ -108,14 +108,20 @@ when they no longer match the tree — a new source file without a row in the ma
     <tr><td><code>src/partmgr/units.c</code></td><td>Sizes as the user writes and reads them.</td></tr>
     <tr><td><code>src/partmgr/disks_efi.c</code>, <code>disks.h</code></td><td>The disks of the machine through block I/O.</td></tr>
     <tr><td><code>src/partmgr/ui.c</code>, <code>ui.h</code></td><td>Drawing and dialogs.</td></tr>
+    <tr><td><code>src/partmgr/font_inter.S</code></td><td>10</td><td>Includes the glyphs of font_inter.bin as read-only data</td></tr>
+    <tr><td><code>src/partmgr/gfx.c</code></td><td>299</td><td>Drawing on a canvas in memory: rectangles, frames, rounded rectangles, hatching, text with the embedded glyphs and kerning</td></tr>
+    <tr><td><code>src/partmgr/gfx.h</code></td><td>56</td><td>Canvases, colours, the drawing and text functions</td></tr>
     <tr><td><code>src/partmgr/main.c</code>, <code>diskview.c</code>, <code>partmgr.h</code></td><td>The program: the list of disks and the screen of a disk.</td></tr>
+    <tr><td><code>src/partmgr/gfx.c</code>, <code>gfx.h</code></td><td>Drawing for the graphical interface: canvases, shapes, text.</td></tr>
+    <tr><td><code>src/partmgr/font_inter.S</code>, <code>font_inter.bin</code></td><td>The glyphs of the Inter font, made by <code>tools/gen-font.py</code>.</td></tr>
     <tr><td><code>src/lib/</code></td><td><code>rt.h</code> (the C subset every module includes), <code>libc.c</code>, <code>fmt.c</code> (vsnprintf),
         <code>util.c</code> (allocation, string buffer, UTF-8), <code>crc32.c</code>.</td></tr>
-    <tr><td><code>src/pal/</code></td><td><code>pal.h</code> (the platform interface), <code>pal_efi.c</code>, <code>pal_common.c</code>,
+    <tr><td><code>src/pal/</code></td><td><code>pal.h</code> (the platform interface), <code>pal_efi.c</code>, <code>pal_gfx_efi.c</code> (the graphics screen), <code>pal_common.c</code>,
         <code>efi_glue.h</code> (UEFI globals for UEFI-only modules).</td></tr>
     <tr><td><code>include/efi.h</code></td><td>UEFI types, services and protocols, written from the specification.</td></tr>
-    <tr><td><code>tools/</code></td><td><code>efi.lds</code>, <code>elf2efi.py</code>, <code>gen-docs.py</code>, <code>screenshots.py</code>, <code>setup-dev.sh</code>.</td></tr>
-    <tr><td><code>tests/partmgr/</code></td><td><code>pttool.c</code>, <code>run-tests.py</code>, <code>qemu-test.py</code>.</td></tr>
+    <tr><td><code>tools/</code></td><td><code>efi.lds</code>, <code>elf2efi.py</code>, <code>gen-docs.py</code>, <code>gen-font.py</code>, <code>screenshots.py</code>, <code>setup-dev.sh</code>.</td></tr>
+    <tr><td><code>tests/partmgr/</code></td><td><code>pttool.c</code>, <code>run-tests.py</code>, <code>qemu-test.py</code>; for the drawing
+        <code>gfxtool.c</code>, <code>gfxdemo.c</code> and their test picture <code>gfxscene.c</code>.</td></tr>
   </tbody>
 </table>
 
@@ -127,6 +133,7 @@ when they no longer match the tree — a new source file without a row in the ma
     <tr><td><code>sfdisk</code> (fdisk)</td><td>The table tests: it builds the test images and is the reference.</td></tr>
     <tr><td><code>parted</code></td><td>A second reader of the tables partmgr writes (the check is skipped without it).</td></tr>
     <tr><td><code>mkfs.fat</code> (dosfstools)</td><td>A disk without a table, and the writable volume of the QEMU test.</td></tr>
+    <tr><td>Pillow, with FreeType and Raqm</td><td>Only <code>make font</code>, which renders the glyphs again; the build uses the committed <code>font_inter.bin</code>.</td></tr>
     <tr><td>QEMU and OVMF</td><td><code>make qemu-test</code>. <code>OVMF=</code> selects the firmware image (default: <code>/usr/share/ovmf/OVMF.fd</code> or <code>/usr/share/OVMF/OVMF.fd</code>).</td></tr>
   </tbody>
 </table>
@@ -136,9 +143,10 @@ when they no longer match the tree — a new source file without a row in the ma
   <thead><tr><th>Target</th><th>Does</th></tr></thead>
   <tbody>
     <tr><td><code>make</code></td><td>Builds <code>build/partmgr.efi</code>.</td></tr>
-    <tr><td><code>make test</code></td><td>Builds <code>build/tests/pttool</code>, runs <code>tests/partmgr/run-tests.py</code> and checks this manual.</td></tr>
-    <tr><td><code>make qemu-test</code></td><td>Runs <code>tests/partmgr/qemu-test.py</code>: partmgr.efi in QEMU/OVMF.</td></tr>
+    <tr><td><code>make test</code></td><td>Builds <code>build/tests/pttool</code> and <code>build/tests/gfxtool</code>, runs the table tests and the drawing checks, and checks this manual.</td></tr>
+    <tr><td><code>make qemu-test</code></td><td>Runs <code>tests/partmgr/qemu-test.py</code>: partmgr.efi in QEMU/OVMF, and <code>build/tests/gfxdemo.efi</code> on the graphics screen.</td></tr>
     <tr><td><code>make docs</code></td><td>Rewrites the line counts of this manual.</td></tr>
+    <tr><td><code>make font</code></td><td>Runs <code>tools/gen-font.py</code>: downloads Inter 4.1 (checked against its SHA-256) and renders <code>src/partmgr/font_inter.bin</code>.</td></tr>
     <tr><td><code>make clean</code></td><td>Removes <code>build/</code>.</td></tr>
   </tbody>
 </table>
@@ -150,6 +158,10 @@ and <code>EFI_SRC</code>, which adds the program, the runtime and the platform l
 	src/lib/crc32.c src/lib/util.c
 EFI_SRC := $(TABLE_SRC) src/partmgr/main.c src/partmgr/diskview.c src/partmgr/ui.c src/partmgr/disks_efi.c \
 	src/lib/libc.c src/lib/fmt.c src/pal/pal_efi.c src/pal/pal_common.c</pre>
+<p><code>GFX_SRC</code> is the drawing code of the graphical interface, its font and its platform part; until the window
+is built it goes only into <code>build/tests/gfxdemo.efi</code> (<code>DEMO_SRC</code>), so <code>partmgr.efi</code> is still the
+program of 0.1.2. The glyphs enter the image through the assembler: <code>font_inter.S</code> includes
+<code>font_inter.bin</code> with <code>.incbin</code> as read-only data.</p>
 
 <!-- ===================================================================== -->
 <h2 id="build-pipeline">The build</h2>
@@ -237,6 +249,10 @@ implements it.</p>
     <tr><td>Files</td><td><code>pal_open/read/write/close</code>, <code>pal_stat</code></td><td><strong>Paths are canonical</strong>: <code>fsN:\dir\file</code>
         (<code>canonical()</code> in <code>diskview.c</code> makes them so).</td></tr>
     <tr><td>Volumes</td><td><code>pal_volumes_refresh</code>, <code>pal_volume_count</code>, <code>pal_volume(i)</code>, <code>pal_boot_volume</code></td><td>For backup files: name, label, read-only.</td></tr>
+    <tr><td>Graphics</td><td><code>pal_gfx_open</code>, <code>pal_gfx_show</code>, <code>pal_gfx_close</code></td><td>The screen of at least 640 × 480, if any;
+        <code>pal_gfx_show</code> copies a rectangle of a canvas to the same place on it.</td></tr>
+    <tr><td>Serial port</td><td><code>pal_serial_log</code></td><td>A line on the serial port the firmware's console goes to, if any: what the
+        graphical interface shows, for the tests.</td></tr>
     <tr><td>Program</td><td><code>app_main</code>, <code>app_name</code>, <code>pal_argc/argv</code></td><td>Defined by <code>src/partmgr/main.c</code>.</td></tr>
   </tbody>
 </table>
@@ -253,6 +269,14 @@ implements it.</p>
       text; the one the image was loaded from is the boot volume.</li>
   <li><strong>Arguments</strong>: from the shell parameters protocol when a UEFI shell starts partmgr, else from the load
       options; partmgr ignores them.</li>
+  <li><strong>Graphics</strong> (<code>pal_gfx_efi.c</code>): the Graphics Output Protocol of the console's handle
+      (<code>ConsoleOutHandle</code>), else the first one found. A canvas pixel <code>0x00RRGGBB</code> is, in memory, a
+      Blt pixel (blue, green, red, reserved), so <code>pal_gfx_show</code> hands the canvas to <code>Blt</code>
+      (<code>EfiBltBufferToVideo</code>) as it is, whatever the pixel format of the screen. The text cursor is turned off
+      while the picture is shown; <code>pal_gfx_close</code> clears the text console, which redraws the screen.</li>
+  <li><strong>Serial port</strong>: <code>pal_serial_log</code> writes to the serial port only when the
+      <code>ConOut</code> variable sends the console there — an instance of its device path with a UART node — through
+      the Serial I/O protocol found with <code>LocateDevicePath</code>. A machine without a serial console gets nothing.</li>
   <li><strong>UEFI-only modules</strong> (<code>disks_efi.c</code>) include <code>efi_glue.h</code> for the globals and the device path
       helpers.</li>
 </ul>
@@ -600,6 +624,38 @@ back from the disk, so the screen shows what the disk holds.</p>
 exact, so that a proposed start reads back to the same block.</p>
 
 <!-- ===================================================================== -->
+<h2 id="graphics">The graphical interface</h2>
+
+<p class="chapter-intro">Being built (decisions P18–P25): the drawing and the font are done; the window, the mouse and
+the actions come next. Until then <code>partmgr.efi</code> shows the text screens of 0.1.2.</p>
+
+<h3 id="gfx" data-index="gfx.c;GfxCanvas;gfx_round_rect">Drawing: gfx.c</h3>
+<p>A <code>GfxCanvas</code> is an image in memory, <code>w</code> × <code>h</code> pixels of <code>0x00RRGGBB</code>, with a clip
+rectangle outside which nothing is drawn. The code is portable and uses integers only (the UEFI build has no floating
+point), so the same canvases are drawn on Linux by the tests.</p>
+<table>
+  <thead><tr><th>Function</th><th>Draws</th></tr></thead>
+  <tbody>
+    <tr><td><code>gfx_fill</code>, <code>gfx_frame</code></td><td>A rectangle; a frame of some pixels inside one.</td></tr>
+    <tr><td><code>gfx_round_rect</code></td><td>A rectangle with rounded corners and an optional border. Each corner pixel is
+        blended by how much of it the shape covers, counted on 4 × 4 samples in eighths of a pixel.</td></tr>
+    <tr><td><code>gfx_hatch</code></td><td>Diagonal lines every few pixels: the free space in the disk bar.</td></tr>
+    <tr><td><code>gfx_text</code>, <code>gfx_text_width</code></td><td>UTF-8 text in a line whose top is given; its width.</td></tr>
+    <tr><td><code>gfx_clip</code>, <code>gfx_unclip</code></td><td>Limit drawing to a rectangle, for example a label to its block.</td></tr>
+  </tbody>
+</table>
+
+<h3 id="font" data-index="font_inter.bin;gen-font.py;kerning">The font</h3>
+<p>partmgr has no font engine. <code>tools/gen-font.py</code> renders Inter once with Pillow — sizes 16, 20, 26 and 32
+pixels, regular and semibold, ASCII, Latin-1 and a few punctuation marks and arrows — into grey levels of 4 bits per
+pixel, and records for each glyph its advance in 1/64 pixel (unrounded, as Raqm lays text out), its offset from the
+baseline and its size, and for each face the kerning of the ASCII pairs that differ by at least an eighth of a pixel.
+<code>gfx_text</code> places each glyph at the rounded position, adds the kerning of the pair, and blends the grey levels
+between the background and the colour. Characters Inter lacks are drawn as <code>?</code>. <code>gfx_font</code> picks the
+largest size not above the one asked for. The file is about 280 KB; its layout is described at the top of
+<code>gen-font.py</code>, and <code>gfx_fonts_init</code> checks every offset before the first use.</p>
+
+<!-- ===================================================================== -->
 <h2 id="testing">Testing</h2>
 
 <p class="chapter-intro">The table code is tested on Linux against sfdisk and parted; the program is tested in QEMU.</p>
@@ -647,6 +703,15 @@ each break fails them. Where <code>sfdisk</code> lacks
 <code>--sector-size</code> (util-linux 2.39, the version of Ubuntu 24.04 and of CI) the 4096-byte comparisons are skipped
 and the script says <code>SKIPPED</code>.</p>
 
+<h3 id="gfx-tests" data-index="gfxtool;gfxscene.c">The drawing</h3>
+<p><code>build/tests/gfxtool check</code>, run by <code>make test</code> with AddressSanitizer and UBSan, checks the drawing on
+its own: the faces chosen for each size, kerning (<em>AV</em> narrower than <em>A</em> plus <em>V</em>), missing
+characters, text with opaque and smoothed pixels that stays in its line and returns its end, clipping, fills cut to the
+canvas, rounded rectangles (symmetric, bordered, smoothed corners, nothing outside), the hatching and frames, and the
+test picture at three sizes. <code>gfxtool scene W H FILE</code> writes the test picture of
+<code>tests/partmgr/gfxscene.c</code> — every primitive and every face, laid out like the window — as a PPM file; the
+QEMU test compares it with the screen.</p>
+
 <h3 id="qemu-test" data-index="qemu-test.py">In QEMU</h3>
 <p><code>make qemu-test</code> runs <code>tests/partmgr/qemu-test.py</code>. It boots QEMU/OVMF from a virtual FAT disk holding
 <code>partmgr.efi</code> as <code>\EFI\BOOT\BOOTX64.EFI</code>, so the firmware starts it, attaches test disks made by sfdisk,
@@ -666,6 +731,12 @@ rows come before the message line under them.</p>
       Write, delete the table, restore. Then, outside QEMU, sfdisk must find the GPT disk exactly as asked and the MBR
       disk exactly as before, and the data must be right: the wiped partition all zeros, the stopped one changed at its
       start and not at its end, the others untouched.</li>
+  <li><strong>Drawing:</strong> <code>gfxdemo.efi</code> draws the test picture on the graphics screen, once at the
+      firmware's resolution (1280 × 800 in OVMF) and once at 1024 × 768 (QEMU's VGA with <code>xres</code> and
+      <code>yres</code>), and says so on the serial port through <code>pal_serial_log</code>. QEMU's
+      <code>screendump</code> must be, pixel for pixel, the picture <code>gfxtool</code> draws on Linux at the same size.
+      Broken on purpose — the copy to the screen one row short — the check fails with exactly one row of pixels
+      different.</li>
 </ol>
 
 <!-- ===================================================================== -->
@@ -716,7 +787,7 @@ name matters.</p>
 <table>
   <thead><tr><th>File</th><th>Lines</th><th>Purpose</th></tr></thead>
   <tbody>
-    <tr><td><code>include/efi.h</code></td><td>579</td><td>Minimal UEFI definitions (UEFI Specification 2.10), written from the specification; no EDK2 code</td></tr>
+    <tr><td><code>include/efi.h</code></td><td>650</td><td>Minimal UEFI definitions (UEFI Specification 2.10), written from the specification; no EDK2 code</td></tr>
     <tr><td><code>src/lib/crc32.c</code></td><td>29</td><td>CRC-32 (IEEE 802.3), the checksum of GPT headers and entry arrays</td></tr>
     <tr><td><code>src/lib/crc32.h</code></td><td>10</td><td>CRC-32 (IEEE 802.3)</td></tr>
     <tr><td><code>src/lib/fmt.c</code></td><td>192</td><td>vsnprintf for the EFI build: %d %i %u %x %X %o %c %s %p %%, flags, width/precision, length hh h l ll z j t</td></tr>
@@ -724,8 +795,9 @@ name matters.</p>
     <tr><td><code>src/lib/rt.h</code></td><td>115</td><td>Runtime: standard C subset + shared helpers</td></tr>
     <tr><td><code>src/lib/util.c</code></td><td>337</td><td>Allocation wrappers, string buffer, UTF-8 and UCS-2</td></tr>
     <tr><td><code>src/pal/efi_glue.h</code></td><td>38</td><td>Access to UEFI services for UEFI-only modules</td></tr>
-    <tr><td><code>src/pal/pal.h</code></td><td>166</td><td>Platform layer: what the program needs from the machine</td></tr>
+    <tr><td><code>src/pal/pal.h</code></td><td>179</td><td>Platform layer: what the program needs from the machine</td></tr>
     <tr><td><code>src/pal/pal_common.c</code></td><td>25</td><td>Error names</td></tr>
+    <tr><td><code>src/pal/pal_gfx_efi.c</code></td><td>107</td><td>Platform layer for UEFI: the graphics screen (Graphics Output Protocol) and the serial port of the console</td></tr>
     <tr><td><code>src/pal/pal_efi.c</code></td><td>1052</td><td>Platform layer for UEFI: entry point, console, keys, time, files, volumes, arguments</td></tr>
     <tr><td><code>src/partmgr/disks.h</code></td><td>23</td><td>A disk as the table code sees it (name, kind, size, boot disk, read and write functions)</td></tr>
     <tr><td><code>src/partmgr/disks_efi.c</code></td><td>174</td><td>Finds the whole disks through block I/O, numbered by block device; recognises the disk partmgr was started from; random numbers from EFI_RNG_PROTOCOL</td></tr>
@@ -744,10 +816,14 @@ name matters.</p>
     <tr><td><code>tools/efi.lds</code></td><td>26</td><td>Linker script: ELF image at base 0, page-aligned sections</td></tr>
     <tr><td><code>tools/elf2efi.py</code></td><td>172</td><td>Converts the ELF shared object into a PE32+ EFI application with native base relocations</td></tr>
     <tr><td><code>tools/gen-docs.py</code></td><td>92</td><td>Writes and checks the line counts of this manual</td></tr>
+    <tr><td><code>tools/gen-font.py</code></td><td>161</td><td>Renders the Inter font into font_inter.bin: sizes, weights, 4-bit glyphs, kerning pairs; describes the format</td></tr>
     <tr><td><code>tools/screenshots.py</code></td><td>169</td><td>Takes the screenshots of the manuals again: partmgr in QEMU on test disks, keys through the monitor</td></tr>
     <tr><td><code>tools/setup-dev.sh</code></td><td>85</td><td>Checks (or installs) the packages a clone needs and sets the git identity of the working copy</td></tr>
+    <tr><td><code>tests/partmgr/gfxdemo.c</code></td><td>39</td><td>gfxdemo.efi: the test picture on the graphics screen, announced on the serial port</td></tr>
+    <tr><td><code>tests/partmgr/gfxscene.c</code></td><td>120</td><td>The test picture: every drawing primitive and every face of the font, laid out like the window</td></tr>
+    <tr><td><code>tests/partmgr/gfxtool.c</code></td><td>148</td><td>The drawing code on Linux: the checks, and the test picture as a PPM file</td></tr>
     <tr><td><code>tests/partmgr/pttool.c</code></td><td>257</td><td>Drives the table code on a disk image file: reads, changes, writes, backs up, restores, parses sizes (Linux only)</td></tr>
-    <tr><td><code>tests/partmgr/qemu-test.py</code></td><td>358</td><td>partmgr.efi in QEMU/OVMF: started by the firmware, driven with keys, checked on the serial console and with sfdisk afterwards</td></tr>
+    <tr><td><code>tests/partmgr/qemu-test.py</code></td><td>419</td><td>partmgr.efi in QEMU/OVMF: started by the firmware, driven with keys, checked on the serial console and with sfdisk afterwards</td></tr>
     <tr><td><code>tests/partmgr/run-tests.py</code></td><td>779</td><td>The table tests: the reader and the writer compared with sfdisk and parted, damaged images, sizes, backups restored byte for byte</td></tr>
   </tbody>
 </table>

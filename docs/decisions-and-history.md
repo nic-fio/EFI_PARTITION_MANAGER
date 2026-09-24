@@ -290,8 +290,10 @@ real code is tested instead.
   "il mockup-inter mi sembra il migliore tra tutti". **Decision:** Inter.
 - **How.** The glyphs are rendered once, at a few sizes, into small grey-level
   images stored in partmgr; partmgr only blends them on the screen, with no
-  font engine inside. `partmgr.efi` grows from about 70 KB to about 200–300
-  KB. Letters have different widths: columns are aligned by pixel position.
+  font engine inside. The glyphs take about 280 KB (four sizes, two weights,
+  kerning pairs), so `partmgr.efi` grows from about 70 KB to about 350 KB, more
+  than the 200–300 KB first estimated. Letters have different widths: columns
+  are aligned by pixel position.
 - **Licence.** SIL Open Font License 1.1: it may be bundled with software; its
   copyright notice and licence go in `NOTICE.md`.
 
