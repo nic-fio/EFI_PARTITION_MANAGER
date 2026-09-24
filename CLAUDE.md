@@ -77,3 +77,14 @@ not been tried yet.
 Version 0.1.2; 0.1.0 and 0.1.1 were released as pre-releases. Tested in QEMU with OVMF and on disk images
 checked by sfdisk and parted. **Not tried on real hardware yet**: the user will
 do it when they can. Open: real hardware.
+
+## Announcements
+
+Posted to find testers on real hardware; check them for replies and reports.
+
+| Where | When | Link |
+|---|---|---|
+| OSDev forum, Announcements | 2026-09-24 | https://forum.osdev.org/viewtopic.php?t=58355 |
+| Win-Raid, BIOS Modding/Flashing Tools | 2026-09-24 | https://winraid.level1techs.com/t/119473 |
+
+Claude never types forum passwords: the user logs in.
