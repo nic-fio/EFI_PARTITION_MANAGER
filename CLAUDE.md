@@ -81,8 +81,8 @@ not been tried yet.
 ## Where the project stands
 
 Version 0.2.0: the graphical interface (P18–P25), built on 2026-09-24 in six
-stages, all done. 0.1.0, 0.1.1 and 0.1.2 were released as pre-releases; 0.2.0
-is released when the owner has seen the manual. With a graphics screen
+stages, all done. 0.1.0, 0.1.1, 0.1.2 and 0.2.0 were released as
+pre-releases. With a graphics screen
 `partmgr.efi` opens the window, with every action and graphical dialogs;
 without one, the text screens of 0.1.2. Tested in QEMU with OVMF and on disk
 images checked by sfdisk and parted. **Not tried on real hardware yet**: the
