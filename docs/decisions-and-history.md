@@ -197,11 +197,117 @@ and CHS fields. The program itself is driven with keys inside QEMU/OVMF and the
 disks are checked afterwards. The tests were verified by breaking the code on
 purpose.
 
+### P18. A graphical interface, text as the fallback
+
+After release 0.1.2 the owner noted that partmgr could have had a graphical
+interface: UEFI firmware offers a graphics screen (the Graphics Output
+Protocol) besides the text console.
+
+- **Options.** (a) graphics when the firmware offers it, the text screens of
+  0.1.2 otherwise; (b) graphics only. **Decision:** (a). Machines without a
+  graphics screen (a server reached only through a serial console) keep
+  working, and so do the text-mode tests.
+- **Consequences.** Two ways of drawing over the same table code and the same
+  keys. The text fallback keeps the decisions made for it (P10, P16, P17).
+
+### P19. Designed for the mouse, every command on the keyboard too
+
+- **Options.** (a) the keyboard does everything, the mouse is an extra; (b) an
+  interface designed for the mouse, with the keyboard as shortcuts; (c) no
+  mouse. **Decision:** (b), the owner's choice over the recommended (a).
+- **Consequences.** Every command stays reachable from the keyboard with the
+  keys of 0.1.2, so a machine without a working pointer is never stuck. Keys
+  and buttons that do not apply answer with a short message and are never
+  greyed out (P10). Destructive operations keep the red Y/N question (P8), now
+  with Yes and No buttons; Enter does nothing there. The interface stays in
+  English.
+
+### P20. One window
+
+- **Options.** (a) one window with everything in view; (b) the two screens of
+  0.1.2, drawn in graphics. **Decision:** (a).
+- **The window** (see the approved mockup, `docs/assets/gui-mockup.png`): the
+  disks on the left; on the right the selected disk as a bar to scale, one
+  coloured block per partition and the free space hatched, above the table of
+  its partitions; a message line; two fixed rows of buttons, **Partition:** and
+  **Disk:**, in the order of the key bars of 0.1.2, each button showing its key.
+- **Esc quits** (asking first when changes are not written): with one window
+  there is no screen to go back to. **F5 reads the disks again**, since R
+  already means Rename.
+
+### P21. A mouse driver of its own
+
+OVMF, the firmware used by the tests, has **no mouse driver** at all: no USB
+mouse, no USB tablet, no PS/2 mouse (checked on 2026-09-24 in the list of
+drivers inside Debian's OVMF 2025.02; QEMU's emulated mouse reaches no
+program). Real firmware may lack one too.
+
+- **Decision.** Owner: "potremmo integrare il driver del mouse proprio dentro
+  l'app: se un firmware reale supporta il mouse il driver non si attiva e si
+  usa quello del firmware, altrimenti si usa il nostro driver".
+- **How.** Every firmware already runs the USB bus (keyboards and sticks work)
+  and gives each USB interface a USB I/O protocol. partmgr looks for HID
+  interfaces of the boot mouse kind, the simple 3-byte reports that every USB
+  mouse offers for BIOS use. When a firmware driver already owns the
+  interface, partmgr uses the firmware's pointer; otherwise it sets the boot
+  protocol and reads the reports itself.
+- **Verified** on 2026-09-24 with a probe program in QEMU/OVMF: QEMU's USB
+  mouse, on xHCI and on EHCI, moved by the test script, reached the probe, and
+  the click fell exactly where expected.
+- **Left out.** Tablets and touchscreens (they need the full HID report
+  parser): only through the firmware's own driver. PS/2 mice (owner: "il mouse
+  ps/2 non si usa piu' da almeno 15 anni").
+- **Not testable in QEMU:** the case of a firmware that owns the mouse, since
+  OVMF has no mouse driver. Real hardware will tell.
+
+### P22. Tests of the graphical interface
+
+The tests keep driving partmgr inside QEMU/OVMF: keys through the monitor,
+mouse moves and clicks through QEMU's USB mouse, which exercises partmgr's own
+driver (P21). What partmgr draws is checked on screen captures (QEMU's
+`screendump`), and partmgr writes what it shows as text to the serial port,
+which the tests read as they do today. A first idea, a test-only pointer
+driver fed through a second serial port, worked but was dropped: with P21 the
+real code is tested instead.
+
+### P23. The firmware's resolution
+
+- **Options.** (a) keep the resolution the firmware set, usually the native
+  one of the monitor, and adapt the layout; (b) always a fixed resolution such
+  as 1024×768. **Decision:** (a): a sharp picture on every monitor.
+- **Consequences.** The layout is computed from the screen size, and the text
+  grows on large screens (sizes of the font chosen by resolution). The tests
+  try more than one resolution.
+
+### P24. The font: Inter
+
+- Text in graphics is drawn by partmgr itself, so it carries a font.
+  Choosing an existing free font was preferred over drawing one or using the
+  firmware's (one small size, not always present).
+- **Tried on the mockup:** Spleen and Terminus (bitmap fonts made for
+  terminals), DejaVu Sans and Inter (smooth outlines). Owner, on Spleen:
+  "certo che i caratteri non sono proprio il massimo"; on the four versions:
+  "il mockup-inter mi sembra il migliore tra tutti". **Decision:** Inter.
+- **How.** The glyphs are rendered once, at a few sizes, into small grey-level
+  images stored in partmgr; partmgr only blends them on the screen, with no
+  font engine inside. `partmgr.efi` grows from about 70 KB to about 200–300
+  KB. Letters have different widths: columns are aligned by pixel position.
+- **Licence.** SIL Open Font License 1.1: it may be bundled with software; its
+  copyright notice and licence go in `NOTICE.md`.
+
+### P25. A light look
+
+- **Options.** (a) light; (b) dark; (c) white on blue, as the text screens.
+  **Decision:** (a): white and light grey, dark text, blue for the selection
+  and the buttons, soft colours for the partitions in the disk bar. It matches
+  the manuals, which are light only.
+- The mockup was approved with it (owner: "si, approvo").
+
 ---
 
 ## 3. History
 
-All the work took place on 2026-09-23.
+The work took place on 2026-09-23 (phases 1–9) and 2026-09-24 (phase 10).
 
 | Phase | What happened |
 |---|---|
@@ -214,6 +320,7 @@ All the work took place on 2026-09-23.
 | **7. Own repository** | The history of partmgr's files carried into this repository, the project named EFI Partition Manager (P2, P3). |
 | **8. After the first try** | Release 0.1.0 as a pre-release. The owner tried it in QEMU: the key bar was reorganised in two fixed groups, the typed disk name gave way to a Y/N confirmation, and the screens became terse for expert users (P8, P10, P16). Release 0.1.1. |
 | **9. A finished look** | Every key drawn the same way, with a message for the keys that do not apply; a text mode of 100 columns at start (P10, P17). Release 0.1.2. |
+| **10. A graphical interface, designed** | 2026-09-24. The graphical interface was designed (P18–P25): the graphics screen, the pointer and screen captures were checked in QEMU/OVMF first, which showed that OVMF has no mouse driver; partmgr will carry its own (P21). A mockup, drawn with four fonts, was approved with Inter. |
 
 ---
 
@@ -224,3 +331,4 @@ All the work took place on 2026-09-23.
 | Real hardware | Not tried yet. The owner will try it when possible; reports are asked for with an issue template. |
 | Releases | 0.1.0, 0.1.1 and 0.1.2, published as pre-releases: releases stay pre-releases while real hardware has not been tried (0.x versions). |
 | Disk names | The kind comes from the device path (NVMe, SATA, USB...); the model name of the disk is not shown yet. |
+| Graphical interface | Designed (P18–P25), not built yet. A firmware that owns the mouse can only be tried on real hardware (P21). |

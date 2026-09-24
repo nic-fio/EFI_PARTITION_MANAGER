@@ -42,6 +42,12 @@ The reasoning for each is in [docs/decisions-and-history.md](docs/decisions-and-
 | **No EDK2 code** | Own UEFI definitions, runtime, platform layer and build tools. |
 | **Apache 2.0 + Commons Clause** | Free to use and share, selling needs a commercial licence, asked for by opening an issue. |
 | **Light documentation only** | No dark themes in the manuals. |
+| **Graphics, text as the fallback** | Graphics screen when the firmware offers one; the text screens otherwise, with the rules above. |
+| **Designed for the mouse** | Every command also on the keyboard, with the keys of 0.1.2. |
+| **One window** | Disks left; disk bar to scale and table right; two button rows. Esc quits, F5 rescans. Mockup: `docs/assets/gui-mockup.png`. |
+| **Own USB mouse driver** | Boot-protocol USB mice, only when no firmware driver owns the mouse. No tablets, touchscreens or PS/2. |
+| **The firmware's resolution** | The layout adapts; the text grows on large screens. |
+| **Font: Inter, light look** | Pre-rendered glyphs blended on screen, no font engine; OFL licence in NOTICE.md. |
 
 ## The repository
 
@@ -74,7 +80,8 @@ not been tried yet.
 
 ## Where the project stands
 
-Version 0.1.2; 0.1.0 and 0.1.1 were released as pre-releases. Tested in QEMU with OVMF and on disk images
+Version 0.1.2; 0.1.0 and 0.1.1 were released as pre-releases. Next: the
+graphical interface, designed on 2026-09-24 (P18–P25), not built yet. Tested in QEMU with OVMF and on disk images
 checked by sfdisk and parted. **Not tried on real hardware yet**: the user will
 do it when they can. Open: real hardware.
 
