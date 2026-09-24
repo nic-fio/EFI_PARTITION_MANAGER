@@ -74,9 +74,9 @@ Releases: bump `PARTMGR_VERSION` in `src/partmgr/partmgr.h`, the version in
 both manuals, `docs/index.html` and the issue template, and take the
 screenshots again with `tools/screenshots.py` (the title bar shows the
 version); then tag `vX.Y.Z`. The
-annotated tag message should become the release notes, but CI publishes the
-commit message instead (checkout loses the annotation): check the release text
-after publishing. CI builds `partmgr.efi` and publishes it; for `v0.*` tags it
+annotated tag message becomes the release notes (up to 0.2.0 CI published the
+commit message instead, fixed on 2026-09-24: check the text of the next
+release once). CI builds `partmgr.efi` and publishes it; for `v0.*` tags it
 marks the release as a pre-release. The owner made 0.2.0 a full release
 ("rendi la release definitiva") although real hardware has not been tried:
 ask the owner before each release whether it is a pre-release or a full one.

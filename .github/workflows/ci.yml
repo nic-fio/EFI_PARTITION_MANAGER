@@ -71,7 +71,11 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          # the annotation of the tag becomes the description of the release
+          # the annotation of the tag becomes the description of the release;
+          # checkout leaves the tag as a plain pointer to the commit, whose
+          # "contents" would be the commit message: fetch the tag itself first
+          git fetch --force origin "refs/tags/$GITHUB_REF_NAME:refs/tags/$GITHUB_REF_NAME"
+          [ "$(git cat-file -t "$GITHUB_REF_NAME")" = tag ] || { echo "not an annotated tag"; exit 1; }
           git tag -l --format='%(contents)' "$GITHUB_REF_NAME" > notes.md
           [ -s notes.md ] || echo "EFI Partition Manager $GITHUB_REF_NAME" > notes.md
           cat >> notes.md <<EOF
@@ -92,7 +96,8 @@ jobs:
 
           Documentation: https://nic-fio.github.io/EFI_PARTITION_MANAGER/
           EOF
-          # 0.x versions are pre-releases: real hardware has not been tried yet
+          # 0.x versions are published as pre-releases; the owner decides whether a
+          # release becomes a full one afterwards (0.2.0 did, see CLAUDE.md)
           pre=""
           case "$GITHUB_REF_NAME" in v0.*) pre="--prerelease" ;; esac
           gh release create "$GITHUB_REF_NAME" dist/partmgr.efi dist/SHA256SUMS \
