@@ -85,14 +85,30 @@ bool pal_con_ansi(void);   /* true: ANSI terminal (host), false: absolute cursor
  * The graphics screen, when the firmware has one of at least 640 x 480:
  * pal_gfx_open gives its size and keeps the text console off it until
  * pal_gfx_close, which gives the screen back to the text console.
- * pal_gfx_show copies a rectangle of an image in memory (0x00RRGGBB pixels,
- * STRIDE pixels per row) to the same place on the screen. */
+ * pal_gfx_show copies the rectangle at SX, SY of an image in memory
+ * (0x00RRGGBB pixels, STRIDE pixels per row) to DX, DY on the screen. */
 bool pal_gfx_open(int *w, int *h);
-void pal_gfx_show(const uint32_t *px, int stride, int x, int y, int w, int h);
+void pal_gfx_show(const uint32_t *px, int stride, int sx, int sy, int dx, int dy, int w, int h);
 void pal_gfx_close(void);
 /* One line on the serial port the firmware's console goes to, if any: what
  * the graphical interface shows, for the tests. */
 void pal_serial_log(const char *line);
+
+/* ---- Pointer (pal_mouse_efi.c) ----
+ * The firmware's pointers and partmgr's own USB mouse driver, read together.
+ * pal_pointer_open returns how many devices were found (pal_pointer_info
+ * says which kinds); pal_pointer_read does not wait: false when nothing
+ * moved and no button changed since the last read. */
+typedef struct {
+    int dx, dy;        /* relative movement, in pixels */
+    bool abs;          /* an absolute device reported: ax, ay are valid */
+    int ax, ay;        /* its position across the screen, 0..65535 */
+    bool left, right;  /* the buttons that are down */
+} PalPointer;
+int pal_pointer_open(void);
+const char *pal_pointer_info(void);
+bool pal_pointer_read(PalPointer *p);
+void pal_pointer_close(void);
 
 /* ---- Time ---- */
 typedef struct {

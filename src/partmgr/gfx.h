@@ -36,6 +36,12 @@ void gfx_round_rect(GfxCanvas *c, int x, int y, int w, int h, int radius, GfxCol
 /* Diagonal lines ("/") every STEP pixels, one pixel wide: the free space. */
 void gfx_hatch(GfxCanvas *c, int x, int y, int w, int h, int step, GfxColor col);
 
+/* The mouse pointer: an arrow, white with a black outline, its tip at X, Y,
+ * SCALE times the size of GFX_ARROW_W x GFX_ARROW_H. */
+#define GFX_ARROW_W 12
+#define GFX_ARROW_H 19
+void gfx_arrow(GfxCanvas *c, int x, int y, int scale);
+
 /* ---- Text: Inter, rendered by tools/gen-font.py into font_inter.bin ---- */
 
 typedef struct GfxFont GfxFont;

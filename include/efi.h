@@ -589,6 +589,90 @@ typedef struct EFI_GRAPHICS_OUTPUT_PROTOCOL {
     EFI_GRAPHICS_OUTPUT_PROTOCOL_MODE *Mode;
 } EFI_GRAPHICS_OUTPUT_PROTOCOL;
 
+/* ---- Pointers (UEFI 2.10, sections 12.5 and 12.7) ---- */
+
+typedef struct {
+    INT32 RelativeMovementX, RelativeMovementY, RelativeMovementZ;
+    BOOLEAN LeftButton, RightButton;
+} EFI_SIMPLE_POINTER_STATE;
+
+typedef struct {
+    UINT64 ResolutionX, ResolutionY, ResolutionZ; /* counts per millimetre */
+    BOOLEAN LeftButton, RightButton;
+} EFI_SIMPLE_POINTER_MODE;
+
+typedef struct EFI_SIMPLE_POINTER_PROTOCOL {
+    EFI_STATUS(EFIAPI *Reset)(struct EFI_SIMPLE_POINTER_PROTOCOL *This, BOOLEAN ExtendedVerification);
+    EFI_STATUS(EFIAPI *GetState)(struct EFI_SIMPLE_POINTER_PROTOCOL *This, EFI_SIMPLE_POINTER_STATE *State);
+    EFI_EVENT WaitForInput;
+    EFI_SIMPLE_POINTER_MODE *Mode;
+} EFI_SIMPLE_POINTER_PROTOCOL;
+
+typedef struct {
+    UINT64 CurrentX, CurrentY, CurrentZ;
+    UINT32 ActiveButtons; /* bit 0: touch or primary button, bit 1: alternate */
+} EFI_ABSOLUTE_POINTER_STATE;
+
+typedef struct {
+    UINT64 AbsoluteMinX, AbsoluteMinY, AbsoluteMinZ;
+    UINT64 AbsoluteMaxX, AbsoluteMaxY, AbsoluteMaxZ;
+    UINT32 Attributes;
+} EFI_ABSOLUTE_POINTER_MODE;
+
+typedef struct EFI_ABSOLUTE_POINTER_PROTOCOL {
+    EFI_STATUS(EFIAPI *Reset)(struct EFI_ABSOLUTE_POINTER_PROTOCOL *This, BOOLEAN ExtendedVerification);
+    EFI_STATUS(EFIAPI *GetState)(struct EFI_ABSOLUTE_POINTER_PROTOCOL *This, EFI_ABSOLUTE_POINTER_STATE *State);
+    EFI_EVENT WaitForInput;
+    EFI_ABSOLUTE_POINTER_MODE *Mode;
+} EFI_ABSOLUTE_POINTER_PROTOCOL;
+
+/* ---- USB I/O (UEFI 2.10, section 17.2.4) ---- */
+
+#pragma pack(push, 1)
+typedef struct {
+    UINT8 RequestType, Request;
+    UINT16 Value, Index, Length;
+} EFI_USB_DEVICE_REQUEST;
+
+typedef struct {
+    UINT8 Length, DescriptorType, InterfaceNumber, AlternateSetting, NumEndpoints;
+    UINT8 InterfaceClass, InterfaceSubClass, InterfaceProtocol, Interface;
+} EFI_USB_INTERFACE_DESCRIPTOR;
+
+typedef struct {
+    UINT8 Length, DescriptorType, EndpointAddress, Attributes;
+    UINT16 MaxPacketSize;
+    UINT8 Interval;
+} EFI_USB_ENDPOINT_DESCRIPTOR;
+#pragma pack(pop)
+
+typedef enum { EfiUsbDataIn, EfiUsbDataOut, EfiUsbNoData } EFI_USB_DATA_DIRECTION;
+
+typedef EFI_STATUS(EFIAPI *EFI_ASYNC_USB_TRANSFER_CALLBACK)(void *Data, UINTN DataLength, void *Context,
+                                                            UINT32 Status);
+
+typedef struct EFI_USB_IO_PROTOCOL {
+    EFI_STATUS(EFIAPI *UsbControlTransfer)(struct EFI_USB_IO_PROTOCOL *This, EFI_USB_DEVICE_REQUEST *Request,
+                                           EFI_USB_DATA_DIRECTION Direction, UINT32 Timeout, void *Data,
+                                           UINTN DataLength, UINT32 *Status);
+    void *UsbBulkTransfer;
+    EFI_STATUS(EFIAPI *UsbAsyncInterruptTransfer)(struct EFI_USB_IO_PROTOCOL *This, UINT8 DeviceEndpoint,
+                                                  BOOLEAN IsNewTransfer, UINTN PollingInterval, UINTN DataLength,
+                                                  EFI_ASYNC_USB_TRANSFER_CALLBACK InterruptCallBack, void *Context);
+    void *UsbSyncInterruptTransfer;
+    void *UsbIsochronousTransfer;
+    void *UsbAsyncIsochronousTransfer;
+    void *UsbGetDeviceDescriptor;
+    void *UsbGetConfigDescriptor;
+    EFI_STATUS(EFIAPI *UsbGetInterfaceDescriptor)(struct EFI_USB_IO_PROTOCOL *This,
+                                                  EFI_USB_INTERFACE_DESCRIPTOR *InterfaceDescriptor);
+    EFI_STATUS(EFIAPI *UsbGetEndpointDescriptor)(struct EFI_USB_IO_PROTOCOL *This, UINT8 EndpointIndex,
+                                                 EFI_USB_ENDPOINT_DESCRIPTOR *EndpointDescriptor);
+    void *UsbGetStringDescriptor;
+    void *UsbGetSupportedLanguages;
+    void *UsbPortReset;
+} EFI_USB_IO_PROTOCOL;
+
 /* ---- Serial I/O (UEFI 2.10, section 12.8) ---- */
 
 typedef struct EFI_SERIAL_IO_PROTOCOL {
@@ -630,6 +714,14 @@ typedef struct EFI_SERIAL_IO_PROTOCOL {
     { 0x3152BCA5, 0xEADE, 0x433D, { 0x86, 0x2E, 0xC0, 0x1C, 0xDC, 0x29, 0x1F, 0x44 } }
 #define EFI_SHELL_PARAMETERS_PROTOCOL_GUID \
     { 0x752F3136, 0x4E16, 0x4FDC, { 0xA2, 0x2A, 0xE5, 0xF4, 0x68, 0x12, 0xF4, 0xCA } }
+#define EFI_SIMPLE_POINTER_PROTOCOL_GUID \
+    { 0x31878C87, 0x0B75, 0x11D5, { 0x9A, 0x4F, 0x00, 0x90, 0x27, 0x3F, 0xC1, 0x4D } }
+#define EFI_ABSOLUTE_POINTER_PROTOCOL_GUID \
+    { 0x8D59D32B, 0xC655, 0x4AE9, { 0x9B, 0x15, 0xF2, 0x59, 0x04, 0x99, 0x2A, 0x43 } }
+#define EFI_USB_IO_PROTOCOL_GUID \
+    { 0x2B2F68D6, 0x0CD2, 0x44CF, { 0x8E, 0x8B, 0xBB, 0xA2, 0x0B, 0x1B, 0x5B, 0x75 } }
+#define EFI_USB2_HC_PROTOCOL_GUID \
+    { 0x3E745226, 0x9818, 0x45B6, { 0xA2, 0xAC, 0xD7, 0xCD, 0x0E, 0x8B, 0xA2, 0xBC } }
 #define EFI_GRAPHICS_OUTPUT_PROTOCOL_GUID \
     { 0x9042A9DE, 0x23DC, 0x4A38, { 0x96, 0xFB, 0x7A, 0xDE, 0xD0, 0x80, 0x51, 0x6A } }
 #define EFI_SERIAL_IO_PROTOCOL_GUID \

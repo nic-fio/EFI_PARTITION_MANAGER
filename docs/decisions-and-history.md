@@ -258,7 +258,10 @@ program). Real firmware may lack one too.
   parser): only through the firmware's own driver. PS/2 mice (owner: "il mouse
   ps/2 non si usa piu' da almeno 15 anni").
 - **Not testable in QEMU:** the case of a firmware that owns the mouse, since
-  OVMF has no mouse driver. Real hardware will tell.
+  OVMF has no mouse driver, and the case of a firmware that has not connected
+  its USB controllers (partmgr connects them then). Real hardware will tell.
+- **Built** in stage 2 (`pal_mouse_efi.c`). The pointer is drawn only when a
+  pointing device was found: with none there is nothing to move it.
 
 ### P22. Tests of the graphical interface
 

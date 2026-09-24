@@ -146,6 +146,21 @@ void gfx_hatch(GfxCanvas *c, int x, int y, int w, int h, int step, GfxColor col)
                 c->px[(size_t)py * (size_t)c->w + (size_t)px] = col;
 }
 
+void gfx_arrow(GfxCanvas *c, int x, int y, int scale)
+{
+    /* B black, W white, blank transparent */
+    static const char *const rows[GFX_ARROW_H] = {
+        "B",          "BB",         "BWB",        "BWWB",        "BWWWB",       "BWWWWB",      "BWWWWWB",
+        "BWWWWWWB",   "BWWWWWWWB",  "BWWWWWWWWB", "BWWWWWWWWWB", "BWWWWWWBBBBB", "BWWWBWWB",    "BWWBBWWB",
+        "BWB  BWWB",  "BB   BWWB",  "B     BWWB", "      BWWB",  "       BB",
+    };
+    scale = MAX(scale, 1);
+    for (int j = 0; j < GFX_ARROW_H; j++)
+        for (int i = 0; rows[j][i]; i++)
+            if (rows[j][i] != ' ')
+                gfx_fill(c, x + i * scale, y + j * scale, scale, scale, rows[j][i] == 'B' ? 0x000000 : 0xFFFFFF);
+}
+
 /* ---- fonts ---- */
 
 struct GfxFont {

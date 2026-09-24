@@ -1,7 +1,8 @@
 /* The drawing code on Linux: draws the test picture of gfxscene.c into a PPM
  * file, and checks the primitives and the font on their own.
  *
- *   gfxtool scene W H FILE.ppm   the test picture, W x H pixels
+ *   gfxtool scene W H FILE.ppm [X Y]   the test picture, W x H pixels, with the
+ *                                      mouse pointer at X, Y
  *   gfxtool check                the checks; the exit status says if they passed */
 #include "../../src/partmgr/gfx.h"
 
@@ -115,6 +116,19 @@ static void checks(void)
     gfx_frame(&c, 10, 10, 50, 30, 3, 0x000000);
     check("frame", at(&c, 10, 10) == 0 && at(&c, 12, 25) == 0 && at(&c, 13, 25) == 0xFFFFFF &&
                        at(&c, 59, 39) == 0 && at(&c, 30, 20) == 0xFFFFFF);
+    /* the pointer: tip black, inside white, the rest untouched, cut at the edge */
+    gfx_fill(&c, 0, 0, 200, 100, 0x808080);
+    gfx_arrow(&c, 50, 20, 1);
+    check("arrow: tip", at(&c, 50, 20) == 0);
+    check("arrow: inside white", at(&c, 52, 30) == 0xFFFFFF);
+    check("arrow: outline", at(&c, 50, 36) == 0 && at(&c, 60, 30) == 0 && at(&c, 50, 38) == 0x808080);
+    check("arrow: nothing outside its box", others(&c, 50, 20, GFX_ARROW_W, GFX_ARROW_H, 0x808080, false) == 0);
+    gfx_fill(&c, 0, 0, 200, 100, 0x808080);
+    gfx_arrow(&c, 100, 20, 2);
+    check("arrow at twice the size", at(&c, 101, 21) == 0 && at(&c, 104, 40) == 0xFFFFFF &&
+                                         others(&c, 100, 20, 2 * GFX_ARROW_W, 2 * GFX_ARROW_H, 0x808080, false) == 0);
+    gfx_arrow(&c, 195, 95, 1);
+    check("arrow cut by the edge", at(&c, 195, 95) == 0);
     gfx_canvas_free(&c);
 
     /* the test picture at the sizes the QEMU test uses, and at the smallest */
@@ -129,11 +143,13 @@ static void checks(void)
 
 int main(int argc, char **argv)
 {
-    if (argc == 5 && !strcmp(argv[1], "scene")) {
+    if ((argc == 5 || argc == 7) && !strcmp(argv[1], "scene")) {
         GfxCanvas c;
         if (!gfx_fonts_init() || !gfx_canvas_init(&c, atoi(argv[2]), atoi(argv[3])))
             return 2;
         gfx_scene(&c);
+        if (argc == 7)
+            gfx_arrow(&c, atoi(argv[5]), atoi(argv[6]), 1);
         int r = write_ppm(&c, argv[4]);
         gfx_canvas_free(&c);
         return r;
@@ -143,6 +159,6 @@ int main(int argc, char **argv)
         printf("gfx tests: %d checks, %d failed\n", count, failed);
         return failed ? 1 : 0;
     }
-    fprintf(stderr, "usage: gfxtool scene W H FILE.ppm | gfxtool check\n");
+    fprintf(stderr, "usage: gfxtool scene W H FILE.ppm [X Y] | gfxtool check\n");
     return 2;
 }

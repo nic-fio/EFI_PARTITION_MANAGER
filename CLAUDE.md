@@ -82,7 +82,7 @@ not been tried yet.
 
 Version 0.1.2; 0.1.0 and 0.1.1 were released as pre-releases. Next: the
 graphical interface, designed on 2026-09-24 (P18–P25), built in six stages:
-(1) drawing and font — done; (2) the USB mouse driver; (3) the window, read
+(1) drawing and font — done; (2) the USB mouse driver — done; (3) the window, read
 only; (4) the actions; (5) resolutions and the text fallback; (6) manuals and
 release 0.2.0. Until stage 3, `partmgr.efi` is the program of 0.1.2. Tested in QEMU with OVMF and on disk images
 checked by sfdisk and parted. **Not tried on real hardware yet**: the user will

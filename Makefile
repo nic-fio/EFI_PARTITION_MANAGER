@@ -22,10 +22,9 @@ PAL_SRC := src/lib/libc.c src/lib/fmt.c src/lib/util.c src/lib/crc32.c src/pal/p
 EFI_SRC := $(TABLE_SRC) src/partmgr/main.c src/partmgr/diskview.c src/partmgr/ui.c src/partmgr/disks_efi.c \
 	src/lib/libc.c src/lib/fmt.c src/pal/pal_efi.c src/pal/pal_common.c
 # the drawing code of the graphical interface and its font
-GFX_SRC := src/partmgr/gfx.c src/partmgr/font_inter.S src/pal/pal_gfx_efi.c
+GFX_SRC := src/partmgr/gfx.c src/partmgr/font_inter.S src/pal/pal_gfx_efi.c src/pal/pal_mouse_efi.c
 # gfxdemo.efi: the test picture on the screen, for make qemu-test
-DEMO_SRC := tests/partmgr/gfxdemo.c tests/partmgr/gfxscene.c src/partmgr/gfx.c src/partmgr/font_inter.S \
-	src/pal/pal_gfx_efi.c $(PAL_SRC)
+DEMO_SRC := tests/partmgr/gfxdemo.c tests/partmgr/gfxscene.c $(GFX_SRC) $(PAL_SRC)
 
 WARN := -Wall -Wextra -Wno-unused-parameter -Wno-missing-field-initializers
 

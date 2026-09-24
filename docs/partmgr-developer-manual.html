@@ -82,12 +82,12 @@ way it reads or writes tables without breaking a disk.</p>
 <table>
   <thead><tr><th>Area</th><th>Directory</th><th>Lines</th><th>Content</th></tr></thead>
   <tbody>
-    <tr><td>partmgr</td><td><code>src/partmgr</code></td><td>4,712</td><td>table code, the UEFI program, the screens</td></tr>
-    <tr><td>Platform layer</td><td><code>src/pal</code></td><td>1,401</td><td>console, keys, time, files, volumes, entry point</td></tr>
+    <tr><td>partmgr</td><td><code>src/partmgr</code></td><td>4,733</td><td>table code, the UEFI program, the screens</td></tr>
+    <tr><td>Platform layer</td><td><code>src/pal</code></td><td>1,624</td><td>console, keys, time, files, volumes, entry point</td></tr>
     <tr><td>Runtime</td><td><code>src/lib</code></td><td>1,003</td><td>libc subset, printf, string buffer, UTF-8, CRC-32</td></tr>
-    <tr><td>UEFI definitions</td><td><code>include</code></td><td>650</td><td>the UEFI types and protocols partmgr uses</td></tr>
+    <tr><td>UEFI definitions</td><td><code>include</code></td><td>742</td><td>the UEFI types and protocols partmgr uses</td></tr>
     <tr><td>Tools</td><td><code>tools</code></td><td>705</td><td>ELF→PE converter, linker script, documentation and font tools, setup script</td></tr>
-    <tr><td>Tests</td><td><code>tests/partmgr</code></td><td>1,762</td><td>the Linux test tools, the table tests, the drawing checks, the QEMU test</td></tr>
+    <tr><td>Tests</td><td><code>tests/partmgr</code></td><td>1,887</td><td>the Linux test tools, the table tests, the drawing checks, the QEMU test</td></tr>
   </tbody>
 </table>
 <p><code>partmgr.efi</code> is about 70 KB. The line counts here and in the <a href="#file-map">source file map</a> are
@@ -109,14 +109,14 @@ when they no longer match the tree — a new source file without a row in the ma
     <tr><td><code>src/partmgr/disks_efi.c</code>, <code>disks.h</code></td><td>The disks of the machine through block I/O.</td></tr>
     <tr><td><code>src/partmgr/ui.c</code>, <code>ui.h</code></td><td>Drawing and dialogs.</td></tr>
     <tr><td><code>src/partmgr/font_inter.S</code></td><td>10</td><td>Includes the glyphs of font_inter.bin as read-only data</td></tr>
-    <tr><td><code>src/partmgr/gfx.c</code></td><td>299</td><td>Drawing on a canvas in memory: rectangles, frames, rounded rectangles, hatching, text with the embedded glyphs and kerning</td></tr>
-    <tr><td><code>src/partmgr/gfx.h</code></td><td>56</td><td>Canvases, colours, the drawing and text functions</td></tr>
+    <tr><td><code>src/partmgr/gfx.c</code></td><td>314</td><td>Drawing on a canvas in memory: rectangles, frames, rounded rectangles, hatching, text with the embedded glyphs and kerning</td></tr>
+    <tr><td><code>src/partmgr/gfx.h</code></td><td>62</td><td>Canvases, colours, the drawing and text functions</td></tr>
     <tr><td><code>src/partmgr/main.c</code>, <code>diskview.c</code>, <code>partmgr.h</code></td><td>The program: the list of disks and the screen of a disk.</td></tr>
     <tr><td><code>src/partmgr/gfx.c</code>, <code>gfx.h</code></td><td>Drawing for the graphical interface: canvases, shapes, text.</td></tr>
     <tr><td><code>src/partmgr/font_inter.S</code>, <code>font_inter.bin</code></td><td>The glyphs of the Inter font, made by <code>tools/gen-font.py</code>.</td></tr>
     <tr><td><code>src/lib/</code></td><td><code>rt.h</code> (the C subset every module includes), <code>libc.c</code>, <code>fmt.c</code> (vsnprintf),
         <code>util.c</code> (allocation, string buffer, UTF-8), <code>crc32.c</code>.</td></tr>
-    <tr><td><code>src/pal/</code></td><td><code>pal.h</code> (the platform interface), <code>pal_efi.c</code>, <code>pal_gfx_efi.c</code> (the graphics screen), <code>pal_common.c</code>,
+    <tr><td><code>src/pal/</code></td><td><code>pal.h</code> (the platform interface), <code>pal_efi.c</code>, <code>pal_gfx_efi.c</code> (the graphics screen), <code>pal_mouse_efi.c</code> (the pointer), <code>pal_common.c</code>,
         <code>efi_glue.h</code> (UEFI globals for UEFI-only modules).</td></tr>
     <tr><td><code>include/efi.h</code></td><td>UEFI types, services and protocols, written from the specification.</td></tr>
     <tr><td><code>tools/</code></td><td><code>efi.lds</code>, <code>elf2efi.py</code>, <code>gen-docs.py</code>, <code>gen-font.py</code>, <code>screenshots.py</code>, <code>setup-dev.sh</code>.</td></tr>
@@ -158,7 +158,8 @@ and <code>EFI_SRC</code>, which adds the program, the runtime and the platform l
 	src/lib/crc32.c src/lib/util.c
 EFI_SRC := $(TABLE_SRC) src/partmgr/main.c src/partmgr/diskview.c src/partmgr/ui.c src/partmgr/disks_efi.c \
 	src/lib/libc.c src/lib/fmt.c src/pal/pal_efi.c src/pal/pal_common.c</pre>
-<p><code>GFX_SRC</code> is the drawing code of the graphical interface, its font and its platform part; until the window
+<p><code>GFX_SRC</code> is the drawing code of the graphical interface, its font and its platform part (the screen and
+the pointer); until the window
 is built it goes only into <code>build/tests/gfxdemo.efi</code> (<code>DEMO_SRC</code>), so <code>partmgr.efi</code> is still the
 program of 0.1.2. The glyphs enter the image through the assembler: <code>font_inter.S</code> includes
 <code>font_inter.bin</code> with <code>.incbin</code> as read-only data.</p>
@@ -250,7 +251,10 @@ implements it.</p>
         (<code>canonical()</code> in <code>diskview.c</code> makes them so).</td></tr>
     <tr><td>Volumes</td><td><code>pal_volumes_refresh</code>, <code>pal_volume_count</code>, <code>pal_volume(i)</code>, <code>pal_boot_volume</code></td><td>For backup files: name, label, read-only.</td></tr>
     <tr><td>Graphics</td><td><code>pal_gfx_open</code>, <code>pal_gfx_show</code>, <code>pal_gfx_close</code></td><td>The screen of at least 640 × 480, if any;
-        <code>pal_gfx_show</code> copies a rectangle of a canvas to the same place on it.</td></tr>
+        <code>pal_gfx_show</code> copies a rectangle of an image in memory to a place on it.</td></tr>
+    <tr><td>Pointer</td><td><code>pal_pointer_open</code>, <code>pal_pointer_read</code>, <code>pal_pointer_info</code>,
+        <code>pal_pointer_close</code></td><td>The firmware's pointers and partmgr's own USB mouse driver, read together as a
+        <code>PalPointer</code>: relative movement, or an absolute position 0…65535, and the buttons down.</td></tr>
     <tr><td>Serial port</td><td><code>pal_serial_log</code></td><td>A line on the serial port the firmware's console goes to, if any: what the
         graphical interface shows, for the tests.</td></tr>
     <tr><td>Program</td><td><code>app_main</code>, <code>app_name</code>, <code>pal_argc/argv</code></td><td>Defined by <code>src/partmgr/main.c</code>.</td></tr>
@@ -274,6 +278,7 @@ implements it.</p>
       Blt pixel (blue, green, red, reserved), so <code>pal_gfx_show</code> hands the canvas to <code>Blt</code>
       (<code>EfiBltBufferToVideo</code>) as it is, whatever the pixel format of the screen. The text cursor is turned off
       while the picture is shown; <code>pal_gfx_close</code> clears the text console, which redraws the screen.</li>
+  <li><strong>Pointer</strong> (<code>pal_mouse_efi.c</code>): see <a href="#pointer">The pointer</a>.</li>
   <li><strong>Serial port</strong>: <code>pal_serial_log</code> writes to the serial port only when the
       <code>ConOut</code> variable sends the console there — an instance of its device path with a UART node — through
       the Serial I/O protocol found with <code>LocateDevicePath</code>. A machine without a serial console gets nothing.</li>
@@ -626,8 +631,8 @@ exact, so that a proposed start reads back to the same block.</p>
 <!-- ===================================================================== -->
 <h2 id="graphics">The graphical interface</h2>
 
-<p class="chapter-intro">Being built (decisions P18–P25): the drawing and the font are done; the window, the mouse and
-the actions come next. Until then <code>partmgr.efi</code> shows the text screens of 0.1.2.</p>
+<p class="chapter-intro">Being built (decisions P18–P25): the drawing, the font and the pointer are done; the window
+and the actions come next. Until then <code>partmgr.efi</code> shows the text screens of 0.1.2.</p>
 
 <h3 id="gfx" data-index="gfx.c;GfxCanvas;gfx_round_rect">Drawing: gfx.c</h3>
 <p>A <code>GfxCanvas</code> is an image in memory, <code>w</code> × <code>h</code> pixels of <code>0x00RRGGBB</code>, with a clip
@@ -642,6 +647,8 @@ point), so the same canvases are drawn on Linux by the tests.</p>
     <tr><td><code>gfx_hatch</code></td><td>Diagonal lines every few pixels: the free space in the disk bar.</td></tr>
     <tr><td><code>gfx_text</code>, <code>gfx_text_width</code></td><td>UTF-8 text in a line whose top is given; its width.</td></tr>
     <tr><td><code>gfx_clip</code>, <code>gfx_unclip</code></td><td>Limit drawing to a rectangle, for example a label to its block.</td></tr>
+    <tr><td><code>gfx_arrow</code></td><td>The mouse pointer: an arrow of 12 × 19 pixels, white with a black outline, at a whole
+        multiple of that size.</td></tr>
   </tbody>
 </table>
 
@@ -654,6 +661,28 @@ baseline and its size, and for each face the kerning of the ASCII pairs that dif
 between the background and the colour. Characters Inter lacks are drawn as <code>?</code>. <code>gfx_font</code> picks the
 largest size not above the one asked for. The file is about 280 KB; its layout is described at the top of
 <code>gen-font.py</code>, and <code>gfx_fonts_init</code> checks every offset before the first use.</p>
+
+<h3 id="pointer" data-index="pal_mouse_efi.c;USB mouse;boot protocol;PalPointer">The pointer</h3>
+<p>OVMF has no mouse driver at all, and a real firmware may lack one too, so partmgr brings its own for USB mice
+(decision P21). <code>pal_pointer_open</code> gathers two kinds of devices:</p>
+<ul>
+  <li><strong>The firmware's pointers</strong>: every Simple Pointer and Absolute Pointer protocol on a handle with a
+      device path — a real device. The console's own pointer has none: it only adds up the others, and exists even when
+      there is no mouse, so it is left out. Relative counts become pixels at about one pixel per count at 8 counts per
+      millimetre; absolute positions are scaled to 0…65535.</li>
+  <li><strong>partmgr's USB mice</strong>: every USB I/O interface of class HID, subclass boot, protocol mouse
+      (3, 1, 2) with an interrupt-in endpoint. partmgr opens it <code>BY_DRIVER</code>, as a driver does: when a firmware
+      driver already has it the open is refused and the mouse is the firmware's. Otherwise partmgr sends
+      <code>SET_PROTOCOL</code> (boot) and <code>SET_IDLE</code>, and starts an asynchronous interrupt transfer: the host
+      controller polls the mouse at the endpoint's interval and calls <code>report</code> with each report — buttons,
+      x, y — which adds the movement up. <code>pal_pointer_read</code> takes the sums at <code>TPL_NOTIFY</code>, so a
+      report cannot arrive halfway. When no USB interface exists at all, the USB host controllers are connected first:
+      a firmware that starts fast may not have looked at the devices.</li>
+</ul>
+<p><code>pal_pointer_close</code> stops the transfers and closes the interfaces, so the firmware gets the mice back.
+Tablets and touchscreens have no boot protocol; they work only through a firmware driver. The pointer is drawn only
+when a device was found. Two cases cannot be tried in QEMU: a firmware that has a mouse driver, and one that has not
+connected its USB controllers.</p>
 
 <!-- ===================================================================== -->
 <h2 id="testing">Testing</h2>
@@ -707,10 +736,10 @@ and the script says <code>SKIPPED</code>.</p>
 <p><code>build/tests/gfxtool check</code>, run by <code>make test</code> with AddressSanitizer and UBSan, checks the drawing on
 its own: the faces chosen for each size, kerning (<em>AV</em> narrower than <em>A</em> plus <em>V</em>), missing
 characters, text with opaque and smoothed pixels that stays in its line and returns its end, clipping, fills cut to the
-canvas, rounded rectangles (symmetric, bordered, smoothed corners, nothing outside), the hatching and frames, and the
-test picture at three sizes. <code>gfxtool scene W H FILE</code> writes the test picture of
-<code>tests/partmgr/gfxscene.c</code> — every primitive and every face, laid out like the window — as a PPM file; the
-QEMU test compares it with the screen.</p>
+canvas, rounded rectangles (symmetric, bordered, smoothed corners, nothing outside), the hatching and frames, the pointer's arrow
+(at one and two times its size, cut by the edge), and the test picture at three sizes. <code>gfxtool scene W H FILE [X Y]</code> writes the test picture of
+<code>tests/partmgr/gfxscene.c</code> — every primitive and every face, laid out like the window — as a PPM file, with the pointer at X, Y
+when given; the QEMU test compares it with the screen.</p>
 
 <h3 id="qemu-test" data-index="qemu-test.py">In QEMU</h3>
 <p><code>make qemu-test</code> runs <code>tests/partmgr/qemu-test.py</code>. It boots QEMU/OVMF from a virtual FAT disk holding
@@ -737,6 +766,12 @@ rows come before the message line under them.</p>
       <code>screendump</code> must be, pixel for pixel, the picture <code>gfxtool</code> draws on Linux at the same size.
       Broken on purpose — the copy to the screen one row short — the check fails with exactly one row of pixels
       different.</li>
+  <li><strong>Pointing:</strong> <code>gfxdemo.efi</code> with QEMU's USB mouse on an xHCI controller must report
+      <em>firmware 0, partmgr's USB driver 1</em>. The mouse is moved with the monitor's <code>mouse_move</code> in eleven
+      steps of (−40, −25) from the middle of the screen; <code>mouse_button</code> must give a click and a release at
+      exactly that point, and the screen must be the test picture with the arrow there, pixel for pixel. Moved far past
+      the top left corner, the pointer must stop at 0,0. A USB tablet (no boot protocol) and no USB device at all must
+      find no pointer. Broken on purpose — the vertical movement reversed — four checks fail.</li>
 </ol>
 
 <!-- ===================================================================== -->
@@ -787,7 +822,7 @@ name matters.</p>
 <table>
   <thead><tr><th>File</th><th>Lines</th><th>Purpose</th></tr></thead>
   <tbody>
-    <tr><td><code>include/efi.h</code></td><td>650</td><td>Minimal UEFI definitions (UEFI Specification 2.10), written from the specification; no EDK2 code</td></tr>
+    <tr><td><code>include/efi.h</code></td><td>742</td><td>Minimal UEFI definitions (UEFI Specification 2.10), written from the specification; no EDK2 code</td></tr>
     <tr><td><code>src/lib/crc32.c</code></td><td>29</td><td>CRC-32 (IEEE 802.3), the checksum of GPT headers and entry arrays</td></tr>
     <tr><td><code>src/lib/crc32.h</code></td><td>10</td><td>CRC-32 (IEEE 802.3)</td></tr>
     <tr><td><code>src/lib/fmt.c</code></td><td>192</td><td>vsnprintf for the EFI build: %d %i %u %x %X %o %c %s %p %%, flags, width/precision, length hh h l ll z j t</td></tr>
@@ -795,8 +830,9 @@ name matters.</p>
     <tr><td><code>src/lib/rt.h</code></td><td>115</td><td>Runtime: standard C subset + shared helpers</td></tr>
     <tr><td><code>src/lib/util.c</code></td><td>337</td><td>Allocation wrappers, string buffer, UTF-8 and UCS-2</td></tr>
     <tr><td><code>src/pal/efi_glue.h</code></td><td>38</td><td>Access to UEFI services for UEFI-only modules</td></tr>
-    <tr><td><code>src/pal/pal.h</code></td><td>179</td><td>Platform layer: what the program needs from the machine</td></tr>
+    <tr><td><code>src/pal/pal.h</code></td><td>195</td><td>Platform layer: what the program needs from the machine</td></tr>
     <tr><td><code>src/pal/pal_common.c</code></td><td>25</td><td>Error names</td></tr>
+    <tr><td><code>src/pal/pal_mouse_efi.c</code></td><td>207</td><td>Platform layer for UEFI: the pointer, from the firmware's pointers and from partmgr's own driver for USB boot mice</td></tr>
     <tr><td><code>src/pal/pal_gfx_efi.c</code></td><td>107</td><td>Platform layer for UEFI: the graphics screen (Graphics Output Protocol) and the serial port of the console</td></tr>
     <tr><td><code>src/pal/pal_efi.c</code></td><td>1052</td><td>Platform layer for UEFI: entry point, console, keys, time, files, volumes, arguments</td></tr>
     <tr><td><code>src/partmgr/disks.h</code></td><td>23</td><td>A disk as the table code sees it (name, kind, size, boot disk, read and write functions)</td></tr>
@@ -819,11 +855,11 @@ name matters.</p>
     <tr><td><code>tools/gen-font.py</code></td><td>161</td><td>Renders the Inter font into font_inter.bin: sizes, weights, 4-bit glyphs, kerning pairs; describes the format</td></tr>
     <tr><td><code>tools/screenshots.py</code></td><td>169</td><td>Takes the screenshots of the manuals again: partmgr in QEMU on test disks, keys through the monitor</td></tr>
     <tr><td><code>tools/setup-dev.sh</code></td><td>85</td><td>Checks (or installs) the packages a clone needs and sets the git identity of the working copy</td></tr>
-    <tr><td><code>tests/partmgr/gfxdemo.c</code></td><td>39</td><td>gfxdemo.efi: the test picture on the graphics screen, announced on the serial port</td></tr>
+    <tr><td><code>tests/partmgr/gfxdemo.c</code></td><td>89</td><td>gfxdemo.efi: the test picture on the graphics screen, then the pointer following the mouse; announced on the serial port</td></tr>
     <tr><td><code>tests/partmgr/gfxscene.c</code></td><td>120</td><td>The test picture: every drawing primitive and every face of the font, laid out like the window</td></tr>
-    <tr><td><code>tests/partmgr/gfxtool.c</code></td><td>148</td><td>The drawing code on Linux: the checks, and the test picture as a PPM file</td></tr>
+    <tr><td><code>tests/partmgr/gfxtool.c</code></td><td>164</td><td>The drawing code on Linux: the checks, and the test picture as a PPM file</td></tr>
     <tr><td><code>tests/partmgr/pttool.c</code></td><td>257</td><td>Drives the table code on a disk image file: reads, changes, writes, backs up, restores, parses sizes (Linux only)</td></tr>
-    <tr><td><code>tests/partmgr/qemu-test.py</code></td><td>419</td><td>partmgr.efi in QEMU/OVMF: started by the firmware, driven with keys, checked on the serial console and with sfdisk afterwards</td></tr>
+    <tr><td><code>tests/partmgr/qemu-test.py</code></td><td>478</td><td>partmgr.efi in QEMU/OVMF: started by the firmware, driven with keys, checked on the serial console and with sfdisk afterwards</td></tr>
     <tr><td><code>tests/partmgr/run-tests.py</code></td><td>779</td><td>The table tests: the reader and the writer compared with sfdisk and parted, damaged images, sizes, backups restored byte for byte</td></tr>
   </tbody>
 </table>

@@ -26,6 +26,12 @@ waits there for the lines it expects.
    the graphics screen, at the firmware's resolution and at 1024 x 768; QEMU's
    screen must be the picture gfxtool draws on Linux, pixel for pixel. The
    picture is announced on the serial port, which the interface writes to.
+4. Pointing: with QEMU's USB mouse, which OVMF has no driver for, partmgr's
+   own driver must take it; the mouse, moved through the monitor, must bring
+   the pointer exactly where expected (clicks are reported with the position,
+   and the screen must be the test picture with the arrow there), and stop at
+   the edges. A USB tablet (left out, decision P21) and no USB device at all
+   must find no pointer.
 
     tests/partmgr/qemu-test.py OVMF.fd build/partmgr.efi build/tests/gfxdemo.efi build/tests/gfxtool
 """
@@ -137,6 +143,15 @@ class Qemu:
     def key(self, name):
         self.mon.sendall(("sendkey %s\n" % name).encode())
         time.sleep(0.15)
+        try:
+            while self.mon.recv(65536):
+                pass
+        except BlockingIOError:
+            pass
+
+    def monitor(self, command):
+        self.mon.sendall((command + "\n").encode())
+        time.sleep(0.1)
         try:
             while self.mon.recv(65536):
                 pass
@@ -408,6 +423,50 @@ try:
                       "screen %dx%d, picture %dx%d, %d pixels differ" % (sw, sh, rw, rh, diff))
                 q.key("ret")
                 check(name + ": closed", q.wait(r"gfxdemo: closed"), "gfxdemo did not end")
+        finally:
+            q.stop()
+
+    # ------------------------------------------------------------ pointing
+    usb = ("-device", "qemu-xhci")
+    q = Qemu("mouse", [], efi=GFXDEMO, extra=usb + ("-device", "usb-mouse"))
+    try:
+        check("mouse: taken by partmgr's driver",
+              q.wait(r"gfxdemo: pointer: firmware 0, partmgr's USB driver 1", 90), q.text()[-300:])
+        m = re.findall(r"gfxdemo: shown (\d+)x(\d+)", q.text())
+        w, h = (int(m[-1][0]), int(m[-1][1])) if m else (1280, 800)
+        # from the middle, 11 steps of (-40, -25)
+        for _ in range(11):
+            q.monitor("mouse_move -40 -25")
+        q.monitor("mouse_button 1")
+        x, y = w // 2 - 440, h // 2 - 275
+        check("mouse: click where expected", q.wait(r"gfxdemo: click at %d,%d" % (x, y), 20), q.text()[-300:])
+        q.monitor("mouse_button 0")
+        check("mouse: release", q.wait(r"gfxdemo: release at %d,%d" % (x, y), 20), "")
+        time.sleep(0.5)
+        screen, ref = os.path.join(WORK, "mouse-screen.ppm"), os.path.join(WORK, "mouse-ref.ppm")
+        q.screendump(screen)
+        subprocess.run([GFXTOOL, "scene", str(w), str(h), ref, str(x), str(y)], check=True)
+        sw, sh, sp = ppm(screen)
+        rw, rh, rp = ppm(ref)
+        diff = sum(1 for i in range(0, min(len(sp), len(rp)), 3) if sp[i:i + 3] != rp[i:i + 3])
+        check("mouse: the arrow on the picture", (sw, sh) == (rw, rh) and sp == rp, "%d pixels differ" % diff)
+        # far past the top left corner: the pointer stops at 0,0
+        for _ in range(12):
+            q.monitor("mouse_move -127 -127")
+        q.monitor("mouse_button 1")
+        check("mouse: stops at the edge", q.wait(r"gfxdemo: click at 0,0", 20), q.text()[-300:])
+        q.monitor("mouse_button 0")
+        q.key("ret")
+        check("mouse: closed", q.wait(r"gfxdemo: closed"), "")
+    finally:
+        q.stop()
+    for name, extra in (("tablet", usb + ("-device", "usb-tablet")), ("no-usb", ())):
+        q = Qemu(name, [], efi=GFXDEMO, extra=extra)
+        try:
+            check(name + ": no pointer", q.wait(r"gfxdemo: pointer: firmware 0, partmgr's USB driver 0", 90),
+                  q.text()[-300:])
+            q.key("ret")
+            check(name + ": closed", q.wait(r"gfxdemo: closed"), "")
         finally:
             q.stop()
 finally:

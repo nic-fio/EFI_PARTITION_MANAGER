@@ -29,13 +29,13 @@ bool pal_gfx_open(int *w, int *h)
     return true;
 }
 
-void pal_gfx_show(const uint32_t *px, int stride, int x, int y, int w, int h)
+void pal_gfx_show(const uint32_t *px, int stride, int sx, int sy, int dx, int dy, int w, int h)
 {
     if (!gop || w <= 0 || h <= 0)
         return;
     /* a 0x00RRGGBB number in memory is a Blt pixel: blue, green, red, 0 */
-    gop->Blt(gop, (EFI_GRAPHICS_OUTPUT_BLT_PIXEL *)(uintptr_t)px, EfiBltBufferToVideo, (UINTN)x, (UINTN)y,
-             (UINTN)x, (UINTN)y, (UINTN)w, (UINTN)h, (UINTN)stride * 4);
+    gop->Blt(gop, (EFI_GRAPHICS_OUTPUT_BLT_PIXEL *)(uintptr_t)px, EfiBltBufferToVideo, (UINTN)sx, (UINTN)sy,
+             (UINTN)dx, (UINTN)dy, (UINTN)w, (UINTN)h, (UINTN)stride * 4);
 }
 
 void pal_gfx_close(void)
