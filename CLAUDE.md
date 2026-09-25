@@ -83,9 +83,10 @@ ask the owner before each release whether it is a pre-release or a full one.
 
 ## Where the project stands
 
-Version 0.2.0: the graphical interface (P18–P25), built on 2026-09-24 in six
+Version 0.2.1: the graphical interface (P18–P25), built on 2026-09-24 in six
 stages, all done. 0.1.0, 0.1.1 and 0.1.2 were released as pre-releases;
-0.2.0 as a full release, the latest, by the owner's choice. With a graphics screen
+0.2.0 and 0.2.1 (the text cursor back after the window; how to give QEMU a USB
+mouse in the manual) as full releases, by the owner's choice. With a graphics screen
 `partmgr.efi` opens the window, with every action and graphical dialogs;
 without one, the text screens of 0.1.2. Tested in QEMU with OVMF and on disk
 images checked by sfdisk and parted. **Not tried on real hardware yet**: the

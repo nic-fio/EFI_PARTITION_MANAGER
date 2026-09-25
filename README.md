@@ -76,6 +76,14 @@ Copy `partmgr.efi` to a FAT-formatted USB stick:
 With Secure Boot active, sign it with a key the machine trusts first (see the
 user manual).
 
+To try it in QEMU with OVMF, give the virtual machine a USB mouse: QEMU's
+default PS/2 mouse is not seen, and there is no pointer without one.
+
+```
+qemu-system-x86_64 -machine q35 -accel kvm -bios OVMF.fd -device qemu-xhci -device usb-mouse \
+  -drive if=virtio,format=raw,readonly=on,file=fat:esp    # esp/EFI/BOOT/BOOTX64.EFI is partmgr.efi
+```
+
 ## Licence
 
 Copyright (c) 2026 nic-fio. EFI Partition Manager is released under the

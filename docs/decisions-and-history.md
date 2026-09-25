@@ -343,6 +343,7 @@ The work took place on 2026-09-23 (phases 1–9) and 2026-09-24 (phase 10).
 | **9. A finished look** | Every key drawn the same way, with a message for the keys that do not apply; a text mode of 100 columns at start (P10, P17). Release 0.1.2. |
 | **10. A graphical interface, designed** | 2026-09-24. The graphical interface was designed (P18–P25): the graphics screen, the pointer and screen captures were checked in QEMU/OVMF first, which showed that OVMF has no mouse driver; partmgr will carry its own (P21). A mockup, drawn with four fonts, was approved with Inter. |
 | **11. The graphical interface, built** | 2026-09-24. Six stages, each tested in QEMU/OVMF and pushed: the drawing and the Inter font; partmgr's own USB mouse driver; the window; the actions with graphical dialogs; every screen size, with faces of 40 and 52 pixels for very large screens; the manuals. Release 0.2.0. |
+| **12. The first try of 0.2.0** | 2026-09-25. The owner tried 0.2.0 in QEMU. The pointer "appeared, then disappeared": not a defect - QEMU's default mouse is PS/2 (P21: not supported), so partmgr had no pointer, and the arrow seen was the desktop's, hidden when QEMU captured the mouse; the manual and the README now say how to give QEMU a USB mouse. The shell's text cursor did not come back after the window: fixed. Release 0.2.1, a full release. |
 
 ---
 
@@ -351,6 +352,6 @@ The work took place on 2026-09-23 (phases 1–9) and 2026-09-24 (phase 10).
 | Topic | Status |
 |---|---|
 | Real hardware | Not tried yet. The owner will try it when possible; reports are asked for with an issue template. |
-| Releases | 0.1.0, 0.1.1 and 0.1.2 published as pre-releases, while real hardware had not been tried. 0.2.0 (the graphical interface) was published as a pre-release too, then made a full release by the owner (2026-09-24: "rendi la release definitiva"), so that the download link of the README leads to it; its notes still say it has not been tried on real hardware. |
+| Releases | 0.1.0, 0.1.1 and 0.1.2 published as pre-releases, while real hardware had not been tried. 0.2.0 (the graphical interface) was published as a pre-release too, then made a full release by the owner (2026-09-24: "rendi la release definitiva"), so that the download link of the README leads to it; its notes still say it has not been tried on real hardware. 0.2.1, the fixes after the first try, is a full release too (owner: "definitiva"). |
 | Disk names | The kind comes from the device path (NVMe, SATA, USB...); the model name of the disk is not shown yet. |
 | Graphical interface | Built (P18–P25), released in 0.2.0. Not tried in QEMU: a firmware that has its own mouse driver, a 4K screen; real hardware will tell. A firmware that owns the mouse can only be tried on real hardware (P21). |

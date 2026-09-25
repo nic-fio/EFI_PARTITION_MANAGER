@@ -16,7 +16,7 @@
 <nav class="sidebar" aria-label="Table of contents">
   <div class="brand">
     <div class="brand-logo">[#]</div>
-    <div class="brand-text"><strong>User Manual</strong><span>EFI Partition Manager 0.2.0</span></div>
+    <div class="brand-text"><strong>User Manual</strong><span>EFI Partition Manager 0.2.1</span></div>
   </div>
   <div class="search">
     <input type="search" placeholder="Search  ( / )" aria-label="Search">
@@ -38,7 +38,7 @@
   window used with the mouse or the keyboard. Every change is shown on the screen first and written only when you ask
   for it, after a clear warning.</p>
   <div class="meta">
-    <span><b>Version</b> 0.2.0</span>
+    <span><b>Version</b> 0.2.1</span>
     <span><b>Platform</b> UEFI x86-64</span>
     <span><b>File</b> partmgr.efi (one file)</span>
     <span><b>Audience</b> experienced users and technicians</span>
@@ -228,6 +228,14 @@ The button under the mouse pointer is highlighted.</p>
 <p><strong>The mouse.</strong> partmgr uses the firmware's mouse when the firmware has one; when it has not — many do not —
 partmgr drives a USB mouse itself. Every USB mouse works; tablets and touch screens work only when the firmware supports
 them, and so do PS/2 mice. Without a mouse the pointer is not shown, and the keyboard does everything.</p>
+<div class="callout tip"><span class="callout-title">In a virtual machine: give it a USB mouse</span>
+<p>QEMU gives a virtual machine a PS/2 mouse unless told otherwise, and OVMF, its UEFI firmware, has no mouse support:
+partmgr then finds no mouse and shows no pointer. Add a USB mouse to the command line:</p>
+<pre class="terminal">$ qemu-system-x86_64 -bios OVMF.fd ... -usb -device usb-mouse
+$ qemu-system-x86_64 -machine q35 -bios OVMF.fd ... -device qemu-xhci -device usb-mouse</pre>
+<p>Click in QEMU's window so that it captures the mouse; <kbd>Ctrl</kbd>+<kbd>Alt</kbd>+<kbd>G</kbd> lets it go. A USB
+<em>tablet</em> (<code>-device usb-tablet</code>, which virt-manager usually adds) is not a mouse for partmgr: add a USB
+mouse next to it.</p></div>
 <p>Leaving a disk that has changes not written — opening another disk, <kbd>F5</kbd>, <kbd>Esc</kbd> — asks
 <em>Discard the unwritten changes? (Y/N)</em> first (see <a href="#leaving">Leaving without writing</a>).</p>
 
@@ -696,7 +704,7 @@ recognised but never chosen by hand: partmgr creates the extended partition itse
 <div id="index-list"></div>
 
 <footer class="doc-footer">
-  EFI Partition Manager User Manual — for partmgr 0.2.0. See also the
+  EFI Partition Manager User Manual — for partmgr 0.2.1. See also the
   <a href="partmgr-developer-manual.html">technical manual</a> and the
   <a href="https://github.com/nic-fio/EFI_PARTITION_MANAGER/blob/main/docs/decisions-and-history.md">design decisions</a>.
   <br>Copyright (c) 2026 nic-fio, licensed
