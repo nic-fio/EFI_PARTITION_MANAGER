@@ -7,6 +7,7 @@ static EFI_GUID gop_guid = EFI_GRAPHICS_OUTPUT_PROTOCOL_GUID;
 static EFI_GUID serial_guid = EFI_SERIAL_IO_PROTOCOL_GUID;
 
 static EFI_GRAPHICS_OUTPUT_PROTOCOL *gop;
+static BOOLEAN cursor_was; /* the text cursor before the picture, put back after it */
 
 bool pal_gfx_open(int *w, int *h)
 {
@@ -25,6 +26,7 @@ bool pal_gfx_open(int *w, int *h)
         return false;
     }
     /* the text console must not draw over the picture */
+    cursor_was = gST->ConOut->Mode->CursorVisible;
     gST->ConOut->EnableCursor(gST->ConOut, 0);
     return true;
 }
@@ -43,8 +45,32 @@ void pal_gfx_close(void)
     if (!gop)
         return;
     gop = NULL;
-    /* the text console redraws the whole screen */
+    /* the text console redraws the whole screen, with its cursor as it was
+     * (a shell that started partmgr gets its cursor back) */
     gST->ConOut->ClearScreen(gST->ConOut);
+    gST->ConOut->EnableCursor(gST->ConOut, cursor_was);
+}
+
+bool pal_con_cursor_shown(void)
+{
+    static EFI_GUID text_guid = EFI_SIMPLE_TEXT_OUTPUT_PROTOCOL_GUID;
+    EFI_SIMPLE_TEXT_OUTPUT_PROTOCOL *out = gST->ConOut;
+    EFI_HANDLE *h;
+    UINTN n = 0;
+    /* the text console that lives on a graphics screen's handle */
+    if (gBS->LocateHandleBuffer(ByProtocol, &text_guid, NULL, &n, &h) == EFI_SUCCESS) {
+        for (UINTN i = 0; i < n; i++) {
+            void *g;
+            EFI_SIMPLE_TEXT_OUTPUT_PROTOCOL *o;
+            if (gBS->HandleProtocol(h[i], &gop_guid, &g) == EFI_SUCCESS &&
+                gBS->HandleProtocol(h[i], &text_guid, (void **)&o) == EFI_SUCCESS && o != gST->ConOut) {
+                out = o;
+                break;
+            }
+        }
+        gBS->FreePool(h);
+    }
+    return out->Mode && out->Mode->CursorVisible;
 }
 
 /* ---- the serial port of the console ---- */

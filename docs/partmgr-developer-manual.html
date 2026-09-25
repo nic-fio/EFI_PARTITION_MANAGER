@@ -83,11 +83,11 @@ way it reads or writes tables without breaking a disk.</p>
   <thead><tr><th>Area</th><th>Directory</th><th>Lines</th><th>Content</th></tr></thead>
   <tbody>
     <tr><td>partmgr</td><td><code>src/partmgr</code></td><td>7,247</td><td>table code, the UEFI program, the screens</td></tr>
-    <tr><td>Platform layer</td><td><code>src/pal</code></td><td>1,624</td><td>console, keys, time, files, volumes, entry point</td></tr>
+    <tr><td>Platform layer</td><td><code>src/pal</code></td><td>1,654</td><td>console, keys, time, files, volumes, entry point</td></tr>
     <tr><td>Runtime</td><td><code>src/lib</code></td><td>1,003</td><td>libc subset, printf, string buffer, UTF-8, CRC-32</td></tr>
-    <tr><td>UEFI definitions</td><td><code>include</code></td><td>742</td><td>the UEFI types and protocols partmgr uses</td></tr>
+    <tr><td>UEFI definitions</td><td><code>include</code></td><td>744</td><td>the UEFI types and protocols partmgr uses</td></tr>
     <tr><td>Tools</td><td><code>tools</code></td><td>715</td><td>ELF→PE converter, linker script, documentation and font tools, setup script</td></tr>
-    <tr><td>Tests</td><td><code>tests/partmgr</code></td><td>2,197</td><td>the Linux test tools, the table tests, the drawing checks, the QEMU test</td></tr>
+    <tr><td>Tests</td><td><code>tests/partmgr</code></td><td>2,199</td><td>the Linux test tools, the table tests, the drawing checks, the QEMU test</td></tr>
   </tbody>
 </table>
 <p><code>partmgr.efi</code> is about 800 KB, 698 KB of which are the glyphs of the font. The line counts here and in the <a href="#file-map">source file map</a> are
@@ -277,7 +277,10 @@ implements it.</p>
       (<code>ConsoleOutHandle</code>), else the first one found. A canvas pixel <code>0x00RRGGBB</code> is, in memory, a
       Blt pixel (blue, green, red, reserved), so <code>pal_gfx_show</code> hands the canvas to <code>Blt</code>
       (<code>EfiBltBufferToVideo</code>) as it is, whatever the pixel format of the screen. The text cursor is turned off
-      while the picture is shown; <code>pal_gfx_close</code> clears the text console, which redraws the screen.</li>
+      while the picture is shown; <code>pal_gfx_close</code> clears the text console, which redraws the screen, and
+      turns the cursor back on if it was on (a shell that started partmgr gets its cursor back). The QEMU test reads it after the window has closed with
+      <code>pal_con_cursor_shown</code>, from the text console of the graphics screen: the firmware's console of all
+      consoles reports the cursor on again as soon as the screen is cleared, whatever the screen shows.</li>
   <li><strong>Pointer</strong> (<code>pal_mouse_efi.c</code>): see <a href="#pointer">The pointer</a>.</li>
   <li><strong>Serial port</strong>: <code>pal_serial_log</code> writes to the serial port only when the
       <code>ConOut</code> variable sends the console there — an instance of its device path with a UART node — through
@@ -911,7 +914,7 @@ name matters.</p>
 <table>
   <thead><tr><th>File</th><th>Lines</th><th>Purpose</th></tr></thead>
   <tbody>
-    <tr><td><code>include/efi.h</code></td><td>742</td><td>Minimal UEFI definitions (UEFI Specification 2.10), written from the specification; no EDK2 code</td></tr>
+    <tr><td><code>include/efi.h</code></td><td>744</td><td>Minimal UEFI definitions (UEFI Specification 2.10), written from the specification; no EDK2 code</td></tr>
     <tr><td><code>src/lib/crc32.c</code></td><td>29</td><td>CRC-32 (IEEE 802.3), the checksum of GPT headers and entry arrays</td></tr>
     <tr><td><code>src/lib/crc32.h</code></td><td>10</td><td>CRC-32 (IEEE 802.3)</td></tr>
     <tr><td><code>src/lib/fmt.c</code></td><td>192</td><td>vsnprintf for the EFI build: %d %i %u %x %X %o %c %s %p %%, flags, width/precision, length hh h l ll z j t</td></tr>
@@ -919,10 +922,10 @@ name matters.</p>
     <tr><td><code>src/lib/rt.h</code></td><td>115</td><td>Runtime: standard C subset + shared helpers</td></tr>
     <tr><td><code>src/lib/util.c</code></td><td>337</td><td>Allocation wrappers, string buffer, UTF-8 and UCS-2</td></tr>
     <tr><td><code>src/pal/efi_glue.h</code></td><td>38</td><td>Access to UEFI services for UEFI-only modules</td></tr>
-    <tr><td><code>src/pal/pal.h</code></td><td>195</td><td>Platform layer: what the program needs from the machine</td></tr>
+    <tr><td><code>src/pal/pal.h</code></td><td>199</td><td>Platform layer: what the program needs from the machine</td></tr>
     <tr><td><code>src/pal/pal_common.c</code></td><td>25</td><td>Error names</td></tr>
     <tr><td><code>src/pal/pal_mouse_efi.c</code></td><td>207</td><td>Platform layer for UEFI: the pointer, from the firmware's pointers and from partmgr's own driver for USB boot mice</td></tr>
-    <tr><td><code>src/pal/pal_gfx_efi.c</code></td><td>107</td><td>Platform layer for UEFI: the graphics screen (Graphics Output Protocol) and the serial port of the console</td></tr>
+    <tr><td><code>src/pal/pal_gfx_efi.c</code></td><td>133</td><td>Platform layer for UEFI: the graphics screen (Graphics Output Protocol) and the serial port of the console</td></tr>
     <tr><td><code>src/pal/pal_efi.c</code></td><td>1052</td><td>Platform layer for UEFI: entry point, console, keys, time, files, volumes, arguments</td></tr>
     <tr><td><code>src/partmgr/disks.h</code></td><td>23</td><td>A disk as the table code sees it (name, kind, size, boot disk, read and write functions)</td></tr>
     <tr><td><code>src/partmgr/disks_efi.c</code></td><td>174</td><td>Finds the whole disks through block I/O, numbered by block device; recognises the disk partmgr was started from; random numbers from EFI_RNG_PROTOCOL</td></tr>
@@ -955,7 +958,7 @@ name matters.</p>
     <tr><td><code>tests/partmgr/gfxscene.c</code></td><td>120</td><td>The test picture: every drawing primitive and every face of the font, laid out like the window</td></tr>
     <tr><td><code>tests/partmgr/gfxtool.c</code></td><td>165</td><td>The drawing code on Linux: the checks, and the test picture as a PPM file</td></tr>
     <tr><td><code>tests/partmgr/pttool.c</code></td><td>257</td><td>Drives the table code on a disk image file: reads, changes, writes, backs up, restores, parses sizes (Linux only)</td></tr>
-    <tr><td><code>tests/partmgr/qemu-test.py</code></td><td>787</td><td>partmgr.efi in QEMU/OVMF: started by the firmware, driven with keys, checked on the serial console and with sfdisk afterwards</td></tr>
+    <tr><td><code>tests/partmgr/qemu-test.py</code></td><td>789</td><td>partmgr.efi in QEMU/OVMF: started by the firmware, driven with keys, checked on the serial console and with sfdisk afterwards</td></tr>
     <tr><td><code>tests/partmgr/run-tests.py</code></td><td>779</td><td>The table tests: the reader and the writer compared with sfdisk and parted, damaged images, sizes, backups restored byte for byte</td></tr>
   </tbody>
 </table>

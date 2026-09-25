@@ -1308,6 +1308,6 @@ bool pm_gui(void)
     gfx_canvas_free(&g.patch);
     gfx_canvas_free(&g.c);
     pal_gfx_close();
-    logf("closed");
+    logf("closed, text cursor %s", pal_con_cursor_shown() ? "on" : "off");
     return true;
 }

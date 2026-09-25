@@ -77,6 +77,10 @@ void pal_con_set_mode(int mode);
 void pal_con_set_cursor(int col, int row);
 void pal_con_get_cursor(int *col, int *row);
 void pal_con_show_cursor(bool on);
+/* Whether the text cursor is on, on the screen: the console the firmware
+ * draws on the graphics screen, when there is one (the console of all
+ * consoles turns it back on by itself when the screen is cleared). */
+bool pal_con_cursor_shown(void);
 bool pal_con_interactive(void);
 void pal_con_raw(bool on); /* host: termios raw mode; no-op on EFI */
 bool pal_con_ansi(void);   /* true: ANSI terminal (host), false: absolute cursor positioning (EFI) */

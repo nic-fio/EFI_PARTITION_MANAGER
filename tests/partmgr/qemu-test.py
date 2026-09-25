@@ -600,6 +600,8 @@ try:
         q.monitor("mouse_button 0")
         check("click: a button is its key", q.wait(r"gui: message Select a free area\."), "")
         check("click: Quit", click_at(where(r"gui: button Esc Quit")) and q.wait(r"gui: closed"), "")
+        cursor = re.findall(r"gui: closed, text cursor (\w+)", q.text())
+        check("window: the text cursor back", cursor[-1:] == ["on"], "text cursor %s" % cursor)
         check("window: back to the firmware", q.wait(r"starting Boot\d+ \"UiApp\""), "")
     finally:
         q.stop()
