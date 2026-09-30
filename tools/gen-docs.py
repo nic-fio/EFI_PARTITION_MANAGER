@@ -3,7 +3,7 @@
 source file map and of its area table are counted from the files themselves,
 so that they cannot drift away from the tree.
 
-  tools/gen-docs.py           rewrite the counts of docs/PARTMGR_Manuale_Tecnico.html
+  tools/gen-docs.py           rewrite the counts of docs/Technical Manual.html
   tools/gen-docs.py --check   fail if the manual is out of date, if a source file
                               has no row in the source map, or if the map lists a
                               file that does not exist (run by 'make test')
@@ -13,7 +13,7 @@ import re
 import sys
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
-MANUAL = ROOT / "docs" / "PARTMGR_Manuale_Tecnico.html"
+MANUAL = ROOT / "docs" / "Technical Manual.html"
 
 
 def lines_of(path):

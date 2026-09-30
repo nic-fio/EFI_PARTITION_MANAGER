@@ -101,7 +101,7 @@ code{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:
 
 <section class="sec" id="ch1s1"><h3 class="h-sec">1.1 · What EFI Partition Manager is</h3>
 <p class="lead"><b>EFI Partition Manager</b> is a partition manager for UEFI firmware in one file, <code>partmgr.efi</code>. It reads and writes GPT and MBR partition tables — MBR complete, with extended and logical partitions — shows every change before it is written, backs tables up to a file and restores them, and wipes partitions. With a graphics screen it opens a window made for the mouse and the keyboard; without one it shows full-screen text screens.</p>
-<p>The <a href="PARTMGR_Manuale_Utente.html#introduction">user manual</a> explains what partmgr does. This manual explains <i>how</i>: after reading it you should be able to find your way in every source file, build and test partmgr, and change the way it reads or writes tables without breaking a disk. The reasons behind the design are recorded, decision by decision (P1–P25), in <a href="https://github.com/nic-fio/EFI_PARTITION_MANAGER/blob/main/docs/decisions-and-history.md">docs/decisions-and-history.md</a>; this manual cites them by number.</p>
+<p>The <a href="User%20Manual.html#introduction">user manual</a> explains what partmgr does. This manual explains <i>how</i>: after reading it you should be able to find your way in every source file, build and test partmgr, and change the way it reads or writes tables without breaking a disk. The reasons behind the design are recorded, decision by decision (P1–P25), in <a href="https://github.com/nic-fio/EFI_PARTITION_MANAGER/blob/main/docs/decisions-and-history.md">docs/decisions-and-history.md</a>; this manual cites them by number.</p>
 <figure class="fig"><svg viewBox="0 0 820 300" xmlns="http://www.w3.org/2000/svg" font-family="Outfit,Segoe UI,Arial,sans-serif" ><rect width="820" height="300" fill="#f8fafc" rx="12"/><rect x="40" y="115" width="150" height="60" rx="9" fill="#475569"/><text x="115.0" y="141.0" text-anchor="middle" dominant-baseline="middle" font-size="13" font-weight="700" fill="#fff">UEFI firmware</text><text x="115.0" y="159.0" text-anchor="middle" font-size="10.5" fill="#fff" opacity="0.85">boot services, protocols</text><rect x="300" y="100" width="200" height="90" rx="9" fill="#0050C0"/><text x="400.0" y="141.0" text-anchor="middle" dominant-baseline="middle" font-size="15" font-weight="700" fill="#fff">partmgr.efi</text><text x="400.0" y="159.0" text-anchor="middle" font-size="10.5" fill="#fff" opacity="0.85">one file, full screen</text><line x1="190" y1="145" x2="300" y2="145" stroke="#0050C0" stroke-width="2.2" /><path d="M292.0 150.0 L300 145 L292.0 140.0 Z" fill="#0050C0"/><text x="245" y="135" text-anchor="middle" font-size="11" fill="#475569">starts</text><rect x="620" y="40" width="160" height="46" rx="9" fill="#3b82f6"/><text x="700.0" y="59.0" text-anchor="middle" dominant-baseline="middle" font-size="12" font-weight="700" fill="#fff">Disks</text><text x="700.0" y="77.0" text-anchor="middle" font-size="10.5" fill="#fff" opacity="0.85">Block I/O</text><line x1="500" y1="145" x2="620" y2="63" stroke="#475569" stroke-width="2.2" /><path d="M616.2 71.6 L620 63 L610.6 63.4 Z" fill="#475569"/><rect x="620" y="100" width="160" height="46" rx="9" fill="#3b82f6"/><text x="700.0" y="119.0" text-anchor="middle" dominant-baseline="middle" font-size="12" font-weight="700" fill="#fff">FAT volumes</text><text x="700.0" y="137.0" text-anchor="middle" font-size="10.5" fill="#fff" opacity="0.85">backup files</text><line x1="500" y1="145" x2="620" y2="123" stroke="#475569" stroke-width="2.2" /><path d="M613.0 129.4 L620 123 L611.2 119.5 Z" fill="#475569"/><rect x="620" y="160" width="160" height="46" rx="9" fill="#3b82f6"/><text x="700.0" y="179.0" text-anchor="middle" dominant-baseline="middle" font-size="12" font-weight="700" fill="#fff">Graphics screen</text><text x="700.0" y="197.0" text-anchor="middle" font-size="10.5" fill="#fff" opacity="0.85">GOP, or text console</text><line x1="500" y1="145" x2="620" y2="183" stroke="#475569" stroke-width="2.2" /><path d="M610.9 185.4 L620 183 L613.9 175.8 Z" fill="#475569"/><rect x="620" y="220" width="160" height="46" rx="9" fill="#3b82f6"/><text x="700.0" y="239.0" text-anchor="middle" dominant-baseline="middle" font-size="12" font-weight="700" fill="#fff">USB boot mouse</text><text x="700.0" y="257.0" text-anchor="middle" font-size="10.5" fill="#fff" opacity="0.85">own driver</text><line x1="500" y1="145" x2="620" y2="243" stroke="#475569" stroke-width="2.2" /><path d="M610.6 241.8 L620 243 L617.0 234.1 Z" fill="#475569"/><text x="410" y="288" text-anchor="middle" font-size="12" fill="#475569">Figure 1.1 — partmgr.efi between the firmware and the devices it uses</text></svg></figure>
 </section>
 
@@ -390,7 +390,7 @@ tools/setup-dev.sh --install  <span class="cm"># install it with apt (asks for s
 </section>
 
 <section class="sec" id="ch6s4"><h3 class="h-sec">6.4 · Notes</h3>
-<p>A note is a short sentence, lower case, without a full stop, added with <code>note(t, ...)</code> where a problem is found; the table keeps at most eight. The screens show them under the table as <i>Note: …</i>; the <a href="PARTMGR_Manuale_Utente.html#notes">user manual</a> explains each one. Reading never repairs anything: writing the table does, because <code>pt_write</code> always writes a complete, clean table (both GPT copies, the whole chain).</p>
+<p>A note is a short sentence, lower case, without a full stop, added with <code>note(t, ...)</code> where a problem is found; the table keeps at most eight. The screens show them under the table as <i>Note: …</i>; the <a href="User%20Manual.html#notes">user manual</a> explains each one. Reading never repairs anything: writing the table does, because <code>pt_write</code> always writes a complete, clean table (both GPT copies, the whole chain).</p>
 </section>
 
 <section class="sec" id="ch6s5"><h3 class="h-sec">6.5 · Type names</h3>
@@ -520,7 +520,7 @@ tools/setup-dev.sh --install  <span class="cm"># install it with apt (asks for s
 
 <section class="sec" id="ch10s2"><h3 class="h-sec">10.2 · The rules: pt_can_wipe</h3>
 <p><code>pt_can_wipe</code> (in <code>ptedit.c</code>) refuses every partition while the table has unwritten changes — the position on the screen may not be the one on the disk — and the extended partition of an MBR, whose blocks hold the logical partitions and the chain of their records. A logical partition is wiped from its first block to its last: its record lies before it and is not touched.</p>
-<div class="callout c-info"><div class="callout-i">i</div><div><b>Note.</b> On SSD, NVMe and USB flash drives overwriting does not guarantee that the old data is gone; the drives' own erase commands work only on whole disks and are left out (P9). The <a href="PARTMGR_Manuale_Utente.html#wipe">user manual</a> says so; the screens stay terse.</div></div>
+<div class="callout c-info"><div class="callout-i">i</div><div><b>Note.</b> On SSD, NVMe and USB flash drives overwriting does not guarantee that the old data is gone; the drives' own erase commands work only on whole disks and are left out (P9). The <a href="User%20Manual.html#wipe">user manual</a> says so; the screens stay terse.</div></div>
 </section>
 
 <section class="sec" id="ch10s3"><h3 class="h-sec">10.3 · Progress on the screen</h3>
@@ -570,7 +570,7 @@ tools/setup-dev.sh --install  <span class="cm"># install it with apt (asks for s
 </section>
 
 <section class="sec" id="ch11s5"><h3 class="h-sec">11.5 · Sizes: units.c</h3>
-<p><code>pm_parse_size</code> reads a number with up to six decimals (point or comma) and a binary unit — <code>B</code>, <code>K</code>, <code>M</code>, <code>G</code>, <code>T</code>, optionally followed by <code>B</code> or <code>iB</code>; <code>s</code> for blocks; no unit means MiB — or <code>rest</code>/<code>all</code>/<code>max</code>, and refuses overflows. <code>pm_fmt_size</code> prints one decimal (<code>194.9 MiB</code>); <code>pm_fmt_exact</code> prints whole MiB or GiB when exact, so that a proposed start reads back to the same block. The <a href="PARTMGR_Manuale_Utente.html#sizes">user manual</a> lists the forms for the user.</p>
+<p><code>pm_parse_size</code> reads a number with up to six decimals (point or comma) and a binary unit — <code>B</code>, <code>K</code>, <code>M</code>, <code>G</code>, <code>T</code>, optionally followed by <code>B</code> or <code>iB</code>; <code>s</code> for blocks; no unit means MiB — or <code>rest</code>/<code>all</code>/<code>max</code>, and refuses overflows. <code>pm_fmt_size</code> prints one decimal (<code>194.9 MiB</code>); <code>pm_fmt_exact</code> prints whole MiB or GiB when exact, so that a proposed start reads back to the same block. The <a href="User%20Manual.html#sizes">user manual</a> lists the forms for the user.</p>
 </section>
 </section>
 
@@ -744,7 +744,7 @@ $ build/tests/pttool disk.img -b 4096 size 1.5G</code></pre>
 </section>
 
 <section class="sec" id="ch15s2"><h3 class="h-sec">15.2 · Adding a partition type</h3>
-<p>Add the GUID and name to <code>gpt_types</code>, or the byte and name to <code>mbr_types</code> before the last four entries, in <code>src/partmgr/ptable.c</code>. The order is the order of the list on the screen. Add the type to the tables of the <a href="PARTMGR_Manuale_Utente.html#types">user manual</a>, and a check in <code>run-tests.py</code> if its name matters. The colour in the window's bar comes from the type's name (<code>type_colour</code> in <code>gui.c</code>).</p>
+<p>Add the GUID and name to <code>gpt_types</code>, or the byte and name to <code>mbr_types</code> before the last four entries, in <code>src/partmgr/ptable.c</code>. The order is the order of the list on the screen. Add the type to the tables of the <a href="User%20Manual.html#types">user manual</a>, and a check in <code>run-tests.py</code> if its name matters. The colour in the window's bar comes from the type's name (<code>type_colour</code> in <code>gui.c</code>).</p>
 </section>
 
 <section class="sec" id="ch15s3"><h3 class="h-sec">15.3 · Adding an action</h3>
@@ -758,7 +758,7 @@ $ build/tests/pttool disk.img -b 4096 size 1.5G</code></pre>
 </section>
 
 <section class="sec" id="ch15s4"><h3 class="h-sec">15.4 · Adding a note</h3>
-<p>Call <code>note(t, ...)</code> in <code>ptable.c</code> where the problem is found, add the damaged case to <code>run-tests.py</code> with <code>has_note</code>, and explain it in the table of notes of the <a href="PARTMGR_Manuale_Utente.html#notes">user manual</a>.</p>
+<p>Call <code>note(t, ...)</code> in <code>ptable.c</code> where the problem is found, add the damaged case to <code>run-tests.py</code> with <code>has_note</code>, and explain it in the table of notes of the <a href="User%20Manual.html#notes">user manual</a>.</p>
 </section>
 </section>
 
@@ -987,5 +987,5 @@ $ build/tests/pttool disk.img -b 4096 size 1.5G</code></pre>
 </section>
 </main>
   </div>
-  <footer class="doc-foot">EFI Partition Manager · Technical Manual v0.2.1 · September 2026 · Apache 2.0 with the Commons Clause · See also the <a href="PARTMGR_Manuale_Utente.html">user manual</a></footer>
+  <footer class="doc-foot">EFI Partition Manager · Technical Manual v0.2.1 · September 2026 · Apache 2.0 with the Commons Clause · See also the <a href="User%20Manual.html">user manual</a></footer>
 </div></body></html>

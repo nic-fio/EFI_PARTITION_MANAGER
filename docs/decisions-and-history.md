@@ -3,8 +3,8 @@
 This document records **why** EFI Partition Manager is the way it is: the
 decisions taken while designing and building it, the alternatives that were
 considered, and the history of the project. It complements the
-[user manual](PARTMGR_Manuale_Utente.html) (what partmgr does) and the
-[technical manual](PARTMGR_Manuale_Tecnico.html) (how it is built).
+[user manual](User%20Manual.html) (what partmgr does) and the
+[technical manual](Technical%20Manual.html) (how it is built).
 
 Decisions were discussed with the project owner one at a time, in Italian;
 where a decision came from the owner, the original words are quoted.
