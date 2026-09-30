@@ -58,6 +58,7 @@ The reasoning for each is in [docs/decisions-and-history.md](docs/decisions-and-
 | `tools/` | `elf2efi.py` (ELF → PE32+), `efi.lds`, `gen-docs.py`, `gen-font.py`, `screenshots.py`, `setup-dev.sh`, `backup.sh`. |
 | `tests/partmgr` | `pttool.c` (the table code on disk images), `run-tests.py`, `qemu-test.py`. |
 | `docs/` | The user and technical manuals, the decisions log, the assets. Published with GitHub Pages. |
+| `logos/` | `efi-partition-manager-logo.png`, the logo (PNG, 2172×724, transparent background). Not used by the manuals. |
 | `build/` | Products only, never committed. |
 
 The repository follows the standard layout shared by the seven projects (AMS,

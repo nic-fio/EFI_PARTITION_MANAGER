@@ -46,6 +46,7 @@ from a UEFI shell, and prepare disks before any operating system is there.
 | [User manual](https://nic-fio.github.io/EFI_PARTITION_MANAGER/User%20Manual.html) | Using partmgr: the screens, every key, backups, wipe, the notes about damaged tables. |
 | [Technical manual](https://nic-fio.github.io/EFI_PARTITION_MANAGER/Technical%20Manual.html) | How partmgr reads, changes and writes tables, the backup format, the tests, how to extend it. |
 | [Design decisions and history](docs/decisions-and-history.md) | Why partmgr is the way it is. |
+| [Logo](logos/efi-partition-manager-logo.png) | The EFI Partition Manager logo (PNG, 2172×724, transparent background). |
 
 ## Build and test
 
