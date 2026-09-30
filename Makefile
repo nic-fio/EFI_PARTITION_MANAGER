@@ -100,6 +100,10 @@ test: $(BUILD)/tests/pttool $(BUILD)/tests/gfxtool
 	@$(BUILD)/tests/gfxtool check
 	@$(PYTHON) tools/gen-docs.py --check
 
+# only the documentation check (also part of make test)
+docs-check:
+	@$(PYTHON) tools/gen-docs.py --check
+
 docs:
 	@$(PYTHON) tools/gen-docs.py
 
@@ -114,6 +118,6 @@ font:
 clean:
 	rm -rf $(BUILD)
 
-.PHONY: all test docs qemu-test font clean
+.PHONY: all test docs-check docs qemu-test font clean
 
 -include $(EFI_OBJ:.o=.d) $(DEMO_OBJ:.o=.d)

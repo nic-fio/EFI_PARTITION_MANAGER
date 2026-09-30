@@ -60,11 +60,13 @@ make && make test && make qemu-test
 make             # build/partmgr.efi (UEFI x86-64)
 make test        # the partition table tests on Linux, the documentation check
 make qemu-test   # partmgr.efi inside QEMU/OVMF on test disks
+make docs-check  # only the documentation check
 make docs        # the line counts of the technical manual
 ```
 
 `OVMF=/path/to/OVMF.fd` selects the firmware image. [CLAUDE.md](CLAUDE.md) says how
-the project is worked on.
+the project is worked on. `tools/backup.sh` packs the whole repository, history
+and tags included, into a single file that restores without a network.
 
 ## Install
 

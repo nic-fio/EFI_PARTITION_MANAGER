@@ -55,16 +55,23 @@ The reasoning for each is in [docs/decisions-and-history.md](docs/decisions-and-
 |---|---|
 | `src/partmgr` | The program: table code (`ptable.c`, `ptedit.c`, `ptwrite.c`), screens, disks. |
 | `src/pal`, `src/lib`, `include` | Platform layer, runtime and UEFI definitions. |
-| `tools/` | `elf2efi.py` (ELF → PE32+), `efi.lds`, `gen-docs.py`, `setup-dev.sh`. |
+| `tools/` | `elf2efi.py` (ELF → PE32+), `efi.lds`, `gen-docs.py`, `gen-font.py`, `screenshots.py`, `setup-dev.sh`, `backup.sh`. |
 | `tests/partmgr` | `pttool.c` (the table code on disk images), `run-tests.py`, `qemu-test.py`. |
 | `docs/` | The user and technical manuals, the decisions log, the assets. Published with GitHub Pages. |
 | `build/` | Products only, never committed. |
+
+The repository follows the standard layout shared by the seven projects (AMS,
+EFI_PARTITION_MANAGER, HOSTER, MTERM, NESH, PHONESTRA, SCRAPER): `src/`,
+`tests/`, `tools/`, `docs/` (with `index.html`, the two manuals, `README.md`,
+`decisions-and-history.md`), `NOTICE.md`, and the common `make` targets
+`all`, `test`, `docs-check`, `clean`.
 
 ## Before committing
 
 1. `make test` — the partition table tests against sfdisk and parted, and the
    documentation check (the source map of the technical manual must list every
-   file; `make docs` rewrites its line counts).
+   file; `make docs` rewrites its line counts; `make docs-check` runs only this
+   check).
 2. `make qemu-test` for anything the program does on the screen or on disks.
 3. Check the exit status of every step, not a filtered pipeline: a `| tail`
    hides a failure.

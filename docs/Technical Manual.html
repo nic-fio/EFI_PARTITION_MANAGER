@@ -137,7 +137,7 @@ code{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:
 <tr><td>Platform layer</td><td><code>src/pal</code></td><td>1,654</td><td>console, keys, time, files, volumes, screen, pointer, entry point</td></tr>
 <tr><td>Runtime</td><td><code>src/lib</code></td><td>1,003</td><td>libc subset, printf, string buffer, UTF-8, CRC-32</td></tr>
 <tr><td>UEFI definitions</td><td><code>include</code></td><td>744</td><td>the UEFI types and protocols partmgr uses</td></tr>
-<tr><td>Tools</td><td><code>tools</code></td><td>715</td><td>ELF→PE converter, linker script, documentation and font tools, screenshots, setup script</td></tr>
+<tr><td>Tools</td><td><code>tools</code></td><td>747</td><td>ELF→PE converter, linker script, documentation and font tools, screenshots, setup and backup scripts</td></tr>
 <tr><td>Tests</td><td><code>tests/partmgr</code></td><td>2,199</td><td>the Linux test tools, the table tests, the drawing checks, the QEMU test</td></tr>
 </tbody></table><figcaption class="cap">Table 1.1 — The areas of the source tree (lines counted by <code>make docs</code>)</figcaption></figure>
 <p><code>partmgr.efi</code> is about 800 KB (802,816 bytes for 0.2.1), of which 698 KB are the glyphs of the font. The line counts here and in the <a href="#ch17">source file map</a> are not typed by hand: <code>make docs</code> (<code>tools/gen-docs.py</code>) counts the files and writes them into this page, and <code>make test</code> fails when they no longer match the tree — a new source file without a row in the map fails as well.</p>
@@ -826,6 +826,7 @@ $ build/tests/pttool disk.img -b 4096 size 1.5G</code></pre>
 <tr><td><code>src/partmgr/units.h</code></td><td>20</td><td>Size parsing and formatting</td></tr>
 <tr><td><code>src/partmgr/view.c</code></td><td>86</td><td>A disk as the screens show it: reading its table, the rows in disk order, the selection, type names, the message line</td></tr>
 <tr><td><code>src/partmgr/view.h</code></td><td>57</td><td>View and Row, shared by the text screen and the window; PmScreen and pm_disk_action</td></tr>
+<tr><td><code>tools/backup.sh</code></td><td>32</td><td>Packs the repository into one git bundle, with every branch, tag and commit, for a restore without a network</td></tr>
 <tr><td><code>tools/efi.lds</code></td><td>26</td><td>Linker script: ELF image at base 0, page-aligned sections</td></tr>
 <tr><td><code>tools/elf2efi.py</code></td><td>172</td><td>Converts the ELF shared object into a PE32+ EFI application with native base relocations</td></tr>
 <tr><td><code>tools/gen-docs.py</code></td><td>92</td><td>Writes and checks the line counts of this manual</td></tr>
