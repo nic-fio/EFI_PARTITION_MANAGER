@@ -33,7 +33,6 @@ Suggested attribution for a modified version:
 
 | Component | Licence |
 |---|---|
-| `docs/assets/vendor/mermaid.min.js` (diagrams in the manuals) | MIT, see `docs/assets/vendor/mermaid.LICENSE` |
 | `src/partmgr/font_inter.bin` (the glyphs of the Inter font, rendered by `tools/gen-font.py` and built into `partmgr.efi`) | SIL Open Font License 1.1, reproduced below |
 
 These components keep their own licences: the terms above apply to EFI

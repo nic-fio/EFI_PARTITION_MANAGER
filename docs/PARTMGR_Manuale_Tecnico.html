@@ -1,0 +1,991 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1"><title>Technical Manual — EFI Partition Manager</title>
+<meta name="description" content="Technical manual of EFI Partition Manager (partmgr.efi) 0.2.1: architecture, build, platform layer, partition table code, writing rules, backup format, wipe, graphical interface, USB mouse driver, testing, conventions and releases.">
+<style>
+*{box-sizing:border-box} html{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+body{margin:0;background:#e9edf2;color:#111827;font-family:Outfit,-apple-system,Segoe UI,Roboto,Arial,sans-serif;font-size:15px;line-height:1.62}
+.doc{max-width:1320px;margin:0 auto;background:#fff;box-shadow:0 1px 30px rgba(15,23,42,.10)}
+a{color:#0050C0;text-decoration:none}
+code{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:.88em;background:#eef2f7;padding:.08em .38em;border-radius:4px;color:#003a90}
+/* Cover */
+.cover{position:relative;padding:64px 56px;min-height:56vh;background:linear-gradient(135deg,#0050C0 0%,#003a90 100%);color:#fff;overflow:hidden}
+.cover-logo{margin-bottom:38px;position:relative;z-index:2}
+.cover-kicker{text-transform:uppercase;letter-spacing:.24em;font-size:12px;font-weight:700;color:#9dc0ff;margin-bottom:14px;position:relative;z-index:2}
+.cover-title{font-size:56px;line-height:1.02;margin:0 0 12px;font-weight:800;letter-spacing:-.02em;position:relative;z-index:2}
+.cover-sub{font-size:19px;color:#cfe0ff;max-width:32em;margin-bottom:44px;position:relative;z-index:2}
+.cover-meta{display:flex;gap:36px;position:relative;z-index:2}
+.cover-meta div{display:flex;flex-direction:column} .cover-meta span{font-size:11px;text-transform:uppercase;letter-spacing:.12em;color:#9dc0ff}
+.cover-meta b{font-size:16px;color:#fff}
+.cover-swoosh{position:absolute;right:-90px;bottom:-140px;width:460px;height:460px;border-radius:50%;background:radial-gradient(circle,#3b82f655,transparent 70%);z-index:1}
+/* Layout */
+.with-side{display:flex;align-items:flex-start}
+.side{width:290px;flex:0 0 290px;background:#f8fafc;border-right:1px solid #e5e7eb;align-self:stretch}
+.side-inner{position:sticky;top:0;padding:32px 24px;max-height:100vh;overflow:auto}
+.main{flex:1;padding:48px 64px;min-width:0}
+/* TOC */
+.toc-head{font-size:14px;text-transform:uppercase;letter-spacing:.14em;color:#003a90;margin:0 0 14px;font-weight:800}
+.toc-list{list-style:none;margin:0;padding:0}
+.toc-list a{display:flex;gap:9px;align-items:baseline;padding:4px 0;color:#334155}
+.toc-list a:hover{color:#0050C0}
+.toc-ch{font-weight:700;margin-top:6px} .toc-ch a{color:#0f172a}
+.toc-se a{font-size:13px;color:#64748b;padding-left:8px}
+.toc-n{flex:0 0 30px;color:#0050C0;font-weight:700;font-variant-numeric:tabular-nums}
+.toc-se .toc-n{flex-basis:36px;font-weight:600}
+/* Chapters */
+.chapter{margin-bottom:20px}
+.ch-head{border-bottom:3px solid #0050C0;padding-bottom:10px;margin:8px 0 22px}
+.ch-kick{text-transform:uppercase;letter-spacing:.16em;font-size:11.5px;font-weight:700;color:#0050C0}
+.h-ch{font-size:34px;font-weight:800;letter-spacing:-.02em;color:#003a90;margin:4px 0 0}
+.h-sec{font-size:21px;font-weight:700;color:#003a90;margin:30px 0 10px;padding-left:12px;border-left:4px solid #3b82f6}
+.main h4{font-size:16px;color:#0f172a;margin:20px 0 6px}
+.lead{font-size:17px;color:#334155}
+.main p{margin:10px 0} .ul,.ol{margin:10px 0;padding-left:22px} .ul li,.ol li{margin:4px 0}
+/* Figure/table */
+.fig{margin:20px 0;padding:18px;background:#f8fafc;border:1px solid #e5e7eb;border-radius:12px;text-align:center}
+.fig svg{max-width:100%;height:auto}
+.cap{font-size:12.5px;color:#64748b;margin-top:10px;text-align:center}
+.tbl-wrap{margin:18px 0} .tbl{width:100%;border-collapse:collapse;font-size:13.5px}
+.tbl th{text-align:left;padding:10px 12px;background:#f1f5f9;color:#0f172a;font-weight:700;border-bottom:2px solid #0050C0}
+.tbl td{padding:9px 12px;border-bottom:1px solid #e5e7eb;vertical-align:top}
+.tbl tr:nth-child(even) td{background:#f8fafc}
+/* callout */
+.callout{display:flex;gap:14px;align-items:flex-start;margin:18px 0;padding:14px 18px;border-radius:8px;font-size:14.5px}
+.callout-i{flex:0 0 26px;height:26px;border-radius:50%;color:#fff;font-weight:800;text-align:center;line-height:26px;font-style:italic}
+.c-info{background:#eff6ff;border-left:4px solid #0050C0} .c-info .callout-i{background:#0050C0}
+.c-warn{background:#fffbeb;border-left:4px solid #d97706} .c-warn .callout-i{background:#d97706;font-style:normal}
+.c-ok{background:#f0fdf4;border-left:4px solid #16a34a} .c-ok .callout-i{background:#16a34a;font-style:normal}
+/* code */
+.code{background:#0f172a;color:#e2e8f0;padding:16px 18px;border-radius:10px;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12.8px;line-height:1.55;overflow-x:auto;margin:14px 0}
+.code code{background:none;padding:0;border-radius:0;color:inherit;font-size:inherit}
+.code .k{color:#c084fc;font-weight:600} .code .cm{color:#64748b;font-style:italic} .code .st{color:#86efac}
+/* deflist */
+.deflist{margin:12px 0} .deflist dt{font-weight:700;color:#003a90;font-family:ui-monospace,Menlo,monospace;font-size:13.5px;margin-top:10px}
+.deflist dd{margin:2px 0 0;color:#334155;font-size:14px}
+.doc-foot{padding:20px 52px;border-top:1px solid #e5e7eb;color:#94a3b8;font-size:12px;text-align:center}
+/* print */
+@page{size:A4;margin:16mm 15mm 18mm;@bottom-center{content:counter(page)}}
+@media print{
+ body{background:#fff} .doc{box-shadow:none;max-width:none}
+ .with-side{display:block} .side{display:none} .main{padding:0}
+ .cover{min-height:auto;page-break-after:always}
+ .chapter{page-break-before:always} .sec,.fig,.tbl-wrap,.callout,.code{page-break-inside:avoid}
+ a{color:inherit}
+}
+/* additions: pictures, wide tables, phone width */
+.fig img{max-width:100%;height:auto;border:1px solid #e5e7eb;border-radius:6px}
+.tbl-wrap{overflow-x:auto}
+.cover-logo svg{max-width:100%;height:auto}
+@media (max-width:860px){
+ .cover{padding:40px 16px;min-height:auto} .cover-title{font-size:40px} .cover-sub{font-size:16px;margin-bottom:28px}
+ .cover-meta{flex-wrap:wrap;gap:16px 28px}
+ .with-side{display:block} .side{width:auto;border-right:0;border-bottom:1px solid #e5e7eb}
+ .side-inner{position:static;max-height:none;padding:20px 16px} .main{padding:28px 16px}
+ .h-ch{font-size:27px} .doc-foot{padding:20px 16px}
+}
+</style></head><body>
+<div class="doc">
+  <section class="cover">
+    <div class="cover-logo"><svg viewBox="0 0 600 100" width="312" height="52" xmlns="http://www.w3.org/2000/svg" aria-label="EFI Partition Manager"><rect x="4" y="30" width="112" height="40" rx="7" fill="none" stroke="#ffffff" stroke-width="4"/><rect x="12" y="38" width="26" height="24" rx="3" fill="#ffffff"/><rect x="42" y="38" width="40" height="24" rx="3" fill="#cfe0ff"/><rect x="86" y="38" width="22" height="24" rx="3" fill="#8fb6ff"/><text x="136" y="64" font-size="38" font-weight="800" fill="#ffffff">EFI Partition<tspan font-weight="500" fill="#cfe0ff"> Manager</tspan></text></svg></div>
+    <div class="cover-kicker">Technical documentation</div>
+    <h1 class="cover-title">Technical Manual</h1>
+    <div class="cover-sub">EFI Partition Manager · partmgr.efi, a full-screen partition manager for UEFI firmware</div>
+    <div class="cover-meta">
+      <div><span>Version</span><b>0.2.1</b></div>
+      <div><span>Date</span><b>September 2026</b></div>
+      <div><span>Platform</span><b>UEFI x86-64</b></div>
+    </div>
+    <div class="cover-swoosh"></div>
+  </section>
+  <div class="with-side">
+    <aside class="side"><div class="side-inner"><h2 class="toc-head">Contents</h2><ul class="toc-list"><li class="toc-ch"><a href="#ch1"><span class="toc-n">1</span><span class="toc-t">Introduction and concepts</span></a></li><li class="toc-se"><a href="#ch1s1"><span class="toc-n">1.1</span><span class="toc-t">What EFI Partition Manager is</span></a></li><li class="toc-se"><a href="#ch1s2"><span class="toc-n">1.2</span><span class="toc-t">Design principles</span></a></li><li class="toc-se"><a href="#ch1s3"><span class="toc-n">1.3</span><span class="toc-t">Subsystems at a glance</span></a></li><li class="toc-se"><a href="#ch1s4"><span class="toc-n">1.4</span><span class="toc-t">The project in numbers</span></a></li><li class="toc-ch"><a href="#ch2"><span class="toc-n">2</span><span class="toc-t">General architecture</span></a></li><li class="toc-se"><a href="#ch2s1"><span class="toc-n">2.1</span><span class="toc-t">The layers</span></a></li><li class="toc-se"><a href="#ch2s2"><span class="toc-n">2.2</span><span class="toc-t">Start-up and exit</span></a></li><li class="toc-se"><a href="#ch2s3"><span class="toc-n">2.3</span><span class="toc-t">The life of a change</span></a></li><li class="toc-se"><a href="#ch2s4"><span class="toc-n">2.4</span><span class="toc-t">Two interfaces, one set of actions</span></a></li><li class="toc-ch"><a href="#ch3"><span class="toc-n">3</span><span class="toc-t">Build and tools</span></a></li><li class="toc-se"><a href="#ch3s1"><span class="toc-n">3.1</span><span class="toc-t">Tools needed</span></a></li><li class="toc-se"><a href="#ch3s2"><span class="toc-n">3.2</span><span class="toc-t">Make targets</span></a></li><li class="toc-se"><a href="#ch3s3"><span class="toc-n">3.3</span><span class="toc-t">What is linked</span></a></li><li class="toc-se"><a href="#ch3s4"><span class="toc-n">3.4</span><span class="toc-t">The pipeline and the compiler flags</span></a></li><li class="toc-se"><a href="#ch3s5"><span class="toc-n">3.5</span><span class="toc-t">The linker script</span></a></li><li class="toc-se"><a href="#ch3s6"><span class="toc-n">3.6</span><span class="toc-t">elf2efi.py</span></a></li><li class="toc-se"><a href="#ch3s7"><span class="toc-n">3.7</span><span class="toc-t">A fresh clone</span></a></li><li class="toc-ch"><a href="#ch4"><span class="toc-n">4</span><span class="toc-t">Platform layer and runtime</span></a></li><li class="toc-se"><a href="#ch4s1"><span class="toc-n">4.1</span><span class="toc-t">The contract: pal.h</span></a></li><li class="toc-se"><a href="#ch4s2"><span class="toc-n">4.2</span><span class="toc-t">pal_efi.c</span></a></li><li class="toc-se"><a href="#ch4s3"><span class="toc-n">4.3</span><span class="toc-t">The graphics screen and the serial port</span></a></li><li class="toc-se"><a href="#ch4s4"><span class="toc-n">4.4</span><span class="toc-t">The freestanding runtime</span></a></li><li class="toc-se"><a href="#ch4s5"><span class="toc-n">4.5</span><span class="toc-t">The UEFI definitions</span></a></li><li class="toc-ch"><a href="#ch5"><span class="toc-n">5</span><span class="toc-t">The data model</span></a></li><li class="toc-se"><a href="#ch5s1"><span class="toc-n">5.1</span><span class="toc-t">PtDev: the disk</span></a></li><li class="toc-se"><a href="#ch5s2"><span class="toc-n">5.2</span><span class="toc-t">PtTable and PtPart</span></a></li><li class="toc-se"><a href="#ch5s3"><span class="toc-n">5.3</span><span class="toc-t">PtFree and the rows</span></a></li><li class="toc-ch"><a href="#ch6"><span class="toc-n">6</span><span class="toc-t">Reading tables: ptable.c</span></a></li><li class="toc-se"><a href="#ch6s1"><span class="toc-n">6.1</span><span class="toc-t">What block 0 says</span></a></li><li class="toc-se"><a href="#ch6s2"><span class="toc-n">6.2</span><span class="toc-t">GPT: two copies, checked</span></a></li><li class="toc-se"><a href="#ch6s3"><span class="toc-n">6.3</span><span class="toc-t">MBR: the chain of logical partitions</span></a></li><li class="toc-se"><a href="#ch6s4"><span class="toc-n">6.4</span><span class="toc-t">Notes</span></a></li><li class="toc-se"><a href="#ch6s5"><span class="toc-n">6.5</span><span class="toc-t">Type names</span></a></li><li class="toc-ch"><a href="#ch7"><span class="toc-n">7</span><span class="toc-t">Changing tables: ptedit.c</span></a></li><li class="toc-se"><a href="#ch7s1"><span class="toc-n">7.1</span><span class="toc-t">A table from zero</span></a></li><li class="toc-se"><a href="#ch7s2"><span class="toc-n">7.2</span><span class="toc-t">Free space</span></a></li><li class="toc-se"><a href="#ch7s3"><span class="toc-n">7.3</span><span class="toc-t">Adding</span></a></li><li class="toc-se"><a href="#ch7s4"><span class="toc-n">7.4</span><span class="toc-t">Delete, type, name, active</span></a></li><li class="toc-ch"><a href="#ch8"><span class="toc-n">8</span><span class="toc-t">Writing: ptwrite.c</span></a></li><li class="toc-se"><a href="#ch8s1"><span class="toc-n">8.1</span><span class="toc-t">The writing rules</span></a></li><li class="toc-se"><a href="#ch8s2"><span class="toc-n">8.2</span><span class="toc-t">GPT</span></a></li><li class="toc-se"><a href="#ch8s3"><span class="toc-n">8.3</span><span class="toc-t">MBR and the chain</span></a></li><li class="toc-se"><a href="#ch8s4"><span class="toc-n">8.4</span><span class="toc-t">No table</span></a></li><li class="toc-ch"><a href="#ch9"><span class="toc-n">9</span><span class="toc-t">Backup and restore</span></a></li><li class="toc-se"><a href="#ch9s1"><span class="toc-n">9.1</span><span class="toc-t">The backup file</span></a></li><li class="toc-se"><a href="#ch9s2"><span class="toc-n">9.2</span><span class="toc-t">What is saved</span></a></li><li class="toc-se"><a href="#ch9s3"><span class="toc-n">9.3</span><span class="toc-t">Restore</span></a></li><li class="toc-se"><a href="#ch9s4"><span class="toc-n">9.4</span><span class="toc-t">On the screen</span></a></li><li class="toc-ch"><a href="#ch10"><span class="toc-n">10</span><span class="toc-t">Wipe</span></a></li><li class="toc-se"><a href="#ch10s1"><span class="toc-n">10.1</span><span class="toc-t">The engine: pt_wipe</span></a></li><li class="toc-se"><a href="#ch10s2"><span class="toc-n">10.2</span><span class="toc-t">The rules: pt_can_wipe</span></a></li><li class="toc-se"><a href="#ch10s3"><span class="toc-n">10.3</span><span class="toc-t">Progress on the screen</span></a></li><li class="toc-ch"><a href="#ch11"><span class="toc-n">11</span><span class="toc-t">Disks and the text screens</span></a></li><li class="toc-se"><a href="#ch11s1"><span class="toc-n">11.1</span><span class="toc-t">Finding the disks: disks_efi.c</span></a></li><li class="toc-se"><a href="#ch11s2"><span class="toc-n">11.2</span><span class="toc-t">Drawing and dialogs: ui.c</span></a></li><li class="toc-se"><a href="#ch11s3"><span class="toc-n">11.3</span><span class="toc-t">The list of disks: main.c</span></a></li><li class="toc-se"><a href="#ch11s4"><span class="toc-n">11.4</span><span class="toc-t">The screen of a disk: diskview.c</span></a></li><li class="toc-se"><a href="#ch11s5"><span class="toc-n">11.5</span><span class="toc-t">Sizes: units.c</span></a></li><li class="toc-ch"><a href="#ch12"><span class="toc-n">12</span><span class="toc-t">The graphical interface</span></a></li><li class="toc-se"><a href="#ch12s1"><span class="toc-n">12.1</span><span class="toc-t">Drawing: gfx.c</span></a></li><li class="toc-se"><a href="#ch12s2"><span class="toc-n">12.2</span><span class="toc-t">The font</span></a></li><li class="toc-se"><a href="#ch12s3"><span class="toc-n">12.3</span><span class="toc-t">The window: gui.c</span></a></li><li class="toc-se"><a href="#ch12s4"><span class="toc-n">12.4</span><span class="toc-t">Keys and the mouse</span></a></li><li class="toc-se"><a href="#ch12s5"><span class="toc-n">12.5</span><span class="toc-t">Actions and dialogs</span></a></li><li class="toc-se"><a href="#ch12s6"><span class="toc-n">12.6</span><span class="toc-t">The description on the serial port</span></a></li><li class="toc-ch"><a href="#ch13"><span class="toc-n">13</span><span class="toc-t">The pointer and the USB mouse driver</span></a></li><li class="toc-se"><a href="#ch13s1"><span class="toc-n">13.1</span><span class="toc-t">Two kinds of devices</span></a></li><li class="toc-se"><a href="#ch13s2"><span class="toc-n">13.2</span><span class="toc-t">partmgr's own driver</span></a></li><li class="toc-se"><a href="#ch13s3"><span class="toc-n">13.3</span><span class="toc-t">Limits</span></a></li><li class="toc-ch"><a href="#ch14"><span class="toc-n">14</span><span class="toc-t">Testing</span></a></li><li class="toc-se"><a href="#ch14s1"><span class="toc-n">14.1</span><span class="toc-t">pttool</span></a></li><li class="toc-se"><a href="#ch14s2"><span class="toc-n">14.2</span><span class="toc-t">The table tests</span></a></li><li class="toc-se"><a href="#ch14s3"><span class="toc-n">14.3</span><span class="toc-t">The drawing checks</span></a></li><li class="toc-se"><a href="#ch14s4"><span class="toc-n">14.4</span><span class="toc-t">In QEMU</span></a></li><li class="toc-se"><a href="#ch14s5"><span class="toc-n">14.5</span><span class="toc-t">Testing the tests</span></a></li><li class="toc-ch"><a href="#ch15"><span class="toc-n">15</span><span class="toc-t">Conventions and extending partmgr</span></a></li><li class="toc-se"><a href="#ch15s1"><span class="toc-n">15.1</span><span class="toc-t">Conventions</span></a></li><li class="toc-se"><a href="#ch15s2"><span class="toc-n">15.2</span><span class="toc-t">Adding a partition type</span></a></li><li class="toc-se"><a href="#ch15s3"><span class="toc-n">15.3</span><span class="toc-t">Adding an action</span></a></li><li class="toc-se"><a href="#ch15s4"><span class="toc-n">15.4</span><span class="toc-t">Adding a note</span></a></li><li class="toc-ch"><a href="#ch16"><span class="toc-n">16</span><span class="toc-t">Releases and continuous integration</span></a></li><li class="toc-se"><a href="#ch16s1"><span class="toc-n">16.1</span><span class="toc-t">Continuous integration</span></a></li><li class="toc-se"><a href="#ch16s2"><span class="toc-n">16.2</span><span class="toc-t">Making a release</span></a></li><li class="toc-se"><a href="#ch16s3"><span class="toc-n">16.3</span><span class="toc-t">The documentation</span></a></li><li class="toc-ch"><a href="#ch17"><span class="toc-n">17</span><span class="toc-t">Source file map</span></a></li><li class="toc-se"><a href="#ch17s1"><span class="toc-n">17.1</span><span class="toc-t">Every source file</span></a></li><li class="toc-ch"><a href="#ch18"><span class="toc-n">18</span><span class="toc-t">Appendix A — Data structures</span></a></li><li class="toc-se"><a href="#ch18s1"><span class="toc-n">18.1</span><span class="toc-t">Index of the data structures</span></a></li><li class="toc-se"><a href="#ch18s2"><span class="toc-n">18.2</span><span class="toc-t">PmDisk</span></a></li><li class="toc-se"><a href="#ch18s3"><span class="toc-n">18.3</span><span class="toc-t">View and Row</span></a></li><li class="toc-se"><a href="#ch18s4"><span class="toc-n">18.4</span><span class="toc-t">The GPT header as written</span></a></li><li class="toc-se"><a href="#ch18s5"><span class="toc-n">18.5</span><span class="toc-t">An MBR entry as written</span></a></li><li class="toc-se"><a href="#ch18s6"><span class="toc-n">18.6</span><span class="toc-t">The error codes</span></a></li><li class="toc-se"><a href="#ch18s7"><span class="toc-n">18.7</span><span class="toc-t">The glyph file</span></a></li><li class="toc-ch"><a href="#ch19"><span class="toc-n">19</span><span class="toc-t">Glossary</span></a></li><li class="toc-se"><a href="#ch19s1"><span class="toc-n">19.1</span><span class="toc-t">Terms A–L</span></a></li><li class="toc-se"><a href="#ch19s2"><span class="toc-n">19.2</span><span class="toc-t">Terms M–Z</span></a></li></ul></div></aside><main class="main"><section class="chapter" id="ch1"><div class="ch-head"><span class="ch-kick">Chapter 1</span><h2 class="h-ch">Introduction and concepts</h2></div>
+
+<section class="sec" id="ch1s1"><h3 class="h-sec">1.1 · What EFI Partition Manager is</h3>
+<p class="lead"><b>EFI Partition Manager</b> is a partition manager for UEFI firmware in one file, <code>partmgr.efi</code>. It reads and writes GPT and MBR partition tables — MBR complete, with extended and logical partitions — shows every change before it is written, backs tables up to a file and restores them, and wipes partitions. With a graphics screen it opens a window made for the mouse and the keyboard; without one it shows full-screen text screens.</p>
+<p>The <a href="PARTMGR_Manuale_Utente.html#introduction">user manual</a> explains what partmgr does. This manual explains <i>how</i>: after reading it you should be able to find your way in every source file, build and test partmgr, and change the way it reads or writes tables without breaking a disk. The reasons behind the design are recorded, decision by decision (P1–P25), in <a href="https://github.com/nic-fio/EFI_PARTITION_MANAGER/blob/main/docs/decisions-and-history.md">docs/decisions-and-history.md</a>; this manual cites them by number.</p>
+<figure class="fig"><svg viewBox="0 0 820 300" xmlns="http://www.w3.org/2000/svg" font-family="Outfit,Segoe UI,Arial,sans-serif" ><rect width="820" height="300" fill="#f8fafc" rx="12"/><rect x="40" y="115" width="150" height="60" rx="9" fill="#475569"/><text x="115.0" y="141.0" text-anchor="middle" dominant-baseline="middle" font-size="13" font-weight="700" fill="#fff">UEFI firmware</text><text x="115.0" y="159.0" text-anchor="middle" font-size="10.5" fill="#fff" opacity="0.85">boot services, protocols</text><rect x="300" y="100" width="200" height="90" rx="9" fill="#0050C0"/><text x="400.0" y="141.0" text-anchor="middle" dominant-baseline="middle" font-size="15" font-weight="700" fill="#fff">partmgr.efi</text><text x="400.0" y="159.0" text-anchor="middle" font-size="10.5" fill="#fff" opacity="0.85">one file, full screen</text><line x1="190" y1="145" x2="300" y2="145" stroke="#0050C0" stroke-width="2.2" /><path d="M292.0 150.0 L300 145 L292.0 140.0 Z" fill="#0050C0"/><text x="245" y="135" text-anchor="middle" font-size="11" fill="#475569">starts</text><rect x="620" y="40" width="160" height="46" rx="9" fill="#3b82f6"/><text x="700.0" y="59.0" text-anchor="middle" dominant-baseline="middle" font-size="12" font-weight="700" fill="#fff">Disks</text><text x="700.0" y="77.0" text-anchor="middle" font-size="10.5" fill="#fff" opacity="0.85">Block I/O</text><line x1="500" y1="145" x2="620" y2="63" stroke="#475569" stroke-width="2.2" /><path d="M616.2 71.6 L620 63 L610.6 63.4 Z" fill="#475569"/><rect x="620" y="100" width="160" height="46" rx="9" fill="#3b82f6"/><text x="700.0" y="119.0" text-anchor="middle" dominant-baseline="middle" font-size="12" font-weight="700" fill="#fff">FAT volumes</text><text x="700.0" y="137.0" text-anchor="middle" font-size="10.5" fill="#fff" opacity="0.85">backup files</text><line x1="500" y1="145" x2="620" y2="123" stroke="#475569" stroke-width="2.2" /><path d="M613.0 129.4 L620 123 L611.2 119.5 Z" fill="#475569"/><rect x="620" y="160" width="160" height="46" rx="9" fill="#3b82f6"/><text x="700.0" y="179.0" text-anchor="middle" dominant-baseline="middle" font-size="12" font-weight="700" fill="#fff">Graphics screen</text><text x="700.0" y="197.0" text-anchor="middle" font-size="10.5" fill="#fff" opacity="0.85">GOP, or text console</text><line x1="500" y1="145" x2="620" y2="183" stroke="#475569" stroke-width="2.2" /><path d="M610.9 185.4 L620 183 L613.9 175.8 Z" fill="#475569"/><rect x="620" y="220" width="160" height="46" rx="9" fill="#3b82f6"/><text x="700.0" y="239.0" text-anchor="middle" dominant-baseline="middle" font-size="12" font-weight="700" fill="#fff">USB boot mouse</text><text x="700.0" y="257.0" text-anchor="middle" font-size="10.5" fill="#fff" opacity="0.85">own driver</text><line x1="500" y1="145" x2="620" y2="243" stroke="#475569" stroke-width="2.2" /><path d="M610.6 241.8 L620 243 L617.0 234.1 Z" fill="#475569"/><text x="410" y="288" text-anchor="middle" font-size="12" fill="#475569">Figure 1.1 — partmgr.efi between the firmware and the devices it uses</text></svg></figure>
+</section>
+
+<section class="sec" id="ch1s2"><h3 class="h-sec">1.2 · Design principles</h3>
+<ul class="ul">
+<li><b>The table code knows no firmware.</b> Reading, changing and writing tables (<code>ptable.c</code>, <code>ptedit.c</code>, <code>ptwrite.c</code>) reach the disk only through a read and a write function (<code>PtDev</code>). The same code runs on a UEFI block device and, in the tests, on a disk image file, where <code>sfdisk</code> and <code>parted</code> check every table it writes (P15).</li>
+<li><b>Nothing is written until Write.</b> Every change is made on a <code>PtTable</code> in memory; only <code>pt_write</code>, <code>pt_restore</code> and <code>pt_wipe</code> write to a disk. Restore and wipe run at once, each after its own warning (P7).</li>
+<li><b>Protection at the lowest level.</b> The disk partmgr was started from, and a write-protected one, get no write function at all: no mistake in the interface can write them (P8).</li>
+<li><b>Only the table — or a wipe.</b> The blocks partmgr writes are the MBR, the extended boot records and the GPT headers and arrays. The only write inside a partition is a wipe, of exactly that partition's blocks.</li>
+<li><b>Damage is shown, not hidden.</b> A damaged table is read as far as possible and explained with <i>notes</i>; writing a table always writes a clean and complete one.</li>
+<li><b>No EDK2 code.</b> Own UEFI definitions, runtime, platform layer and build tools; the ordinary Linux GCC and ld build the image.</li>
+<li><b>Two interfaces, one set of actions.</b> The window and the text screens call the same function for every action, with the same questions, checks and messages (<a href="#ch2s4">2.4</a>).</li>
+</ul>
+</section>
+
+<section class="sec" id="ch1s3"><h3 class="h-sec">1.3 · Subsystems at a glance</h3>
+<p>The sources are organised in a few directories. This is the map the manual follows chapter by chapter:</p>
+<dl class="deflist">
+<dt>src/partmgr/ptable.c, ptedit.c, ptwrite.c, units.c</dt><dd>The portable table code: reading, changes in memory and free space, writing, backup and restore, wipe; sizes as the user writes them (Chapters 5–10).</dd>
+<dt>src/partmgr/disks_efi.c</dt><dd>The disks of the machine through the firmware's Block I/O protocol (Chapter 11).</dd>
+<dt>src/partmgr/main.c, diskview.c, view.c, ui.c</dt><dd>The program: the list of disks, the screen of a disk and its actions, dialogs on the text console (Chapter 11).</dd>
+<dt>src/partmgr/gui.c, gfx.c, font_inter.*</dt><dd>The graphical window, the drawing code and the embedded glyphs of the Inter font (Chapter 12).</dd>
+<dt>src/pal/</dt><dd>The platform layer: entry point, console, time, files and volumes, the graphics screen, the serial port, the pointer and partmgr's own USB mouse driver (Chapters 4 and 13).</dd>
+<dt>src/lib/, include/</dt><dd>The freestanding C runtime and the UEFI definitions (Chapter 4).</dd>
+<dt>tools/</dt><dd>The ELF → PE32+ converter, the linker script, the documentation, font and screenshot tools, the setup script (Chapters 3 and 16).</dd>
+<dt>tests/partmgr/</dt><dd>The Linux test tools, the table tests, the drawing checks and the QEMU test (Chapter 14).</dd>
+</dl>
+</section>
+
+<section class="sec" id="ch1s4"><h3 class="h-sec">1.4 · The project in numbers</h3>
+<figure class="tbl-wrap"><table class="tbl"><thead><tr><th>Area</th><th>Directory</th><th>Lines</th><th>Content</th></tr></thead><tbody>
+<tr><td>partmgr</td><td><code>src/partmgr</code></td><td>7,247</td><td>table code, the UEFI program, the screens; the count includes the glyph file <code>font_inter.bin</code></td></tr>
+<tr><td>Platform layer</td><td><code>src/pal</code></td><td>1,654</td><td>console, keys, time, files, volumes, screen, pointer, entry point</td></tr>
+<tr><td>Runtime</td><td><code>src/lib</code></td><td>1,003</td><td>libc subset, printf, string buffer, UTF-8, CRC-32</td></tr>
+<tr><td>UEFI definitions</td><td><code>include</code></td><td>744</td><td>the UEFI types and protocols partmgr uses</td></tr>
+<tr><td>Tools</td><td><code>tools</code></td><td>715</td><td>ELF→PE converter, linker script, documentation and font tools, screenshots, setup script</td></tr>
+<tr><td>Tests</td><td><code>tests/partmgr</code></td><td>2,199</td><td>the Linux test tools, the table tests, the drawing checks, the QEMU test</td></tr>
+</tbody></table><figcaption class="cap">Table 1.1 — The areas of the source tree (lines counted by <code>make docs</code>)</figcaption></figure>
+<p><code>partmgr.efi</code> is about 800 KB (802,816 bytes for 0.2.1), of which 698 KB are the glyphs of the font. The line counts here and in the <a href="#ch17">source file map</a> are not typed by hand: <code>make docs</code> (<code>tools/gen-docs.py</code>) counts the files and writes them into this page, and <code>make test</code> fails when they no longer match the tree — a new source file without a row in the map fails as well.</p>
+<div class="callout c-info"><div class="callout-i">i</div><div><b>Note.</b> The language is C (gnu11) for everything that runs, Python 3 for the build converter, the tests and the tools. The UEFI target is x86-64; the table code and the drawing code also build for Linux, where they are tested.</div></div>
+</section>
+</section>
+
+<section class="chapter" id="ch2"><div class="ch-head"><span class="ch-kick">Chapter 2</span><h2 class="h-ch">General architecture</h2></div>
+
+<section class="sec" id="ch2s1"><h3 class="h-sec">2.1 · The layers</h3>
+<p class="lead">partmgr is a single UEFI application with no command line and no scripting (P1). Its code falls into three layers: the program, which is UEFI only; the table code, which is portable; and the platform layer, the only code besides <code>disks_efi.c</code> that talks to the firmware.</p>
+<figure class="fig"><svg viewBox="0 0 860 470" xmlns="http://www.w3.org/2000/svg" font-family="Outfit,Segoe UI,Arial,sans-serif" ><rect width="860" height="470" fill="#f8fafc" rx="12"/><text x="20" y="28" text-anchor="start" font-size="12" font-weight="700" fill="#003a90">The program sees a disk only as a PtDev</text><rect x="20" y="44" width="820" height="118" rx="10" fill="#eef2f7"/><text x="34" y="64" text-anchor="start" font-size="11.5" font-weight="700" fill="#003a90">The program (UEFI only)</text><rect x="40" y="76" width="120" height="60" rx="9" fill="#475569"/><text x="100.0" y="102.0" text-anchor="middle" dominant-baseline="middle" font-size="12" font-weight="700" fill="#fff">main.c</text><text x="100.0" y="120.0" text-anchor="middle" font-size="10.5" fill="#fff" opacity="0.85">list of disks</text><rect x="180" y="76" width="120" height="60" rx="9" fill="#0050C0"/><text x="240.0" y="102.0" text-anchor="middle" dominant-baseline="middle" font-size="12" font-weight="700" fill="#fff">gui.c</text><text x="240.0" y="120.0" text-anchor="middle" font-size="10.5" fill="#fff" opacity="0.85">the window</text><rect x="320" y="76" width="150" height="60" rx="9" fill="#0050C0"/><text x="395.0" y="102.0" text-anchor="middle" dominant-baseline="middle" font-size="12" font-weight="700" fill="#fff">diskview.c</text><text x="395.0" y="120.0" text-anchor="middle" font-size="10.5" fill="#fff" opacity="0.85">actions, text screen</text><rect x="490" y="76" width="110" height="60" rx="9" fill="#3b82f6"/><text x="545.0" y="102.0" text-anchor="middle" dominant-baseline="middle" font-size="12" font-weight="700" fill="#fff">view.c</text><text x="545.0" y="120.0" text-anchor="middle" font-size="10.5" fill="#fff" opacity="0.85">rows, message</text><rect x="620" y="76" width="100" height="60" rx="9" fill="#3b82f6"/><text x="670.0" y="102.0" text-anchor="middle" dominant-baseline="middle" font-size="12" font-weight="700" fill="#fff">ui.c</text><text x="670.0" y="120.0" text-anchor="middle" font-size="10.5" fill="#fff" opacity="0.85">dialogs</text><rect x="740" y="76" width="90" height="60" rx="9" fill="#3b82f6"/><text x="785.0" y="102.0" text-anchor="middle" dominant-baseline="middle" font-size="12" font-weight="700" fill="#fff">gfx.c</text><text x="785.0" y="120.0" text-anchor="middle" font-size="10.5" fill="#fff" opacity="0.85">drawing</text><rect x="20" y="190" width="520" height="104" rx="10" fill="#eef2f7"/><text x="34" y="210" text-anchor="start" font-size="11.5" font-weight="700" fill="#003a90">Table code (portable, also in pttool)</text><rect x="40" y="222" width="150" height="56" rx="9" fill="#0050C0"/><text x="115.0" y="246.0" text-anchor="middle" dominant-baseline="middle" font-size="12" font-weight="700" fill="#fff">ptable.c</text><text x="115.0" y="264.0" text-anchor="middle" font-size="10.5" fill="#fff" opacity="0.85">read, type names</text><rect x="210" y="222" width="150" height="56" rx="9" fill="#0050C0"/><text x="285.0" y="246.0" text-anchor="middle" dominant-baseline="middle" font-size="12" font-weight="700" fill="#fff">ptedit.c</text><text x="285.0" y="264.0" text-anchor="middle" font-size="10.5" fill="#fff" opacity="0.85">changes, free space</text><rect x="380" y="222" width="150" height="56" rx="9" fill="#0050C0"/><text x="455.0" y="246.0" text-anchor="middle" dominant-baseline="middle" font-size="12" font-weight="700" fill="#fff">ptwrite.c</text><text x="455.0" y="264.0" text-anchor="middle" font-size="10.5" fill="#fff" opacity="0.85">write, backup, wipe</text><rect x="560" y="222" width="120" height="56" rx="9" fill="#3b82f6"/><text x="620.0" y="246.0" text-anchor="middle" dominant-baseline="middle" font-size="12" font-weight="700" fill="#fff">units.c</text><text x="620.0" y="264.0" text-anchor="middle" font-size="10.5" fill="#fff" opacity="0.85">sizes</text><line x1="395" y1="136" x2="395" y2="190" stroke="#475569" stroke-width="2.2" /><path d="M390.0 182.0 L395 190 L400.0 182.0 Z" fill="#475569"/><line x1="430" y1="136" x2="600" y2="222" stroke="#475569" stroke-width="2.2" /><path d="M590.6 222.9 L600 222 L595.1 213.9 Z" fill="#475569"/><rect x="200" y="320" width="180" height="50" rx="9" fill="#003a90"/><text x="290.0" y="341.0" text-anchor="middle" dominant-baseline="middle" font-size="13" font-weight="700" fill="#fff">PtDev</text><text x="290.0" y="359.0" text-anchor="middle" font-size="10.5" fill="#fff" opacity="0.85">read / write / random</text><line x1="290" y1="294" x2="290" y2="320" stroke="#475569" stroke-width="2.2" /><path d="M285.0 312.0 L290 320 L295.0 312.0 Z" fill="#475569"/><rect x="40" y="400" width="170" height="46" rx="9" fill="#475569"/><text x="125.0" y="419.0" text-anchor="middle" dominant-baseline="middle" font-size="12" font-weight="700" fill="#fff">disks_efi.c</text><text x="125.0" y="437.0" text-anchor="middle" font-size="10.5" fill="#fff" opacity="0.85">Block I/O, RNG</text><rect x="240" y="400" width="170" height="46" rx="9" fill="#94a3b8"/><text x="325.0" y="419.0" text-anchor="middle" dominant-baseline="middle" font-size="12" font-weight="700" fill="#fff">pttool.c (tests)</text><text x="325.0" y="437.0" text-anchor="middle" font-size="10.5" fill="#fff" opacity="0.85">a disk image file</text><line x1="250" y1="370" x2="150" y2="400" stroke="#475569" stroke-width="2.2" /><path d="M156.2 392.9 L150 400 L159.1 402.5 Z" fill="#475569"/><line x1="320" y1="370" x2="325" y2="400" stroke="#475569" stroke-width="2.2"  stroke-dasharray="4 3"/><path d="M318.8 392.9 L325 400 L328.6 391.3 Z" fill="#475569"/><rect x="620" y="320" width="210" height="50" rx="9" fill="#475569"/><text x="725.0" y="341.0" text-anchor="middle" dominant-baseline="middle" font-size="13" font-weight="700" fill="#fff">src/pal</text><text x="725.0" y="359.0" text-anchor="middle" font-size="10.5" fill="#fff" opacity="0.85">console, screen, pointer, files</text><line x1="670" y1="136" x2="700" y2="320" stroke="#475569" stroke-width="2.2" /><path d="M693.8 312.9 L700 320 L703.6 311.3 Z" fill="#475569"/><line x1="785" y1="136" x2="760" y2="320" stroke="#475569" stroke-width="2.2" /><path d="M756.1 311.4 L760 320 L766.0 312.7 Z" fill="#475569"/><rect x="620" y="400" width="210" height="46" rx="9" fill="#0f172a"/><text x="725.0" y="423.0" text-anchor="middle" dominant-baseline="middle" font-size="13" font-weight="700" fill="#fff">UEFI firmware</text><line x1="725" y1="370" x2="725" y2="400" stroke="#475569" stroke-width="2.2" /><path d="M720.0 392.0 L725 400 L730.0 392.0 Z" fill="#475569"/><line x1="210" y1="423" x2="620" y2="423" stroke="#475569" stroke-width="2.2" /><path d="M612.0 428.0 L620 423 L612.0 418.0 Z" fill="#475569"/><text x="430" y="458" text-anchor="middle" font-size="12" fill="#475569">Figure 2.1 — The layers: the program, the portable table code, the platform layer</text></svg></figure>
+<figure class="tbl-wrap"><table class="tbl"><thead><tr><th>Layer</th><th>Responsibility</th><th>Main files</th></tr></thead><tbody>
+<tr><td><b>The program</b></td><td>The window or the text screens, the actions, the dialogs, the list of disks</td><td><code>main.c</code>, <code>gui.c</code>, <code>diskview.c</code>, <code>view.c</code>, <code>ui.c</code>, <code>gfx.c</code></td></tr>
+<tr><td><b>Table code</b></td><td>Reading, changing, writing tables; backup, restore, wipe; sizes</td><td><code>ptable.c</code>, <code>ptedit.c</code>, <code>ptwrite.c</code>, <code>units.c</code></td></tr>
+<tr><td><b>Disks</b></td><td>Whole disks through Block I/O, the boot disk made read-only, random numbers</td><td><code>disks_efi.c</code></td></tr>
+<tr><td><b>Platform layer</b></td><td>Entry point, console, keys, time, files, volumes, graphics, serial port, pointer</td><td><code>src/pal/*</code></td></tr>
+<tr><td><b>Runtime</b></td><td>The C subset every module includes</td><td><code>src/lib/*</code>, <code>include/efi.h</code></td></tr>
+</tbody></table><figcaption class="cap">Table 2.1 — The layers and their files</figcaption></figure>
+</section>
+
+<section class="sec" id="ch2s2"><h3 class="h-sec">2.2 · Start-up and exit</h3>
+<ol class="ol">
+<li><b><code>efi_main</code></b> (<code>pal_efi.c</code>) sets <code>gImage</code>, <code>gST</code>, <code>gBS</code>, <code>gRT</code> and <code>gLoadedImage</code>, turns the watchdog off, takes <code>SimpleTextInputEx</code> from the console input handle when it exists, remembers the console's colours, calibrates the clock, finds the volumes and the arguments, allocates 1 MiB of pages and calls <code>app_main</code> on that private stack (UEFI only guarantees 128 KiB); if the pages cannot be had, <code>app_main</code> runs on the firmware's stack.</li>
+<li><b><code>app_main</code></b> (<code>main.c</code>) calls <code>pm_gui</code> first, before any change of the text mode, which on some firmware changes the screen too. <code>pm_gui</code> returns false, with nothing changed, when the embedded glyphs fail their check or <code>pal_gfx_open</code> finds no graphics screen of at least 640 × 480 (P18).</li>
+<li><b>Without a window</b>, <code>app_main</code> switches the console to the narrowest text mode of at least 100 columns and 25 rows, if the firmware has one (<code>pal_con_wide_mode</code>, P17), hides the cursor and loops on the list of disks.</li>
+<li><b>On exit</b> the text screens reset the colours, clear the screen, put back the text mode partmgr found (only if they changed it) and turn the cursor on; the window gives the screen back with <code>pal_gfx_close</code>. <code>efi_main</code> calls the exit hook, resets the colours and returns <code>EFI_SUCCESS</code>, and the firmware goes on.</li>
+</ol>
+<div class="callout c-info"><div class="callout-i">i</div><div><b>Note.</b> partmgr ignores its arguments. The platform layer still reads them — from the Shell Parameters protocol when a UEFI shell starts it, else from the load options when they are text — so that <code>pal_argc</code>/<code>pal_argv</code> are always valid.</div></div>
+</section>
+
+<section class="sec" id="ch2s3"><h3 class="h-sec">2.3 · The life of a change</h3>
+<p>Every change follows the same path: dialogs collect the input, one <code>pt_*</code> call changes the table in memory or returns a message, the rows are built again and the screen shows the table as it will be, with a star on what changed. Only Write, restore and wipe reach the disk, each after a red question answered with <b>Y</b>.</p>
+<figure class="fig"><svg viewBox="0 0 860 470" xmlns="http://www.w3.org/2000/svg" font-family="Outfit,Segoe UI,Arial,sans-serif" ><rect width="860" height="470" fill="#f8fafc" rx="12"/><rect x="20" y="24" width="140" height="38" rx="9" fill="#475569"/><text x="90.0" y="43.0" text-anchor="middle" dominant-baseline="middle" font-size="12" font-weight="700" fill="#fff">Keyboard / mouse</text><line x1="90" y1="62" x2="90" y2="430" stroke="#94a3b8" stroke-width="1.4" stroke-dasharray="4 4"/><rect x="190" y="24" width="140" height="38" rx="9" fill="#0050C0"/><text x="260.0" y="43.0" text-anchor="middle" dominant-baseline="middle" font-size="12" font-weight="700" fill="#fff">diskview.c</text><line x1="260" y1="62" x2="260" y2="430" stroke="#94a3b8" stroke-width="1.4" stroke-dasharray="4 4"/><rect x="360" y="24" width="140" height="38" rx="9" fill="#0050C0"/><text x="430.0" y="43.0" text-anchor="middle" dominant-baseline="middle" font-size="12" font-weight="700" fill="#fff">ptedit.c</text><line x1="430" y1="62" x2="430" y2="430" stroke="#94a3b8" stroke-width="1.4" stroke-dasharray="4 4"/><rect x="530" y="24" width="140" height="38" rx="9" fill="#0050C0"/><text x="600.0" y="43.0" text-anchor="middle" dominant-baseline="middle" font-size="12" font-weight="700" fill="#fff">ptwrite.c</text><line x1="600" y1="62" x2="600" y2="430" stroke="#94a3b8" stroke-width="1.4" stroke-dasharray="4 4"/><rect x="700" y="24" width="140" height="38" rx="9" fill="#475569"/><text x="770.0" y="43.0" text-anchor="middle" dominant-baseline="middle" font-size="12" font-weight="700" fill="#fff">Disk (PtDev)</text><line x1="770" y1="62" x2="770" y2="430" stroke="#94a3b8" stroke-width="1.4" stroke-dasharray="4 4"/><line x1="90" y1="90" x2="260" y2="90" stroke="#0050C0" stroke-width="2.2" /><path d="M252.0 95.0 L260 90 L252.0 85.0 Z" fill="#0050C0"/><text x="175" y="84" text-anchor="middle" font-size="11" fill="#0f172a">N on a free area</text><rect x="254" y="112" width="12" height="24" rx="3" fill="#3b82f6"/><text x="276" y="128" text-anchor="start" font-size="11" fill="#0f172a">dialogs: start, size, type, name</text><line x1="260" y1="158" x2="430" y2="158" stroke="#0050C0" stroke-width="2.2" /><path d="M422.0 163.0 L430 158 L422.0 153.0 Z" fill="#0050C0"/><text x="345" y="152" text-anchor="middle" font-size="11" fill="#0f172a">pt_add(table, part)</text><line x1="430" y1="192" x2="260" y2="192" stroke="#475569" stroke-width="2.2"  stroke-dasharray="4 3"/><path d="M268.0 187.0 L260 192 L268.0 197.0 Z" fill="#475569"/><text x="345" y="186" text-anchor="middle" font-size="11" fill="#0f172a">NULL, or a message</text><rect x="254" y="214" width="12" height="24" rx="3" fill="#3b82f6"/><text x="276" y="230" text-anchor="start" font-size="11" fill="#0f172a">pm_view_rows: 4*, &quot;changes not written&quot;</text><line x1="90" y1="260" x2="260" y2="260" stroke="#0050C0" stroke-width="2.2" /><path d="M252.0 265.0 L260 260 L252.0 255.0 Z" fill="#0050C0"/><text x="175" y="254" text-anchor="middle" font-size="11" fill="#0f172a">Enter (Write)</text><rect x="254" y="282" width="12" height="24" rx="3" fill="#3b82f6"/><text x="276" y="298" text-anchor="start" font-size="11" fill="#0f172a">red question: Write the GPT table ...? (Y/N) - Y</text><line x1="260" y1="328" x2="600" y2="328" stroke="#0050C0" stroke-width="2.2" /><path d="M592.0 333.0 L600 328 L592.0 323.0 Z" fill="#0050C0"/><text x="430" y="322" text-anchor="middle" font-size="11" fill="#0f172a">pt_write(dev, table)</text><line x1="600" y1="362" x2="770" y2="362" stroke="#0050C0" stroke-width="2.2" /><path d="M762.0 367.0 L770 362 L762.0 357.0 Z" fill="#0050C0"/><text x="685" y="356" text-anchor="middle" font-size="11" fill="#0f172a">the blocks of the table</text><line x1="260" y1="396" x2="770" y2="396" stroke="#0050C0" stroke-width="2.2" /><path d="M762.0 401.0 L770 396 L762.0 391.0 Z" fill="#0050C0"/><text x="515" y="390" text-anchor="middle" font-size="11" fill="#0f172a">pm_view_load: the table as written</text><text x="430" y="458" text-anchor="middle" font-size="12" fill="#475569">Figure 2.2 — A new partition, from the key to the disk: nothing is written before Write</text></svg></figure>
+</section>
+
+<section class="sec" id="ch2s4"><h3 class="h-sec">2.4 · Two interfaces, one set of actions</h3>
+<p>The window does not have actions of its own. Every action key — and every click on an action button, which is that key — goes to <code>pm_disk_action</code> in <code>diskview.c</code>, the function the text screen of a disk calls too. Two hooks make the same code draw on the window:</p>
+<dl class="deflist">
+<dt>ui_dialogs (ui.h)</dt><dd>A table of four functions. When it is set, <code>ui_message</code>, <code>ui_yesno</code>, <code>ui_input</code> and <code>ui_menu</code> call the window's dialogs instead of drawing boxes on the text console. <code>pm_gui</code> sets it on entry and clears it on exit.</dd>
+<dt>pm_screen (view.h)</dt><dd>A <code>PmScreen</code>: <code>redraw</code> draws the window where the text screen would draw itself before a dialog, <code>wipe</code> draws the progress of a wipe, <code>wipe_stop</code> reports a request to stop it. <code>NULL</code> means the text screen.</dd>
+<dt>View (view.h)</dt><dd>One disk as both interfaces show it: the disk, its <code>PtTable</code>, the rows (partitions and free areas merged by start), the selection and the message line (<a href="#ch18s3">A.3</a>).</dd>
+</dl>
+<div class="callout c-ok"><div class="callout-i">+</div><div><b>Note.</b> Because the actions are shared, every question, refusal and message of the text screens of 0.1.2 is also the window's, and the QEMU test drives the same journey through both (<a href="#ch14s4">14.4</a>).</div></div>
+</section>
+</section>
+
+<section class="chapter" id="ch3"><div class="ch-head"><span class="ch-kick">Chapter 3</span><h2 class="h-ch">Build and tools</h2></div>
+
+<section class="sec" id="ch3s1"><h3 class="h-sec">3.1 · Tools needed</h3>
+<figure class="tbl-wrap"><table class="tbl"><thead><tr><th>Tool</th><th>Used for</th></tr></thead><tbody>
+<tr><td>GCC (x86-64), GNU ld, Python 3</td><td>The build. No cross-compiler: the image is linked as an ELF shared object and converted.</td></tr>
+<tr><td><code>sfdisk</code> (fdisk)</td><td>The table tests: it builds the test images and is the reference.</td></tr>
+<tr><td><code>parted</code></td><td>A second reader of the tables partmgr writes (the check is skipped without it).</td></tr>
+<tr><td><code>mkfs.fat</code> (dosfstools)</td><td>A disk without a table, and the writable volume of the QEMU test.</td></tr>
+<tr><td>QEMU and OVMF</td><td><code>make qemu-test</code> and <code>tools/screenshots.py</code>. <code>OVMF=</code> selects the firmware image (default: <code>/usr/share/ovmf/OVMF.fd</code> or <code>/usr/share/OVMF/OVMF.fd</code>).</td></tr>
+<tr><td>Pillow, with FreeType and Raqm</td><td>Only <code>make font</code>, which renders the glyphs again; the build uses the committed <code>font_inter.bin</code>.</td></tr>
+</tbody></table><figcaption class="cap">Table 3.1 — What a build machine needs</figcaption></figure>
+<p>On Debian or Ubuntu, <code>tools/setup-dev.sh</code> says which packages are missing and, with <code>--install</code>, installs them with apt (<a href="#ch3s7">3.7</a>).</p>
+</section>
+
+<section class="sec" id="ch3s2"><h3 class="h-sec">3.2 · Make targets</h3>
+<figure class="tbl-wrap"><table class="tbl"><thead><tr><th>Target</th><th>Does</th></tr></thead><tbody>
+<tr><td><code>make</code></td><td>Builds <code>build/partmgr.efi</code> and prints its size.</td></tr>
+<tr><td><code>make test</code></td><td>Builds <code>build/tests/pttool</code> and <code>build/tests/gfxtool</code>, runs the table tests (<code>run-tests.py</code>), the drawing checks (<code>gfxtool check</code>) and the check of this manual (<code>gen-docs.py --check</code>).</td></tr>
+<tr><td><code>make qemu-test</code></td><td>Builds <code>partmgr.efi</code>, <code>build/tests/gfxdemo.efi</code> and <code>gfxtool</code>, and runs <code>tests/partmgr/qemu-test.py</code>.</td></tr>
+<tr><td><code>make docs</code></td><td>Rewrites the line counts of this manual.</td></tr>
+<tr><td><code>make font</code></td><td>Runs <code>tools/gen-font.py</code>: downloads Inter 4.1 (checked against its SHA-256) and renders <code>src/partmgr/font_inter.bin</code>.</td></tr>
+<tr><td><code>make build/tests/partmgr-text.efi</code></td><td>partmgr built with <code>-DPARTMGR_TEXT_ONLY</code>, without the window: for the pictures of the text screens only.</td></tr>
+<tr><td><code>make clean</code></td><td>Removes <code>build/</code>.</td></tr>
+</tbody></table><figcaption class="cap">Table 3.2 — The targets of the Makefile</figcaption></figure>
+<div class="callout c-warn"><div class="callout-i">!</div><div><b>Warning.</b> Check the exit status of each step, not a filtered pipeline: <code>make test | tail</code> reports the exit status of <code>tail</code> and hides a failure.</div></div>
+</section>
+
+<section class="sec" id="ch3s3"><h3 class="h-sec">3.3 · What is linked</h3>
+<p>The Makefile lists the sources in groups. <code>TABLE_SRC</code> is the portable table code, also compiled into the Linux test tool; <code>GFX_SRC</code> is the drawing code of the window with its font and its platform part (the screen and the pointer); <code>EFI_SRC</code> is everything <code>partmgr.efi</code> contains:</p>
+<pre class="code"><code>TABLE_SRC := src/partmgr/ptable.c src/partmgr/ptedit.c src/partmgr/ptwrite.c src/partmgr/units.c \
+	src/lib/crc32.c src/lib/util.c
+PAL_SRC := src/lib/libc.c src/lib/fmt.c src/lib/util.c src/lib/crc32.c src/pal/pal_efi.c src/pal/pal_common.c
+<span class="cm"># the drawing code of the graphical interface, its font, the screen and the pointer</span>
+GFX_SRC := src/partmgr/gfx.c src/partmgr/font_inter.S src/pal/pal_gfx_efi.c src/pal/pal_mouse_efi.c
+EFI_SRC := $(TABLE_SRC) src/partmgr/main.c src/partmgr/view.c src/partmgr/diskview.c src/partmgr/ui.c \
+	src/partmgr/gui.c src/partmgr/disks_efi.c $(GFX_SRC) \
+	src/lib/libc.c src/lib/fmt.c src/pal/pal_efi.c src/pal/pal_common.c
+<span class="cm"># gfxdemo.efi: the test picture on the screen, for make qemu-test</span>
+DEMO_SRC := tests/partmgr/gfxdemo.c tests/partmgr/gfxscene.c $(GFX_SRC) $(PAL_SRC)</code></pre>
+<p>The glyphs enter the image through the assembler: <code>font_inter.S</code> includes <code>font_inter.bin</code> with <code>.incbin</code> as read-only data between the hidden symbols <code>font_inter_data</code> and <code>font_inter_end</code>; the object is rebuilt when the glyph file changes.</p>
+</section>
+
+<section class="sec" id="ch3s4"><h3 class="h-sec">3.4 · The pipeline and the compiler flags</h3>
+<figure class="fig"><svg viewBox="0 0 860 300" xmlns="http://www.w3.org/2000/svg" font-family="Outfit,Segoe UI,Arial,sans-serif" ><rect width="860" height="300" fill="#f8fafc" rx="12"/><rect x="20" y="60" width="110" height="54" rx="9" fill="#475569"/><text x="75.0" y="83.0" text-anchor="middle" dominant-baseline="middle" font-size="13" font-weight="700" fill="#fff">*.c, *.S</text><text x="75.0" y="101.0" text-anchor="middle" font-size="10.5" fill="#fff" opacity="0.85">src/, include/</text><rect x="230" y="60" width="110" height="54" rx="9" fill="#3b82f6"/><text x="285.0" y="83.0" text-anchor="middle" dominant-baseline="middle" font-size="13" font-weight="700" fill="#fff">*.o</text><text x="285.0" y="101.0" text-anchor="middle" font-size="10.5" fill="#fff" opacity="0.85">build/efi/</text><rect x="440" y="60" width="150" height="54" rx="9" fill="#0050C0"/><text x="515.0" y="83.0" text-anchor="middle" dominant-baseline="middle" font-size="13" font-weight="700" fill="#fff">partmgr.so</text><text x="515.0" y="101.0" text-anchor="middle" font-size="10.5" fill="#fff" opacity="0.85">ELF, base 0</text><rect x="690" y="60" width="150" height="54" rx="9" fill="#003a90"/><text x="765.0" y="83.0" text-anchor="middle" dominant-baseline="middle" font-size="13" font-weight="700" fill="#fff">partmgr.efi</text><text x="765.0" y="101.0" text-anchor="middle" font-size="10.5" fill="#fff" opacity="0.85">PE32+, subsystem 10</text><line x1="130" y1="87" x2="230" y2="87" stroke="#0050C0" stroke-width="2.2" /><path d="M222.0 92.0 L230 87 L222.0 82.0 Z" fill="#0050C0"/><line x1="340" y1="87" x2="440" y2="87" stroke="#0050C0" stroke-width="2.2" /><path d="M432.0 92.0 L440 87 L432.0 82.0 Z" fill="#0050C0"/><line x1="590" y1="87" x2="690" y2="87" stroke="#0050C0" stroke-width="2.2" /><path d="M682.0 92.0 L690 87 L682.0 82.0 Z" fill="#0050C0"/><text x="180" y="142" text-anchor="middle" font-size="10.5" font-family="ui-monospace,Menlo,Consolas,monospace" fill="#0f172a">gcc -ffreestanding</text><text x="180" y="158" text-anchor="middle" font-size="10.5" font-family="ui-monospace,Menlo,Consolas,monospace" fill="#0f172a">-fPIC -mno-red-zone</text><text x="390" y="142" text-anchor="middle" font-size="10.5" font-family="ui-monospace,Menlo,Consolas,monospace" fill="#0f172a">ld -shared -Bsymbolic</text><text x="390" y="158" text-anchor="middle" font-size="10.5" font-family="ui-monospace,Menlo,Consolas,monospace" fill="#0f172a">-T tools/efi.lds</text><text x="640" y="142" text-anchor="middle" font-size="10.5" font-family="ui-monospace,Menlo,Consolas,monospace" fill="#0f172a">tools/elf2efi.py</text><rect x="230" y="200" width="180" height="54" rx="9" fill="#94a3b8"/><text x="320.0" y="223.0" text-anchor="middle" dominant-baseline="middle" font-size="13" font-weight="700" fill="#fff">pttool, gfxtool</text><text x="320.0" y="241.0" text-anchor="middle" font-size="10.5" fill="#fff" opacity="0.85">Linux, build/tests/</text><line x1="75" y1="114" x2="230" y2="227" stroke="#475569" stroke-width="2.2"  stroke-dasharray="4 3"/><path d="M220.6 226.3 L230 227 L226.5 218.2 Z" fill="#475569"/><text x="470" y="222" text-anchor="start" font-size="10.5" font-family="ui-monospace,Menlo,Consolas,monospace" fill="#0f172a">gcc -DPARTMGR_HOST</text><text x="470" y="238" text-anchor="start" font-size="10.5" font-family="ui-monospace,Menlo,Consolas,monospace" fill="#0f172a">-fsanitize=address,undefined</text><text x="430" y="288" text-anchor="middle" font-size="12" fill="#475569">Figure 3.1 — From the sources to partmgr.efi, and to the Linux test tools</text></svg></figure>
+<figure class="tbl-wrap"><table class="tbl"><thead><tr><th>Flag</th><th>Reason</th></tr></thead><tbody>
+<tr><td><code>-ffreestanding -fno-builtin</code></td><td>No hosted C library; GCC must not assume one.</td></tr>
+<tr><td><code>-mno-red-zone</code></td><td>Firmware interrupt handlers run on the current stack and would overwrite the 128-byte red zone.</td></tr>
+<tr><td><code>-fshort-wchar</code></td><td>UEFI strings are UCS-2: <code>L"..."</code> must be 16-bit.</td></tr>
+<tr><td><code>-fPIC -fvisibility=hidden</code> + <code>ld -Bsymbolic</code></td><td>The image can be loaded at any address; with hidden symbols the only dynamic relocations left are <code>R_X86_64_RELATIVE</code>, which map 1:1 to PE <code>DIR64</code> fixups.</td></tr>
+<tr><td><code>-mgeneral-regs-only</code></td><td>No SSE/x87 code: the firmware does not promise that FPU state is usable, and partmgr has no floating point.</td></tr>
+<tr><td><code>-fno-stack-protector -fno-stack-check</code></td><td>No runtime support for them in firmware.</td></tr>
+<tr><td><code>-fno-asynchronous-unwind-tables</code></td><td>No unwinding; smaller image.</td></tr>
+<tr><td><code>-fno-tree-loop-distribute-patterns</code></td><td>Stops GCC from turning the loops of <code>memset</code>/<code>memcpy</code> into calls to themselves.</td></tr>
+<tr><td><code>-fno-strict-aliasing</code></td><td>UEFI structures are often reinterpreted through casts.</td></tr>
+</tbody></table><figcaption class="cap">Table 3.3 — The flags of the UEFI build (<code>EFI_CFLAGS</code>, with <code>-std=gnu11 -O2</code>)</figcaption></figure>
+<p>Warnings: <code>-Wall -Wextra</code> without <code>-Wunused-parameter</code> and <code>-Wmissing-field-initializers</code>. A clean build has no warnings; keep it that way. The link uses <code>-nostdlib -znocombreloc -shared -Bsymbolic --no-undefined --build-id=none -z noexecstack -T tools/efi.lds</code>. The Linux tools are built with <code>-DPARTMGR_HOST</code>, which makes <code>rt.h</code> use the system C library, with <code>-O1 -g</code>, and with AddressSanitizer and UBSan.</p>
+</section>
+
+<section class="sec" id="ch3s5"><h3 class="h-sec">3.5 · The linker script</h3>
+<p><code>tools/efi.lds</code> links at base address 0 with the entry point <code>efi_main</code> and page-aligned <code>.text</code>, <code>.rodata</code>, <code>.data</code> (with the GOT) and <code>.bss</code>, and discards comments, notes, unwind tables and <code>.interp</code>. Base 0 makes ELF virtual addresses equal to PE relative virtual addresses, which keeps the conversion trivial. Page alignment gives each PE section its own memory protection (code read + execute, data read + write, never both).</p>
+</section>
+
+<section class="sec" id="ch3s6"><h3 class="h-sec">3.6 · elf2efi.py</h3>
+<ol class="ol">
+<li>checks that the input is an ELF64 x86-64 file and keeps <code>.text</code>, <code>.rodata</code> (as <code>.rdata</code>), <code>.data</code> and <code>.bss</code>, each of which must be page aligned;</li>
+<li>for every <code>R_X86_64_RELATIVE</code> relocation writes the addend into the section data and records a <code>DIR64</code> fixup; <b>any other relocation type is a build error</b> (a symbol escaped the hidden visibility), and so is a relocation in <code>.bss</code> or outside the sections;</li>
+<li>builds a <code>.reloc</code> section with one block per 4 KiB page (an empty block when there are no fixups, so the image stays relocatable);</li>
+<li>writes the DOS stub, the COFF header (machine 0x8664), the optional header (subsystem 10 = EFI application, DllCharacteristics <code>DYNAMIC_BASE | NX_COMPAT</code>) and the section table, with sections aligned to 4 KiB in memory and 512 bytes in the file.</li>
+</ol>
+<p><code>objcopy --target=efi-app-x86_64</code> produces corrupted relocations with this layout; the converter is short, easy to audit, and fails loudly.</p>
+</section>
+
+<section class="sec" id="ch3s7"><h3 class="h-sec">3.7 · A fresh clone</h3>
+<p>A clone carries the sources, the tests, the documentation and the whole history, but not the packages the build needs nor the git identity of the repository (it lives in <code>.git/config</code>). <code>tools/setup-dev.sh</code> reports both:</p>
+<pre class="code"><code>tools/setup-dev.sh            <span class="cm"># say what is missing</span>
+tools/setup-dev.sh --install  <span class="cm"># install it with apt (asks for sudo)</span></code></pre>
+<p>It checks build-essential, python3, fdisk, parted, dosfstools, qemu-system-x86 and ovmf, and — when the working copy has no local identity — sets the repository-local <code>user.name</code> and <code>user.email</code> (the noreply address of the project account; <code>PARTMGR_GIT_NAME</code> and <code>PARTMGR_GIT_EMAIL</code> override them). Commits use that identity. It ends by suggesting <code>make</code>, <code>make test</code> and <code>make qemu-test</code>.</p>
+</section>
+</section>
+
+<section class="chapter" id="ch4"><div class="ch-head"><span class="ch-kick">Chapter 4</span><h2 class="h-ch">Platform layer and runtime</h2></div>
+
+<section class="sec" id="ch4s1"><h3 class="h-sec">4.1 · The contract: pal.h</h3>
+<p class="lead"><code>src/pal/pal.h</code> is the contract between the program and the machine; <code>pal_efi.c</code>, <code>pal_gfx_efi.c</code> and <code>pal_mouse_efi.c</code> implement it for UEFI, and <code>pal_common.c</code> holds the part shared by every build (the error names).</p>
+<figure class="tbl-wrap"><table class="tbl"><thead><tr><th>Group</th><th>Functions</th><th>Notes</th></tr></thead><tbody>
+<tr><td>Errors</td><td><code>PAL_OK</code>, <code>PAL_ENOENT</code> … <code>PAL_EABORT</code>, <code>pal_strerror</code></td><td>Negative codes (<a href="#ch18s6">A.6</a>); <code>efi_to_pal</code> maps an <code>EFI_STATUS</code>.</td></tr>
+<tr><td>Memory</td><td><code>pal_alloc</code>, <code>pal_free</code></td><td><code>AllocatePool</code> / <code>FreePool</code>; the runtime's <code>malloc</code> sits on top.</td></tr>
+<tr><td>Console</td><td><code>pal_con_write</code> (UTF-8), <code>pal_con_read_key</code>, colours, cursor, size; text modes: <code>pal_con_mode</code>, <code>pal_con_wide_mode</code>, <code>pal_con_set_mode</code>; <code>pal_con_cursor_shown</code></td><td>Keys arrive as <code>PalKey</code>: a Unicode <code>ch</code> or a <code>KEY_*</code> scan code, plus modifiers.</td></tr>
+<tr><td>Graphics</td><td><code>pal_gfx_open</code>, <code>pal_gfx_show</code>, <code>pal_gfx_close</code></td><td>The screen of at least 640 × 480, if any; <code>pal_gfx_show</code> copies a rectangle of an image in memory to a place on it.</td></tr>
+<tr><td>Serial port</td><td><code>pal_serial_log</code></td><td>A line on the serial port the firmware's console goes to, if any: what the window shows, for the tests.</td></tr>
+<tr><td>Pointer</td><td><code>pal_pointer_open</code>, <code>pal_pointer_read</code>, <code>pal_pointer_info</code>, <code>pal_pointer_close</code></td><td>The firmware's pointers and partmgr's own USB mouse driver, read together as a <code>PalPointer</code> (Chapter 13).</td></tr>
+<tr><td>Time</td><td><code>pal_ticks_ms</code>, <code>pal_sleep_ms/us</code>, <code>pal_get_time</code>, <code>pal_set_time</code></td><td>The time-stamp counter, calibrated against <code>Stall</code> at start-up.</td></tr>
+<tr><td>Files</td><td><code>pal_open/read/write/seek/close</code>, <code>pal_stat</code>, directories, attributes</td><td><b>Paths are canonical</b>: <code>fsN:\dir\file</code>. partmgr uses open, read, write, close and stat, for backup files.</td></tr>
+<tr><td>Volumes</td><td><code>pal_volumes_refresh</code>, <code>pal_volume_count</code>, <code>pal_volume(i)</code>, <code>pal_boot_volume</code></td><td>Every file system: name, label, device path, size, read-only.</td></tr>
+<tr><td>System</td><td><code>pal_reset</code>, <code>pal_exit</code>, <code>pal_platform_name</code></td><td><code>pal_exit</code> ends the image with <code>Exit</code>.</td></tr>
+<tr><td>Program</td><td><code>app_main</code>, <code>app_name</code>, <code>pal_argc/argv</code></td><td>Defined by <code>src/partmgr/main.c</code>; <code>app_name</code> is <code>"partmgr"</code>.</td></tr>
+</tbody></table><figcaption class="cap">Table 4.1 — The groups of the platform interface</figcaption></figure>
+<div class="callout c-info"><div class="callout-i">i</div><div><b>Note.</b> The platform interface is wider than partmgr needs (directories, renaming, labels, resets). The extra functions are implemented and kept; the program uses the console, the screen, the pointer, the serial port, time, files for backups and volumes.</div></div>
+</section>
+
+<section class="sec" id="ch4s2"><h3 class="h-sec">4.2 · pal_efi.c</h3>
+<ul class="ul">
+<li><b>Console output</b> converts UTF-8 to UCS-2 (a <code>\n</code> becomes <code>\r\n</code>, code points above U+FFFF become U+FFFD) and calls <code>ConOut-&gt;OutputString</code> in pieces of up to 256 units.</li>
+<li><b>Keys</b> come from <code>SimpleTextInputEx</code> when the console has it — with the Ctrl and Alt state, Ctrl+letter normalised to its ASCII control code, a lone modifier toggle ignored — else from <code>SimpleTextInput</code>. <code>pal_con_read_key</code> waits on the key event and, with a timeout, on a timer; a timeout of 0 only polls, which the wipe uses to notice <b>Esc</b>.</li>
+<li><b>Text modes</b>: <code>pal_con_wide_mode</code> picks, among the modes the firmware reports, the one with the fewest columns (then rows) that still has the minimum, and switches only when it is not the current one.</li>
+<li><b>Time</b>: <code>calibrate_tsc</code> reads the time-stamp counter around a <code>Stall</code> of 10 ms; <code>pal_ticks_ms</code> counts milliseconds from start-up.</li>
+<li><b>Volumes</b>: every handle with <code>SimpleFileSystem</code> becomes a volume <code>fsN</code>, sorted by device-path text, with its label, size and read-only flag from <code>EFI_FILE_SYSTEM_INFO</code>; the one the image was loaded from is the boot volume.</li>
+<li><b>Fatal errors</b>: <code>rt_fatal</code> writes <code>partmgr: fatal: MESSAGE</code> and ends the image; the allocation wrappers call it on out-of-memory.</li>
+<li><b>UEFI-only modules</b> (<code>disks_efi.c</code>, the graphics and pointer files) include <code>efi_glue.h</code> for the globals, the GUIDs and the device-path helpers (<code>efi_devpath_text</code>, <code>efi_devpath_size</code>).</li>
+</ul>
+</section>
+
+<section class="sec" id="ch4s3"><h3 class="h-sec">4.3 · The graphics screen and the serial port</h3>
+<p><code>pal_gfx_efi.c</code> takes the Graphics Output Protocol of the console's handle (<code>ConsoleOutHandle</code>), else the first one found, and refuses a screen smaller than 640 × 480. A canvas pixel <code>0x00RRGGBB</code> is, in memory, a Blt pixel (blue, green, red, reserved), so <code>pal_gfx_show</code> hands the canvas to <code>Blt</code> (<code>EfiBltBufferToVideo</code>) as it is, whatever the pixel format of the screen.</p>
+<p>The text cursor is turned off while the picture is shown. <code>pal_gfx_close</code> clears the text console, which redraws the screen, and puts the cursor back as it was, so a shell that started partmgr gets its cursor back. <code>pal_con_cursor_shown</code> reads the cursor from the text console that lives on a graphics screen's handle: the firmware's console of all consoles turns it on again by itself as soon as the screen is cleared, whatever the screen shows. The window logs the result when it closes, and the QEMU test checks it.</p>
+<p><code>pal_serial_log</code> writes a line only when the <code>ConOut</code> variable sends the console to a serial port — an instance of its multi-instance device path with a UART node — through the Serial I/O protocol found with <code>LocateDevicePath</code>. A machine without a serial console gets nothing.</p>
+</section>
+
+<section class="sec" id="ch4s4"><h3 class="h-sec">4.4 · The freestanding runtime</h3>
+<ul class="ul">
+<li><b>rt.h</b> is the C subset every module includes: the <code>mem*</code>/<code>str*</code> declarations, inline ASCII <code>ctype</code> functions, <code>ARRAY_SIZE</code>, <code>MIN</code>, <code>MAX</code>, the allocation wrappers, the string buffer and the UTF-8 helpers. With <code>PARTMGR_HOST</code> it includes the system headers instead.</li>
+<li><b>Memory</b>: <code>malloc</code> uses <code>pal_alloc</code> with a 16-byte header that stores the size (for <code>realloc</code>, which keeps the block when the new size is between half and all of the old one). Code calls the <code>x</code> wrappers (<code>xmalloc</code>, <code>xcalloc</code>, <code>xrealloc</code>, <code>xstrdup</code>…), which stop the program with <code>rt_fatal</code> on out-of-memory, so callers never check for <code>NULL</code>.</li>
+<li><b>printf</b>: <code>fmt.c</code> implements <code>vsnprintf</code> with <code>%d %i %u %x %X %o %c %s %p %%</code>, the flags <code>- 0 + space</code>, width and precision (also <code>*</code>) and the length modifiers <code>hh h l ll z j t</code>. There is no <code>%f</code>.</li>
+<li><b>Strings</b>: <code>libc.c</code> has the usual <code>mem*</code>/<code>str*</code> functions, <code>strto*</code> and <code>qsort</code>; <code>util.c</code> the string buffer <code>Sbuf</code> and the UTF-8 / UCS-2 conversions.</li>
+<li><b>CRC-32</b>: <code>crc32.c</code> is the IEEE 802.3 checksum of GPT headers and arrays (reflected polynomial 0xEDB88320), with its table built on first use.</li>
+</ul>
+</section>
+
+<section class="sec" id="ch4s5"><h3 class="h-sec">4.5 · The UEFI definitions</h3>
+<p><code>include/efi.h</code> holds the UEFI types, services and protocols partmgr uses — system table, boot and runtime services, simple text input and output, loaded image, device path and its text conversion, file system, block I/O, RNG, graphics output, simple and absolute pointer, USB I/O and USB2 host controller, serial I/O, shell parameters — written from the UEFI Specification 2.10. No EDK2 code, header or library is used anywhere: this is a settled decision, and a new protocol is added to <code>efi.h</code> from the specification.</p>
+</section>
+</section>
+
+<section class="chapter" id="ch5"><div class="ch-head"><span class="ch-kick">Chapter 5</span><h2 class="h-ch">The data model</h2></div>
+
+<section class="sec" id="ch5s1"><h3 class="h-sec">5.1 · PtDev: the disk</h3>
+<p class="lead">Three structures carry everything the table code knows: the disk (<code>PtDev</code>), the table (<code>PtTable</code>) and its partitions (<code>PtPart</code>), all in <code>src/partmgr/ptable.h</code>.</p>
+<pre class="code"><code><span class="k">typedef</span> <span class="k">struct</span> {
+    PtReadFn read;
+    PtWriteFn write;   <span class="cm">/* NULL: the disk is read-only */</span>
+    PtRandomFn random;
+    <span class="k">void</span> *ctx;
+    uint32_t bsize;    <span class="cm">/* bytes per block: 512 or 4096 */</span>
+    uint64_t nblocks;  <span class="cm">/* size of the disk in blocks */</span>
+} PtDev;</code></pre>
+<p><code>read</code> and <code>write</code> move whole blocks and return 0 or a <code>PAL_E*</code> code; <code>random</code> fills identifiers. On UEFI <code>ctx</code> is the <code>EFI_BLOCK_IO_PROTOCOL</code>; in <code>pttool</code> it is the image file. <code>write</code> is <code>NULL</code> for the boot disk and write-protected media, and every write function of <code>ptwrite.c</code> then returns <code>PAL_EROFS</code>.</p>
+</section>
+
+<section class="sec" id="ch5s2"><h3 class="h-sec">5.2 · PtTable and PtPart</h3>
+<figure class="tbl-wrap"><table class="tbl"><thead><tr><th>Field of PtTable</th><th>Meaning</th></tr></thead><tbody>
+<tr><td><code>kind</code></td><td><code>PT_NONE</code>, <code>PT_MBR</code> or <code>PT_GPT</code>.</td></tr>
+<tr><td><code>bsize</code>, <code>nblocks</code></td><td>The disk the table was read from; <code>pt_write</code> refuses another.</td></tr>
+<tr><td><code>mbr_sig</code>, <code>disk_guid</code></td><td>The disk identifier of each kind.</td></tr>
+<tr><td><code>first_usable</code>, <code>last_usable</code></td><td>GPT: the blocks partitions may use.</td></tr>
+<tr><td><code>max_entries</code>, <code>entry_size</code></td><td>GPT: the entry array (usually 128 × 128 bytes).</td></tr>
+<tr><td><code>primary_entries_lba</code>, <code>backup_lba</code>, <code>backup_entries_lba</code></td><td>GPT: where the copies are (for backups).</td></tr>
+<tr><td><code>primary_ok</code>, <code>backup_ok</code>, <code>hybrid</code></td><td>GPT: which copies passed the checks; block 0 has more than the protective entry.</td></tr>
+<tr><td><code>lba0</code></td><td>The first 512 bytes of block 0 as read: boot code and signature, kept when writing.</td></tr>
+<tr><td><code>parts</code>, <code>nparts</code></td><td>The partitions, in table order (MBR: primary and extended, then logical in disk order).</td></tr>
+<tr><td><code>notes</code>, <code>nnotes</code></td><td>Up to 8 sentences (<code>PT_MAX_NOTES</code>) for the user about what was unusual.</td></tr>
+<tr><td><code>changed</code></td><td>Something changed since the table was read (drives the title, <b>Esc</b> and the wipe rule).</td></tr>
+</tbody></table><figcaption class="cap">Table 5.1 — The description of a partition table</figcaption></figure>
+<p>A <code>PtPart</code> has <code>num</code> (the GPT entry index + 1, or 1–4 and 5… on MBR), <code>role</code> (<code>PT_PRIMARY</code>, <code>PT_EXTENDED</code>, <code>PT_LOGICAL</code>), <code>start</code> and <code>size</code> in blocks, the MBR fields <code>mbr_type</code>, <code>active</code> and <code>ebr_lba</code> (the block of the record that describes a logical partition), the GPT fields <code>type_guid</code>, <code>guid</code>, <code>attrs</code> and <code>name</code> (UTF-8, from 36 UTF-16 units), and <code>changed</code>, which puts the star on the screen. <code>pt_free</code> releases the array; a table is otherwise a plain value.</p>
+</section>
+
+<section class="sec" id="ch5s3"><h3 class="h-sec">5.3 · PtFree and the rows</h3>
+<p><code>pt_free_space</code> returns the free areas as <code>PtFree</code>: <code>start</code>, <code>size</code> and <code>logical</code>, true for an area inside the extended partition, where only a logical partition fits. Areas are aligned to 1 MiB and at least 1 MiB long (<a href="#ch7s2">7.2</a>).</p>
+<p>The screens merge partitions and free areas into <code>Row</code>s sorted by start (<code>pm_view_rows</code> in <code>view.c</code>): a row is either a partition (its index in <code>parts</code>) or a free area (its <code>PtFree</code>). The selection is an index into the rows; <code>pm_view_select</code> finds a row again by its start after the rows change.</p>
+</section>
+</section>
+
+<section class="chapter" id="ch6"><div class="ch-head"><span class="ch-kick">Chapter 6</span><h2 class="h-ch">Reading tables: ptable.c</h2></div>
+
+<section class="sec" id="ch6s1"><h3 class="h-sec">6.1 · What block 0 says</h3>
+<p class="lead"><code>pt_read</code> reads block 0, keeps its first 512 bytes in <code>lba0</code>, and decides what the disk holds. It returns 0 even when the disk has no table or problems were noted; an error only when block 0 cannot be read or the disk is impossible.</p>
+<ol class="ol">
+<li><b>55 AA</b> at bytes 510–511 and every entry's status byte 00 or 80: a valid MBR sector.</li>
+<li>An entry of type <code>EE</code>: a <b>protective MBR</b>, so the disk is GPT; other entries next to it make it <i>hybrid</i>, and a note says so.</li>
+<li>A valid MBR sector that is not the boot sector of a file system (a jump instruction, <code>EB</code> or <code>E9</code>, and <code>NTFS</code>, <code>EXFAT</code>, <code>FAT</code> or <code>FAT32</code> at their places): an <b>MBR</b>.</li>
+<li>Otherwise: if block 1 starts with <code>EFI PART</code>, a GPT whose protective MBR was wiped (noted); if block 0 is a file system's boot sector, a disk formatted without a table (a “superfloppy”, noted); if it ends in 55 AA but its entries are invalid, a note; else nothing.</li>
+</ol>
+</section>
+
+<section class="sec" id="ch6s2"><h3 class="h-sec">6.2 · GPT: two copies, checked</h3>
+<p><code>gpt_copy</code> reads a header and its entry array and accepts them only if every check passes; the first that fails becomes the reason in the note:</p>
+<figure class="tbl-wrap"><table class="tbl"><thead><tr><th>Check</th><th>The note says the copy…</th></tr></thead><tbody>
+<tr><td>The header block can be read</td><td>cannot be read</td></tr>
+<tr><td>Signature <code>EFI PART</code></td><td>has no GPT signature</td></tr>
+<tr><td>Header size between 92 bytes and one block</td><td>has an invalid size</td></tr>
+<tr><td>Header CRC-32, computed with the CRC field zeroed</td><td>has a wrong checksum</td></tr>
+<tr><td><code>MyLBA</code> equal to where it was read</td><td>is not where it says it is</td></tr>
+<tr><td>A possible layout: first ≤ last usable &lt; disk size, entry size ≥ 128 and a multiple of 8, at least one entry, at most 1 MiB of array</td><td>describes an impossible layout</td></tr>
+<tr><td>The array can be read</td><td>has an unreadable partition array</td></tr>
+<tr><td>The array's CRC-32</td><td>has a partition array with a wrong checksum</td></tr>
+</tbody></table><figcaption class="cap">Table 6.1 — The checks of a GPT copy, in order</figcaption></figure>
+<p>The primary copy is read from block 1, the backup from the primary's <code>AlternateLBA</code> — or from the last block when the primary is damaged. The primary is used when good, else the backup; when both fail the disk reads as having no table, with a note. Further notes say when the backup is not in the last block (the disk was enlarged) and when the two good copies differ in disk GUID, array CRC or number of entries. Entries whose type GUID is zero are empty and skipped; names are converted from UTF-16; a partition outside the usable area is noted.</p>
+</section>
+
+<section class="sec" id="ch6s3"><h3 class="h-sec">6.3 · MBR: the chain of logical partitions</h3>
+<p>The four entries of block 0 give the primary partitions and at most one extended partition (types <code>05</code>, <code>0F</code>, <code>85</code>; a second one is noted and ignored). Entries of type 0 or size 0 are empty. <code>mbr_logicals</code> then follows the chain of extended boot records:</p>
+<figure class="fig"><svg viewBox="0 0 860 330" xmlns="http://www.w3.org/2000/svg" font-family="Outfit,Segoe UI,Arial,sans-serif" ><rect width="860" height="330" fill="#f8fafc" rx="12"/><text x="20" y="30" text-anchor="start" font-size="12" font-weight="700" fill="#003a90">An MBR disk with two logical partitions</text><rect x="20" y="120" width="60" height="56" rx="9" fill="#0f172a"/><text x="50.0" y="144.0" text-anchor="middle" dominant-baseline="middle" font-size="12" font-weight="700" fill="#fff">MBR</text><text x="50.0" y="162.0" text-anchor="middle" font-size="10.5" fill="#fff" opacity="0.85">block 0</text><rect x="84" y="120" width="140" height="56" rx="9" fill="#0050C0"/><text x="154.0" y="148.0" text-anchor="middle" dominant-baseline="middle" font-size="12" font-weight="700" fill="#fff">1  primary</text><rect x="232" y="106" width="520" height="84" rx="8" fill="#e2e8f0" stroke="#475569" stroke-width="1.2"/><text x="492" y="100" text-anchor="middle" font-size="11" fill="#475569">extended partition (05, 0F or 85)</text><rect x="242" y="120" width="50" height="56" rx="9" fill="#475569"/><text x="267.0" y="148.0" text-anchor="middle" dominant-baseline="middle" font-size="11" font-weight="700" fill="#fff">EBR</text><rect x="296" y="120" width="170" height="56" rx="9" fill="#3b82f6"/><text x="381.0" y="148.0" text-anchor="middle" dominant-baseline="middle" font-size="12" font-weight="700" fill="#fff">5  logical</text><rect x="476" y="120" width="50" height="56" rx="9" fill="#475569"/><text x="501.0" y="148.0" text-anchor="middle" dominant-baseline="middle" font-size="11" font-weight="700" fill="#fff">EBR</text><rect x="530" y="120" width="210" height="56" rx="9" fill="#3b82f6"/><text x="635.0" y="148.0" text-anchor="middle" dominant-baseline="middle" font-size="12" font-weight="700" fill="#fff">6  logical</text><rect x="770" y="120" width="70" height="56" rx="9" fill="#cbd5e1"/><text x="805.0" y="148.0" text-anchor="middle" dominant-baseline="middle" font-size="12" font-weight="700" fill="#475569">free</text><line x1="50" y1="176" x2="50" y2="250" stroke="#475569" stroke-width="2.2" /><line x1="50" y1="250" x2="267" y2="250" stroke="#475569" stroke-width="2.2" /><path d="M259.0 255.0 L267 250 L259.0 245.0 Z" fill="#475569"/><line x1="267" y1="250" x2="267" y2="190" stroke="#475569" stroke-width="2.2" /><path d="M272.0 198.0 L267 190 L262.0 198.0 Z" fill="#475569"/><text x="150" y="244" text-anchor="middle" font-size="10.5" fill="#475569">entry of the extended partition</text><line x1="275" y1="190" x2="275" y2="222" stroke="#0050C0" stroke-width="2.2" /><line x1="275" y1="222" x2="501" y2="222" stroke="#0050C0" stroke-width="2.2" /><path d="M493.0 227.0 L501 222 L493.0 217.0 Z" fill="#0050C0"/><line x1="501" y1="222" x2="501" y2="190" stroke="#0050C0" stroke-width="2.2" /><path d="M506.0 198.0 L501 190 L496.0 198.0 Z" fill="#0050C0"/><text x="390" y="216" text-anchor="middle" font-size="10.5" fill="#0f172a">entry 2: next EBR, relative to the extended start</text><text x="380" y="88" text-anchor="middle" font-size="10.5" fill="#0f172a">entry 1: its logical partition, relative to the EBR itself</text><line x1="282" y1="94" x2="300" y2="124" stroke="#475569" stroke-width="2.2" /><path d="M291.6 119.7 L300 124 L300.2 114.6 Z" fill="#475569"/><text x="430" y="318" text-anchor="middle" font-size="12" fill="#475569">Figure 6.1 — The chain of extended boot records; logical partitions are numbered from 5</text></svg></figure>
+<p>Each record, at a block inside the extended partition, has in entry 1 its logical partition <i>relative to the record</i> and in entry 2 the next record <i>relative to the start of the extended partition</i>. The walk stops with a note on a record that cannot be read or has no <code>55 AA</code>, on a link that does not move forward or leaves the extended partition, and after 128 records — so a looping or broken chain cannot hang partmgr. Logical partitions are numbered from 5 in chain order, as Linux and sfdisk do; one that goes beyond its extended partition, or a partition beyond the end of the disk, is noted.</p>
+</section>
+
+<section class="sec" id="ch6s4"><h3 class="h-sec">6.4 · Notes</h3>
+<p>A note is a short sentence, lower case, without a full stop, added with <code>note(t, ...)</code> where a problem is found; the table keeps at most eight. The screens show them under the table as <i>Note: …</i>; the <a href="PARTMGR_Manuale_Utente.html#notes">user manual</a> explains each one. Reading never repairs anything: writing the table does, because <code>pt_write</code> always writes a complete, clean table (both GPT copies, the whole chain).</p>
+</section>
+
+<section class="sec" id="ch6s5"><h3 class="h-sec">6.5 · Type names</h3>
+<p>Two tables at the end of <code>ptable.c</code>, <code>gpt_types</code> (16 types) and <code>mbr_types</code> (28 types), give the names. Their order is the order of the list the user chooses from (<code>pt_type_at</code>); the last four MBR entries (<code>05</code>, <code>0F</code>, <code>85</code> and <code>EE</code>) are names only and never offered. <code>pt_type_name</code> returns <code>NULL</code> for an unknown type, and the screens write it as the first characters of the GUID or as <code>type XX</code> (<code>pm_type_text</code>). <code>pt_guid_str</code> and <code>pt_guid_parse</code> convert GUIDs to and from their text form, with the first three fields little-endian as GPT stores them.</p>
+</section>
+</section>
+
+<section class="chapter" id="ch7"><div class="ch-head"><span class="ch-kick">Chapter 7</span><h2 class="h-ch">Changing tables: ptedit.c</h2></div>
+
+<section class="sec" id="ch7s1"><h3 class="h-sec">7.1 · A table from zero</h3>
+<p class="lead">Nothing in <code>ptedit.c</code> touches the disk. The functions that can refuse return <code>NULL</code> on success or a message for the user, and set <code>changed</code> on what they change.</p>
+<p><code>pt_new</code> replaces the table with an empty one: all fields cleared, <code>lba0</code> zero (no boot code — boot code belongs to boot loaders), new identifiers from <code>dev-&gt;random</code> (P6). A GPT gets 128 entries of 128 bytes: the array takes 32 blocks of 512 bytes (4 of 4096), so <code>first_usable</code> is 34 (or 6) and <code>last_usable</code> is the block before the backup array. GUIDs are random with the version 4 and RFC 4122 variant bits set; an MBR signature is random and never zero. <code>PT_NONE</code> is the empty table that <code>pt_write</code> turns into deleting the table.</p>
+</section>
+
+<section class="sec" id="ch7s2"><h3 class="h-sec">7.2 · Free space</h3>
+<p>Partitions start on 1 MiB boundaries (<code>pt_align</code> = blocks per MiB). Free areas are the gaps between <i>spans</i>. At the top level the spans are the partitions that are not logical, inside the GPT usable area or blocks 1 … min(disk, 2<sup>32</sup>) − 1 of an MBR. Inside the extended partition the spans are:</p>
+<ul class="ul">
+<li>its <b>first block</b>, always reserved: the chain must start there;</li>
+<li>for each logical partition, <b>the block before it</b> and the partition: every logical partition needs a record somewhere before it, and the block right before it is the one that is always free.</li>
+</ul>
+<figure class="fig"><svg viewBox="0 0 860 250" xmlns="http://www.w3.org/2000/svg" font-family="Outfit,Segoe UI,Arial,sans-serif" ><rect width="860" height="250" fill="#f8fafc" rx="12"/><text x="20" y="30" text-anchor="start" font-size="12" font-weight="700" fill="#003a90">Inside the extended partition: spans (in use) and a gap (free)</text><rect x="20" y="80" width="44" height="50" rx="9" fill="#475569"/><text x="42.0" y="105.0" text-anchor="middle" dominant-baseline="middle" font-size="11" font-weight="700" fill="#fff">1st</text><rect x="68" y="80" width="44" height="50" rx="9" fill="#475569"/><text x="90.0" y="105.0" text-anchor="middle" dominant-baseline="middle" font-size="11" font-weight="700" fill="#fff">rec</text><rect x="116" y="80" width="200" height="50" rx="9" fill="#3b82f6"/><text x="216.0" y="105.0" text-anchor="middle" dominant-baseline="middle" font-size="12" font-weight="700" fill="#fff">logical 5</text><rect x="320" y="80" width="250" height="50" rx="9" fill="#e2e8f0" stroke="#94a3b8" stroke-width="1.2"/><text x="445" y="110" text-anchor="middle" font-size="12" fill="#475569">gap</text><rect x="574" y="80" width="44" height="50" rx="9" fill="#475569"/><text x="596.0" y="105.0" text-anchor="middle" dominant-baseline="middle" font-size="11" font-weight="700" fill="#fff">rec</text><rect x="622" y="80" width="218" height="50" rx="9" fill="#3b82f6"/><text x="731.0" y="105.0" text-anchor="middle" dominant-baseline="middle" font-size="12" font-weight="700" fill="#fff">logical 6</text><text x="42" y="152" text-anchor="middle" font-size="10.5" fill="#0f172a">always reserved</text><text x="216" y="152" text-anchor="middle" font-size="10.5" fill="#0f172a">span: the block before + the partition</text><line x1="320" y1="170" x2="380" y2="170" stroke="#0050C0" stroke-width="2.2" /><line x1="380" y1="170" x2="380" y2="130" stroke="#0050C0" stroke-width="2.2" /><path d="M385.0 138.0 L380 130 L375.0 138.0 Z" fill="#0050C0"/><text x="460" y="190" text-anchor="middle" font-size="10.5" fill="#0f172a">new record here; the partition from the next 1 MiB boundary</text><text x="430" y="238" text-anchor="middle" font-size="12" fill="#475569">Figure 7.1 — How ptedit.c finds room for a logical partition and its record</text></svg></figure>
+<p>A gap becomes a <code>PtFree</code> after rounding its start up to 1 MiB (for logical gaps, from the block after the gap's first one, which will hold the new record) if at least 1 MiB is left. This rule is what lets the space of a deleted first logical partition be used again: the record of the next one moves to the first block of the extended partition when writing, and the space in front of it is free.</p>
+</section>
+
+<section class="sec" id="ch7s3"><h3 class="h-sec">7.3 · Adding</h3>
+<p><code>pt_add</code> first refuses a disk without a table, a zero size and a partition beyond the end of the disk, then applies the rules of the table:</p>
+<figure class="tbl-wrap"><table class="tbl"><thead><tr><th>Table</th><th>Rules</th></tr></thead><tbody>
+<tr><td>GPT</td><td>Type not zero; inside the usable area; no overlap; a free entry (the lowest); name ≤ 36 UTF-16 units. The new partition gets a random GUID.</td></tr>
+<tr><td>MBR primary</td><td>Type not zero and not extended; not in block 0; below 2<sup>32</sup> blocks (2 TiB with 512-byte blocks); no overlap with top-level partitions; a free slot among 1–4.</td></tr>
+<tr><td>MBR logical, no extended yet</td><td>A free slot for the extended partition, which is created over the whole raw gap containing the start, from the gap's start rounded to 1 MiB; type <code>0F</code> if the gap reaches beyond block 0xFFFFFF (8 GiB with 512-byte blocks, the reach of CHS), else <code>05</code>. The logical partition must start after the extended one's first block, which is its record.</td></tr>
+<tr><td>MBR logical in the extended</td><td>Inside the extended partition and inside a logical gap, starting after the gap's first block, which becomes its record (<code>ebr_lba</code>).</td></tr>
+</tbody></table><figcaption class="cap">Table 7.1 — The rules of pt_add</figcaption></figure>
+<p>After an MBR change <code>renumber</code> sorts the partitions (primary and extended by number, logical by start) and numbers the logical ones 5, 6…; a partition whose number changes is marked changed.</p>
+</section>
+
+<section class="sec" id="ch7s4"><h3 class="h-sec">7.4 · Delete, type, name, active</h3>
+<ul class="ul">
+<li><code>pt_delete</code> removes a partition; the extended one takes its logical partitions with it.</li>
+<li><code>pt_set_type</code> refuses a zero type, and on MBR any change between extended and non-extended types.</li>
+<li><code>pt_set_name</code> is GPT only, at most 36 UTF-16 units.</li>
+<li><code>pt_set_active</code> is MBR only, not for the extended partition, and clears the flag everywhere else: at most one partition is active.</li>
+<li><code>pt_can_wipe</code> gives the rule of the wipe (<a href="#ch10s2">10.2</a>).</li>
+</ul>
+</section>
+</section>
+
+<section class="chapter" id="ch8"><div class="ch-head"><span class="ch-kick">Chapter 8</span><h2 class="h-ch">Writing: ptwrite.c</h2></div>
+
+<section class="sec" id="ch8s1"><h3 class="h-sec">8.1 · The writing rules</h3>
+<p class="lead">Blocks are written only in <code>ptwrite.c</code>, and only by <code>pt_write</code>, <code>pt_restore</code> and <code>pt_wipe</code>. Every write goes through <code>wr</code>, which returns <code>PAL_EROFS</code> when the disk has no write function.</p>
+<div class="callout c-warn"><div class="callout-i">!</div><div><b>Warning.</b> <code>pt_write</code> refuses a table read from a disk of another block size or length (<code>PAL_EINVAL</code>). On the screen every call to it, to <code>pt_restore</code> and to <code>pt_wipe</code> follows a red question answered with <b>Y</b> (<a href="#ch11s4">11.4</a>); a new write path must do the same.</div></div>
+</section>
+
+<section class="sec" id="ch8s2"><h3 class="h-sec">8.2 · GPT</h3>
+<p><code>write_gpt</code> recomputes the last usable block from the real disk size (so an enlarged disk gets its backup at the end) and refuses a table whose partitions do not fit. It builds the entry array (entries at index <code>num − 1</code>, names converted to UTF-16) and writes, in this order:</p>
+<figure class="fig"><svg viewBox="0 0 860 270" xmlns="http://www.w3.org/2000/svg" font-family="Outfit,Segoe UI,Arial,sans-serif" ><rect width="860" height="270" fill="#f8fafc" rx="12"/><text x="20" y="30" text-anchor="start" font-size="12" font-weight="700" fill="#003a90">What write_gpt writes, and in which order</text><rect x="20" y="80" width="80" height="60" rx="9" fill="#0f172a"/><text x="60.0" y="106.0" text-anchor="middle" dominant-baseline="middle" font-size="12" font-weight="700" fill="#fff">block 0</text><text x="60.0" y="124.0" text-anchor="middle" font-size="10.5" fill="#fff" opacity="0.85">protective MBR</text><circle cx="60" cy="166" r="12" fill="#d97706"/><text x="60" y="170" text-anchor="middle" font-size="12" font-weight="700" fill="#fff">1</text><rect x="104" y="80" width="80" height="60" rx="9" fill="#003a90"/><text x="144.0" y="106.0" text-anchor="middle" dominant-baseline="middle" font-size="12" font-weight="700" fill="#fff">block 1</text><text x="144.0" y="124.0" text-anchor="middle" font-size="10.5" fill="#fff" opacity="0.85">primary header</text><circle cx="144" cy="166" r="12" fill="#d97706"/><text x="144" y="170" text-anchor="middle" font-size="12" font-weight="700" fill="#fff">3</text><rect x="188" y="80" width="110" height="60" rx="9" fill="#0050C0"/><text x="243.0" y="106.0" text-anchor="middle" dominant-baseline="middle" font-size="12" font-weight="700" fill="#fff">blocks 2-33</text><text x="243.0" y="124.0" text-anchor="middle" font-size="10.5" fill="#fff" opacity="0.85">primary array</text><circle cx="243" cy="166" r="12" fill="#d97706"/><text x="243" y="170" text-anchor="middle" font-size="12" font-weight="700" fill="#fff">2</text><rect x="302" y="80" width="300" height="60" rx="9" fill="#cbd5e1"/><text x="452.0" y="106.0" text-anchor="middle" dominant-baseline="middle" font-size="12" font-weight="700" fill="#475569">partitions</text><text x="452.0" y="124.0" text-anchor="middle" font-size="10.5" fill="#475569" opacity="0.85">not touched</text><rect x="606" y="80" width="110" height="60" rx="9" fill="#0050C0"/><text x="661.0" y="106.0" text-anchor="middle" dominant-baseline="middle" font-size="12" font-weight="700" fill="#fff">N-33 ... N-2</text><text x="661.0" y="124.0" text-anchor="middle" font-size="10.5" fill="#fff" opacity="0.85">backup array</text><circle cx="661" cy="166" r="12" fill="#d97706"/><text x="661" y="170" text-anchor="middle" font-size="12" font-weight="700" fill="#fff">4</text><rect x="720" y="80" width="120" height="60" rx="9" fill="#003a90"/><text x="780.0" y="106.0" text-anchor="middle" dominant-baseline="middle" font-size="12" font-weight="700" fill="#fff">block N-1</text><text x="780.0" y="124.0" text-anchor="middle" font-size="10.5" fill="#fff" opacity="0.85">backup header</text><circle cx="780" cy="166" r="12" fill="#d97706"/><text x="780" y="170" text-anchor="middle" font-size="12" font-weight="700" fill="#fff">5</text><text x="430" y="200" text-anchor="middle" font-size="10.5" fill="#475569">Block numbers for 512-byte blocks and 128 entries of 128 bytes (4 blocks each with 4096-byte blocks).</text><text x="430" y="218" text-anchor="middle" font-size="10.5" fill="#475569">A hybrid MBR is left as it is: step 1 is skipped.</text><text x="430" y="258" text-anchor="middle" font-size="12" fill="#475569">Figure 8.1 — The GPT layout; both copies are always written</text></svg></figure>
+<ol class="ol">
+<li>block 0, the protective MBR — unless the table is <i>hybrid</i>, whose block 0 is left alone: the first 440 bytes as read (boot code; zero for a new table), one entry of type <code>EE</code> from block 1 over the disk (at most 2<sup>32</sup> − 1 blocks), CHS 00 02 00 as the specification gives, <code>55 AA</code>;</li>
+<li>the primary array at block 2, then the primary header at block 1;</li>
+<li>the backup array just before the last block, then the backup header in the last block.</li>
+</ol>
+<p>Headers are revision 1.0, 92 bytes, with the array CRC and then the header CRC (<a href="#ch18s4">A.4</a>). Both copies are always written, which is also how a damaged copy is repaired.</p>
+</section>
+
+<section class="sec" id="ch8s3"><h3 class="h-sec">8.3 · MBR and the chain</h3>
+<p><code>write_mbr</code> writes block 0 with the boot code as read, the disk signature, one entry per primary or extended partition at slot <code>num − 1</code>, and <code>55 AA</code>. Before it, a GPT header in block 1 or in the last block is cleared — if it is not inside a partition of the new table — so that no system finds the old GPT. Every entry gets CHS fields computed with 255 heads and 63 sectors, or <code>FE FF FF</code> beyond cylinder 1023 (<a href="#ch18s5">A.5</a>).</p>
+<p>Then the chain, with the logical partitions in disk order. Record <i>i</i> goes:</p>
+<ul class="ul">
+<li>for the first logical partition, to the first block of the extended partition;</li>
+<li>for the others, where it was (<code>ebr_lba</code>) if that block is still between the previous partition and this one, else to the block just before the partition — which <code>ptedit.c</code> keeps free.</li>
+</ul>
+<p>Entry 1 of a record is its logical partition relative to the record. Entry 2 links to the next record: type <code>05</code>, start relative to the extended partition, and size from the next record to the end of the next logical partition — the convention of fdisk and sfdisk, which the tests check byte by byte. An extended partition without logical ones gets an empty record with <code>55 AA</code>.</p>
+</section>
+
+<section class="sec" id="ch8s4"><h3 class="h-sec">8.4 · No table</h3>
+<p>For <code>PT_NONE</code>, <code>erase</code> writes zeros to block 0, block 1 and the last block: the MBR and both GPT headers, which is what every system looks at. Nothing else is touched — the partitions' contents stay where they were.</p>
+</section>
+</section>
+
+<section class="chapter" id="ch9"><div class="ch-head"><span class="ch-kick">Chapter 9</span><h2 class="h-ch">Backup and restore</h2></div>
+
+<section class="sec" id="ch9s1"><h3 class="h-sec">9.1 · The backup file</h3>
+<p class="lead"><code>pt_backup</code> builds the file in memory from the table <i>as read from the disk</i>: a backup never contains unwritten changes. All numbers are little-endian.</p>
+<figure class="tbl-wrap"><table class="tbl"><thead><tr><th>Offset</th><th>Size</th><th>Content</th></tr></thead><tbody>
+<tr><td>0</td><td>8</td><td><code>PARTMGR1</code></td></tr>
+<tr><td>8</td><td>4</td><td>Format version: 1</td></tr>
+<tr><td>12</td><td>4</td><td>Block size of the disk</td></tr>
+<tr><td>16</td><td>8</td><td>Size of the disk in blocks</td></tr>
+<tr><td>24</td><td>4</td><td>Number of extents</td></tr>
+<tr><td>28</td><td>…</td><td>For each extent: first block (8), number of blocks (4), the blocks</td></tr>
+<tr><td>end − 4</td><td>4</td><td>CRC-32 of everything before it</td></tr>
+</tbody></table><figcaption class="cap">Table 9.1 — The format of a backup file</figcaption></figure>
+</section>
+
+<section class="sec" id="ch9s2"><h3 class="h-sec">9.2 · What is saved</h3>
+<p>The extents are block 0 and, for a GPT, block 1, the primary array, the backup header and the backup array (when the backup copy was found); for an MBR, the first block of the extended partition and every logical partition's record. Duplicates are left out and every extent is cut to the disk. A disk without a table has nothing to back up: <code>pt_backup</code> returns <code>PAL_ENOENT</code>.</p>
+</section>
+
+<section class="sec" id="ch9s3"><h3 class="h-sec">9.3 · Restore</h3>
+<p><code>pt_restore</code> checks the whole file before writing a block, and returns a message for the user at the first problem:</p>
+<ol class="ol">
+<li>the magic and a length of at least 32 bytes (<i>this is not a partmgr backup file</i>);</li>
+<li>the CRC (<i>damaged, wrong checksum</i>), the version (<i>made by a newer partmgr</i>);</li>
+<li>the block size and the disk size — a backup never goes to a different disk;</li>
+<li>every extent inside the disk and inside the file (<i>truncated</i>, <i>bad block range</i>), with no data left over (<i>extra data</i>).</li>
+</ol>
+<p>It reads the current table, writes the extents, and — when the backup has no GPT but the disk had one — clears the old GPT's headers and arrays except where a restored partition lies, so that restoring over a changed disk gives back the same blocks (the tests compare the images byte for byte).</p>
+</section>
+
+<section class="sec" id="ch9s4"><h3 class="h-sec">9.4 · On the screen</h3>
+<p><code>backup</code> and <code>restore</code> in <code>diskview.c</code> ask for a file with the list of volumes (<code>fs0, fs1 (ro), …</code>) under the question. The first proposal is <code>fsN:\partmgr-blkM.bin</code> on the volume partmgr was started from if it can be written, else on the first writable one; after a backup or a restore the same file is proposed again for the rest of the session. <code>canonical</code> turns what was typed into a canonical path (<code>FS1:/dir/file</code> → <code>fs1:\dir\file</code>) and refuses a path without its volume.</p>
+<ul class="ul">
+<li><b>Backup</b> only reads the disk, so it works on the boot disk and on write-protected ones too; an existing file is replaced only after a red <i>Replace it? (Y/N)</i>.</li>
+<li><b>Restore</b> is refused on read-only disks, reads files up to 64 MiB, and asks <i>Restore FILE to blkN? (Y/N)</i> — adding <i>Unwritten changes are lost.</i> when there are some. After it the table is read again from the disk.</li>
+</ul>
+</section>
+</section>
+
+<section class="chapter" id="ch10"><div class="ch-head"><span class="ch-kick">Chapter 10</span><h2 class="h-ch">Wipe</h2></div>
+
+<section class="sec" id="ch10s1"><h3 class="h-sec">10.1 · The engine: pt_wipe</h3>
+<pre class="code"><code><span class="k">typedef</span> bool (*PtProgressFn)(<span class="k">void</span> *ctx, <span class="k">int</span> pass, uint64_t done, uint64_t total);
+<span class="k">int</span> pt_wipe(<span class="k">const</span> PtDev *dev, uint64_t start, uint64_t count, PtProgressFn progress, <span class="k">void</span> *ctx);</code></pre>
+<p><code>pt_wipe</code> overwrites <code>count</code> blocks from <code>start</code> in two passes — random data, then zeros (P9) — in chunks of 4 MiB (the last one shorter). The random data comes from xoshiro256**, seeded with 32 bytes from <code>dev-&gt;random</code> (never all zero): the aim is to overwrite every byte with data that has no relation to the old contents, not to be unpredictable, and a fast generator keeps the pass at disk speed. The buffer is filled again for every chunk, so no two chunks are alike.</p>
+<p>The progress function is called before the first chunk of each pass (<code>done</code> = 0) and after every chunk, with the pass and the blocks done in it. When it returns <code>false</code> the wipe stops and returns <code>PAL_EABORT</code>; a failed write stops it with that write's error. A disk without a write function gets <code>PAL_EROFS</code>, a range outside the disk <code>PAL_EINVAL</code>.</p>
+</section>
+
+<section class="sec" id="ch10s2"><h3 class="h-sec">10.2 · The rules: pt_can_wipe</h3>
+<p><code>pt_can_wipe</code> (in <code>ptedit.c</code>) refuses every partition while the table has unwritten changes — the position on the screen may not be the one on the disk — and the extended partition of an MBR, whose blocks hold the logical partitions and the chain of their records. A logical partition is wiped from its first block to its last: its record lies before it and is not touched.</p>
+<div class="callout c-info"><div class="callout-i">i</div><div><b>Note.</b> On SSD, NVMe and USB flash drives overwriting does not guarantee that the old data is gone; the drives' own erase commands work only on whole disks and are left out (P9). The <a href="PARTMGR_Manuale_Utente.html#wipe">user manual</a> says so; the screens stay terse.</div></div>
+</section>
+
+<section class="sec" id="ch10s3"><h3 class="h-sec">10.3 · Progress on the screen</h3>
+<p><code>wipe_partition</code> in <code>diskview.c</code> checks <code>may_change</code> and <code>pt_can_wipe</code>, asks the red question <i>Wipe partition N of blkM (type, size, "name")? (Y/N)</i> and calls <code>pt_wipe</code> with <code>wipe_progress</code>. That function looks for a request to stop without waiting — <b>Esc</b> on the text screen, <b>Esc</b> or a click on <i>Stop</i> in the window — and then asks <i>Stop the wipe? (Y/N)</i>; a yes returns <code>false</code>.</p>
+<p>It redraws the progress at the start and end of each pass and at most five times a second in between (<code>draw_wipe</code>): the pass (<i>random data</i> or <i>zeros</i>), a bar, the percentage of the pass, the amount written in it, the speed over both passes so far and the time left for both (<code>fmt_time</code>), estimated after half a second. On the text screen the bar is made of <code>&#9608;</code> and <code>&#9617;</code> in a red box with <i>Esc: stop</i>; in the window <code>pm_screen-&gt;wipe</code> draws a red box with a <i>Stop</i> button. Nothing else is drawn during the wipe, so the console keeps up with the disk. The message line then says <i>wiped (size, 2 passes, N s)</i>, <i>stopped in pass P: partly overwritten</i>, or the error.</p>
+</section>
+</section>
+
+<section class="chapter" id="ch11"><div class="ch-head"><span class="ch-kick">Chapter 11</span><h2 class="h-ch">Disks and the text screens</h2></div>
+
+<section class="sec" id="ch11s1"><h3 class="h-sec">11.1 · Finding the disks: disks_efi.c</h3>
+<p class="lead"><code>pm_disks</code> locates every handle with <code>EFI_BLOCK_IO_PROTOCOL</code>, sorts them by device-path text and names them <code>blkN</code> by position among all of them, partitions included — so a disk keeps its name from one start to the next while the hardware does not change. It then keeps the whole disks with a medium and a block size of at least 512.</p>
+<ul class="ul">
+<li><b>The boot disk</b> is the one whose device path the path of <code>gLoadedImage-&gt;DeviceHandle</code> (the partition partmgr was loaded from) starts with, followed by <code>/</code> or nothing. It and write-protected media get <code>write = NULL</code> (P8: no override).</li>
+<li><b>The kind</b> (NVMe, SATA, USB, SCSI, ATA, SD, eMMC, UFS, SAS, iSCSI, else <i>disk</i>) comes from the node names in the device path.</li>
+<li><b>Block I/O</b> goes through a page-aligned bounce buffer from <code>AllocatePages</code>, which satisfies any <code>IoAlign</code>; every write is followed by <code>FlushBlocks</code>.</li>
+<li><b>Random bytes</b> come from <code>EFI_RNG_PROTOCOL</code> when the firmware has it, else from a SplitMix64 generator stirred with the time-stamp counter and the clock.</li>
+</ul>
+<p>The array stays valid until the next call; every call locates the devices again, which is how a rescan works.</p>
+</section>
+
+<section class="sec" id="ch11s2"><h3 class="h-sec">11.2 · Drawing and dialogs: ui.c</h3>
+<p><code>ui_text</code> writes a UTF-8 text at a position, padded or cut to a width counted in characters; it never writes the last cell of the screen, which scrolls some consoles. Dialogs are boxes in the middle of the screen, drawn over it, at most 70 columns wide; the caller redraws the screen before the next dialog (<code>draw</code> in <code>diskview.c</code>).</p>
+<ul class="ul">
+<li><code>ui_keybars</code> draws the key bars at the bottom: a group name, then each key white on blue with its action after it — always the same keys in the same colours, so the bars never move; a key that does not apply answers with a message instead (P10). Both bars use one style, the widest that fits: boxes with a space on each side and the group names, then narrow boxes, then narrow boxes without the names.</li>
+<li><code>ui_message</code> waits for a key (<i>Press a key.</i>) and turns the lower-case first letter of a message of the table code into a capital.</li>
+<li><code>ui_yesno</code> takes <b>Y</b>, <b>N</b> and <b>Esc</b> (= no); <b>Enter</b> does nothing there, so a key pressed twice cannot write (P8).</li>
+<li><code>ui_input</code> shows a field whose proposed text, white on blue, is replaced by the first character typed; arrows, Home, End, Backspace and Delete edit it (<i>Enter OK · Esc Cancel</i>).</li>
+<li><code>ui_menu</code> is a scrolling list with Page Up/Down, Home and End (<i>Enter Choose · Esc Cancel</i>).</li>
+</ul>
+<p>With <code>warn</code> set the boxes are white on red with a yellow title: every operation that destroys data uses them. When <code>ui_dialogs</code> is set the four dialog functions call the window's instead (<a href="#ch12s5">12.5</a>).</p>
+</section>
+
+<section class="sec" id="ch11s3"><h3 class="h-sec">11.3 · The list of disks: main.c</h3>
+<p>Every turn of the loop calls <code>ui_init</code> (the console size) and <code>pm_disks</code>, and reads each disk's table to fill the columns <i>Disk, Type, Size, Table, Partitions</i> and the note <i>started from here: read only</i> or <i>write-protected</i>; the title reads <i>EFI Partition Manager 0.2.1</i>. The arrows, Home and End move the selection, <b>Enter</b> opens the disk (<code>pm_disk_screen</code>), <b>Q</b> or <b>Esc</b> quits, and any other key — <b>R</b> included — reads the disks again. The key bar is <i>Enter Open · R Rescan · Q Quit</i>.</p>
+</section>
+
+<section class="sec" id="ch11s4"><h3 class="h-sec">11.4 · The screen of a disk: diskview.c</h3>
+<figure class="fig"><img src="assets/partmgr-text-disk.png" width="816" height="608" alt="The text screen of a GPT disk: title bar, the rows of the partitions and the free space, and the two key bars at the bottom"><figcaption class="cap">Figure 11.1 — The text screen of a disk: the title, the rows, the two key bars</figcaption></figure>
+<p><code>pm_disk_screen</code> reads the table into a <code>View</code> and loops: <code>draw</code>, a key, then the arrows, Home and End move in the rows, <b>Esc</b> leaves (asking <i>Discard the unwritten changes? (Y/N)</i> when there are some), and every other key goes to <code>pm_disk_action</code>. The title shows the disk, its kind, size and table, and on the right <i>* = changes not written</i> or the read-only note. Rows show number (with <code>*</code> when changed), start, size, type and the flags (MBR: <i>active</i>, <i>logical</i>) or the name (GPT); changed partitions are yellow, free space dark grey, the selection black on cyan; notes are yellow, the message line green or red.</p>
+<figure class="tbl-wrap"><table class="tbl"><thead><tr><th>Bar</th><th>Keys</th><th>Function</th></tr></thead><tbody>
+<tr><td>Partition:</td><td><b>N</b> New · <b>D</b> Delete · <b>T</b> Type · <b>R</b> Rename · <b>A</b> Active · <b>W</b> Wipe</td><td><code>new_partition</code>, <code>delete_partition</code>, <code>change_type</code>, <code>rename_partition</code>, <code>toggle_active</code>, <code>wipe_partition</code></td></tr>
+<tr><td>Disk:</td><td><b>Enter</b> Write · <b>Z</b> New table · <b>X</b> Delete table · <b>B</b> Backup · <b>S</b> Restore · <b>Esc</b> Back</td><td><code>write_table</code>, <code>new_table</code>, <code>delete_table</code>, <code>backup</code>, <code>restore</code></td></tr>
+</tbody></table><figcaption class="cap">Table 11.1 — The keys of the screen of a disk and the functions behind them</figcaption></figure>
+<p>Every action follows the same pattern: <code>may_change</code> refuses on the boot disk and on read-only media; dialogs collect the input; one <code>pt_*</code> call changes the table and returns a message on refusal; <code>pm_view_rows</code> and <code>pm_say</code> update the screen. A key that does not apply answers on the message line (<i>Select a free area.</i>, <i>Select a partition first.</i>, <i>MBR partitions have no name.</i>…). A new partition asks the start (proposed: the free area's start, printed by <code>pm_fmt_exact</code>), rounds it up to 1 MiB, asks the size (proposed: <code>rest</code>), the type from the list or <i>Other…</i> (a GUID or a hex byte), and on GPT the name; on an MBR without an extended partition it first asks <i>Primary</i> or <i>Logical (creates the extended partition)</i>.</p>
+<p>Only four functions reach the disk: <code>write_table</code>, <code>restore</code> and <code>wipe_partition</code> write it, <code>backup</code> only reads it. The first three go through <code>confirm_destroy</code>, the red question answered with <b>Y</b> or <b>N</b>; a refusal leaves <i>Nothing was written.</i> on the message line. After writing, the table is read back from the disk, so the screen shows what the disk holds.</p>
+</section>
+
+<section class="sec" id="ch11s5"><h3 class="h-sec">11.5 · Sizes: units.c</h3>
+<p><code>pm_parse_size</code> reads a number with up to six decimals (point or comma) and a binary unit — <code>B</code>, <code>K</code>, <code>M</code>, <code>G</code>, <code>T</code>, optionally followed by <code>B</code> or <code>iB</code>; <code>s</code> for blocks; no unit means MiB — or <code>rest</code>/<code>all</code>/<code>max</code>, and refuses overflows. <code>pm_fmt_size</code> prints one decimal (<code>194.9 MiB</code>); <code>pm_fmt_exact</code> prints whole MiB or GiB when exact, so that a proposed start reads back to the same block. The <a href="PARTMGR_Manuale_Utente.html#sizes">user manual</a> lists the forms for the user.</p>
+</section>
+</section>
+
+<section class="chapter" id="ch12"><div class="ch-head"><span class="ch-kick">Chapter 12</span><h2 class="h-ch">The graphical interface</h2></div>
+
+<section class="sec" id="ch12s1"><h3 class="h-sec">12.1 · Drawing: gfx.c</h3>
+<p class="lead">The graphical interface (P18–P25) draws the whole window on a canvas in memory and copies it to the screen. A <code>GfxCanvas</code> is <code>w</code> × <code>h</code> pixels of <code>0x00RRGGBB</code>, with a clip rectangle outside which nothing is drawn. The code is portable and uses integers only (the UEFI build has no floating point), so the same canvases are drawn on Linux by the tests.</p>
+<figure class="tbl-wrap"><table class="tbl"><thead><tr><th>Function</th><th>Draws</th></tr></thead><tbody>
+<tr><td><code>gfx_fill</code>, <code>gfx_frame</code></td><td>A rectangle; a frame of some pixels inside one.</td></tr>
+<tr><td><code>gfx_round_rect</code></td><td>A rectangle with rounded corners and an optional border. Each corner pixel is blended by how much of it the shape covers, counted on 4 × 4 samples in eighths of a pixel.</td></tr>
+<tr><td><code>gfx_hatch</code></td><td>Diagonal lines every few pixels: the free space in the disk bar.</td></tr>
+<tr><td><code>gfx_text</code>, <code>gfx_text_width</code></td><td>UTF-8 text in a line whose top is given, returning the x after it; its width.</td></tr>
+<tr><td><code>gfx_clip</code>, <code>gfx_unclip</code></td><td>Limit drawing to a rectangle, for example a label to its block.</td></tr>
+<tr><td><code>gfx_arrow</code></td><td>The mouse pointer: an arrow of 12 × 19 pixels, white with a black outline, at a whole multiple of that size.</td></tr>
+</tbody></table><figcaption class="cap">Table 12.1 — The drawing primitives</figcaption></figure>
+</section>
+
+<section class="sec" id="ch12s2"><h3 class="h-sec">12.2 · The font</h3>
+<p>partmgr has no font engine (P24). <code>tools/gen-font.py</code> renders Inter 4.1 once with Pillow — sizes 16, 20, 26, 32, 40 and 52 pixels, regular and semibold, ASCII, Latin-1 and a few punctuation marks and arrows — into grey levels of 4 bits per pixel, and records for each glyph its advance in 1/64 pixel (unrounded, as Raqm lays text out), its offset from the baseline and its size, and for each face the kerning of the ASCII pairs that differ by at least an eighth of a pixel. The format is described at the top of <code>gen-font.py</code> and in <a href="#ch18s7">A.7</a>.</p>
+<p><code>gfx_fonts_init</code> checks every offset of the embedded file before the first use (a damaged file means no window). <code>gfx_text</code> places each glyph at the rounded position, adds the kerning of the pair, and blends the grey levels between the background and the colour. Characters Inter lacks are drawn as <code>?</code>. <code>gfx_font</code> picks the largest size not above the one asked for. The file is about 700 KB; the size of <code>partmgr.efi</code> is no concern (P23). The font's OFL licence is in <code>NOTICE.md</code>.</p>
+</section>
+
+<section class="sec" id="ch12s3"><h3 class="h-sec">12.3 · The window: gui.c</h3>
+<p>The window follows the approved mockup (<code>docs/assets/gui-mockup.png</code>, P20): the disks on the left; on the right the selected disk as a bar to scale above the table of its rows; a message line; two rows of buttons.</p>
+<figure class="fig"><img src="assets/partmgr-mbr.png" width="1024" height="768" alt="The window on an MBR disk: the list of disks, the bar with the extended partition as a band around two logical partitions, the table and the buttons"><figcaption class="cap">Figure 12.1 — The window at 1024 × 768 on an MBR disk: the extended partition is a band around its logical partitions</figcaption></figure>
+<ul class="ul">
+<li><b>Layout</b> (<code>layout</code>, run before every drawing): the font by the screen's height — 16 pixels up to 600 rows, 20 up to 900, 26 up to 1300, 32 up to 1700, 40 up to 2000, 52 above, so that 1080 and 2160 rows have the same proportions (P23) — and every measure from its line height: the title bar, the list of disks (300/1280 of the width, within 10 and 14 lines; at least 8 below 800 pixels), the disk's line, the bar (two lines high), the table (as many rows as fit above the notes), the message line and the rows of buttons.</li>
+<li><b>The buttons</b> keep the group names <i>Partition:</i> and <i>Disk:</i> when both rows fit, else lose them, else get narrower margins and gaps, else go on as many rows as they need. <i>F5 Rescan</i> sits in the header of the list of disks.</li>
+<li><b>The table</b>: the columns of the text screen at the proportions of the mockup, never narrower than a number, a size or a type; a cell may run over the next ones while they are empty; changed partitions in amber with their <code>*</code>, free space in grey; notes under it.</li>
+<li><b>The bar</b>: every row at its place to scale (at least 3 pixels wide), coloured by type — EFI orange, swap red, Linux green, Microsoft, Windows, FAT and NTFS blue, others lilac —, the free space hatched, the extended partition a band around its logical partitions. A label is whole, or the number only, or absent: never cut. The selected row is framed.</li>
+<li><b>The disks</b>: name, kind and size, the table and the number of partitions (read once, and again after an action and with <b>F5</b>), and <i>started from here: read only</i> or <i>write-protected</i>, split after its colon when it does not fit. In a narrow list the kind of disk moves to the second line. At start the first disk partmgr may change is opened.</li>
+<li><b>Very large screens</b> are drawn at their own resolution with the faces of 40 and 52 pixels, so the text stays sharp; above 1700 rows the pointer is drawn twice as large.</li>
+</ul>
+</section>
+
+<section class="sec" id="ch12s4"><h3 class="h-sec">12.4 · Keys and the mouse</h3>
+<ul class="ul">
+<li><b>Keys</b>: the arrows, Home and End move in the list that has the keys — the rows, or the disks after <b>Tab</b>, which moves them back and forth; its selection is blue, the other's pale. <b>Page Up</b> and <b>Page Down</b> change the disk at any time, <b>F5</b> reads the disks again, <b>Esc</b> quits. Every other key goes to <code>pm_disk_action</code>.</li>
+<li><b>The mouse</b>: a click on a button is its key; on a disk it opens it; on a row of the table or a block of the bar it selects it (a logical partition before the extended band). The button under the pointer is highlighted.</li>
+<li><b>The pointer</b> is drawn on the screen over the canvas, which stays as it is: moving it copies back only the small area it leaves and draws the arrow on a patch where it enters. It is drawn only when a pointing device was found.</li>
+<li><b>Leaving a disk</b> with unwritten changes — another disk, <b>F5</b>, <b>Esc</b> — asks <i>Discard the unwritten changes? (Y/N)</i> first, as leaving the screen of a disk does in text.</li>
+</ul>
+<p>The loop waits for a key with a timeout of 10 ms and reads the pointer in between (<code>wait_input</code>); a press of the left button is a click at the pointer's position.</p>
+</section>
+
+<section class="sec" id="ch12s5"><h3 class="h-sec">12.5 · Actions and dialogs</h3>
+<p>While the window runs, <code>ui_dialogs</code> points to its dialogs: a box in the middle of the dimmed window (every pixel at 3/5), at most 26 line heights wide, with a blue title — or red, with the text in semibold red, for a warning —, the text wrapped to its width at spaces and at every line break, and buttons with their keys, the first on the left (red for a warning).</p>
+<figure class="tbl-wrap"><table class="tbl"><thead><tr><th>Dialog</th><th>Buttons</th><th>Keys and clicks</th></tr></thead><tbody>
+<tr><td><code>gui_message</code></td><td>Enter OK</td><td>Any key, as <i>Press a key.</i> in text; a click on OK.</td></tr>
+<tr><td><code>gui_yesno</code></td><td>Y Yes · N No</td><td><b>Y</b>; <b>N</b> or <b>Esc</b>; a click on a button. <b>Enter</b> does nothing (P8).</td></tr>
+<tr><td><code>gui_input</code></td><td>Enter OK · Esc Cancel</td><td>The proposed text selected, replaced by the first character typed, and a caret; the editing keys of the text field.</td></tr>
+<tr><td><code>gui_menu</code></td><td>Enter Choose · Esc Cancel</td><td>The keys of the text list; a click on an item chooses it; a scroll mark when the list is longer than the box.</td></tr>
+</tbody></table><figcaption class="cap">Table 12.2 — The window's dialogs</figcaption></figure>
+<p><code>pm_screen</code> points to <code>gui_redraw</code>, <code>gui_wipe</code> (the red progress box with pass, bar, percentage, amount, speed and time left, and an <i>Esc Stop</i> button) and <code>gui_wipe_stop</code> (<b>Esc</b>, or a click on Stop). After an action the summary of the disk in the list is read again (<code>summarise_selected</code>).</p>
+</section>
+
+<section class="sec" id="ch12s6"><h3 class="h-sec">12.6 · The description on the serial port</h3>
+<p>After every drawing <code>log_window</code> describes the window on the serial port of the console (<code>pal_serial_log</code>), one line per item, each with the point to click on. The QEMU test reads the window from there (P22); on a machine whose console is not on a serial port nothing is written.</p>
+<pre class="code"><code>gui: pointer devices: firmware 0, partmgr's USB driver 1
+gui: window 1280x800 font 20
+gui: disk NAME KIND SIZE TABLE, N partitions[, note][ &lt;] at X,Y
+gui: shows NAME KIND SIZE TABLE[ *]
+gui: row # START SIZE TYPE [NAME|FLAGS][ &lt;][ at X,Y] bar X,Y
+gui: note TEXT
+gui: button KEY LABEL at X,Y[ hover]
+gui: buttons N rows, right edge X
+gui: focus disks|partitions
+gui: message TEXT
+gui: pointer X,Y
+gui: shown
+<span class="cm">dialogs and the wipe</span>
+gui: dialog TITLE[ (warning)]: TEXT          <span class="cm">the whole text, not wrapped</span>
+gui: dbutton KEY LABEL at X,Y
+gui: field TEXT                              <span class="cm">after every change</span>
+gui: item TEXT at X,Y[ &lt;]                    <span class="cm">the visible items of a list</span>
+gui: dialog shown | gui: dialog closed
+gui: wipe TITLE pass P N% AMOUNT stop at X,Y
+gui: closed, text cursor on|off</code></pre>
+</section>
+</section>
+
+<section class="chapter" id="ch13"><div class="ch-head"><span class="ch-kick">Chapter 13</span><h2 class="h-ch">The pointer and the USB mouse driver</h2></div>
+
+<section class="sec" id="ch13s1"><h3 class="h-sec">13.1 · Two kinds of devices</h3>
+<p class="lead">OVMF has no mouse driver at all, and a real firmware may lack one too, so partmgr brings its own for USB mice (P21). <code>pal_pointer_open</code> gathers two kinds of devices, up to eight of each, and returns how many it found; <code>pal_pointer_info</code> says <i>firmware N, partmgr's USB driver M</i>.</p>
+<figure class="fig"><svg viewBox="0 0 860 300" xmlns="http://www.w3.org/2000/svg" font-family="Outfit,Segoe UI,Arial,sans-serif" ><rect width="860" height="300" fill="#f8fafc" rx="12"/><rect x="20" y="50" width="190" height="54" rx="9" fill="#475569"/><text x="115.0" y="73.0" text-anchor="middle" dominant-baseline="middle" font-size="12" font-weight="700" fill="#fff">Simple Pointer</text><text x="115.0" y="91.0" text-anchor="middle" font-size="10.5" fill="#fff" opacity="0.85">firmware, with a device path</text><rect x="20" y="120" width="190" height="54" rx="9" fill="#475569"/><text x="115.0" y="143.0" text-anchor="middle" dominant-baseline="middle" font-size="12" font-weight="700" fill="#fff">Absolute Pointer</text><text x="115.0" y="161.0" text-anchor="middle" font-size="10.5" fill="#fff" opacity="0.85">firmware, with a device path</text><rect x="20" y="190" width="190" height="54" rx="9" fill="#0050C0"/><text x="115.0" y="213.0" text-anchor="middle" dominant-baseline="middle" font-size="12" font-weight="700" fill="#fff">USB I/O: HID 3/1/2</text><text x="115.0" y="231.0" text-anchor="middle" font-size="10.5" fill="#fff" opacity="0.85">no driver owns it</text><rect x="300" y="190" width="180" height="54" rx="9" fill="#3b82f6"/><text x="390.0" y="213.0" text-anchor="middle" dominant-baseline="middle" font-size="12" font-weight="700" fill="#fff">report()</text><text x="390.0" y="231.0" text-anchor="middle" font-size="10.5" fill="#fff" opacity="0.85">async interrupt transfer</text><line x1="210" y1="217" x2="300" y2="217" stroke="#0050C0" stroke-width="2.2" /><path d="M292.0 222.0 L300 217 L292.0 212.0 Z" fill="#0050C0"/><rect x="560" y="110" width="150" height="70" rx="9" fill="#003a90"/><text x="635.0" y="141.0" text-anchor="middle" dominant-baseline="middle" font-size="12" font-weight="700" fill="#fff">pal_pointer_read</text><text x="635.0" y="159.0" text-anchor="middle" font-size="10.5" fill="#fff" opacity="0.85">sums at TPL_NOTIFY</text><line x1="210" y1="77" x2="560" y2="135" stroke="#475569" stroke-width="2.2" /><path d="M551.3 138.6 L560 135 L552.9 128.8 Z" fill="#475569"/><line x1="210" y1="147" x2="560" y2="145" stroke="#475569" stroke-width="2.2" /><path d="M552.0 150.0 L560 145 L552.0 140.0 Z" fill="#475569"/><line x1="480" y1="217" x2="560" y2="165" stroke="#0050C0" stroke-width="2.2" /><path d="M556.0 173.6 L560 165 L550.6 165.2 Z" fill="#0050C0"/><rect x="760" y="110" width="80" height="70" rx="9" fill="#0f172a"/><text x="800.0" y="141.0" text-anchor="middle" dominant-baseline="middle" font-size="12" font-weight="700" fill="#fff">gui.c</text><text x="800.0" y="159.0" text-anchor="middle" font-size="10.5" fill="#fff" opacity="0.85">PalPointer</text><line x1="710" y1="145" x2="760" y2="145" stroke="#475569" stroke-width="2.2" /><path d="M752.0 150.0 L760 145 L752.0 140.0 Z" fill="#475569"/><text x="390" y="270" text-anchor="middle" font-size="10.5" fill="#0f172a">BY_DRIVER open: refused when a firmware driver already has the mouse</text><text x="430" y="288" text-anchor="middle" font-size="12" fill="#475569">Figure 13.1 — The two kinds of pointing devices, read together</text></svg></figure>
+<ul class="ul">
+<li><b>The firmware's pointers</b>: every Simple Pointer and Absolute Pointer protocol on a handle with a device path — a real device. The console's own pointer has none: it only adds up the others, and exists even when there is no mouse, so it is left out. Relative counts become pixels at about one pixel per count at 8 counts per millimetre; absolute positions are scaled to 0…65535.</li>
+<li><b>partmgr's USB mice</b>: every USB I/O interface of class HID, subclass boot, protocol mouse (3, 1, 2) with an interrupt-in endpoint.</li>
+</ul>
+</section>
+
+<section class="sec" id="ch13s2"><h3 class="h-sec">13.2 · partmgr's own driver</h3>
+<ol class="ol">
+<li>partmgr opens the interface <code>BY_DRIVER</code>, as a driver does: when a firmware driver already has it the open is refused and the mouse is the firmware's. Meanwhile the firmware cannot take it.</li>
+<li>It sends <code>SET_PROTOCOL</code> (boot: three bytes, buttons, x, y) and <code>SET_IDLE</code> (report changes only; optional, it may stall).</li>
+<li>It starts an asynchronous interrupt transfer: the host controller polls the mouse at the endpoint's interval and calls <code>report</code> with each report, which adds the movement up and keeps the buttons.</li>
+<li><code>pal_pointer_read</code> takes the sums at <code>TPL_NOTIFY</code>, so a report cannot arrive halfway, and returns false when nothing moved and no button changed.</li>
+</ol>
+<p>When no USB interface exists at all, the USB host controllers are connected first (<code>ConnectController</code>): a firmware that starts fast may not have looked at the devices. <code>pal_pointer_close</code> stops the transfers and closes the interfaces, so the firmware gets the mice back.</p>
+</section>
+
+<section class="sec" id="ch13s3"><h3 class="h-sec">13.3 · Limits</h3>
+<div class="callout c-warn"><div class="callout-i">!</div><div><b>Warning.</b> Tablets and touchscreens have no boot protocol and PS/2 mice are not supported: they work only through a firmware driver. QEMU's default mouse is PS/2, so in QEMU partmgr needs <code>-device qemu-xhci -device usb-mouse</code> to have a pointer. Two cases cannot be tried in QEMU: a firmware that has its own mouse driver, and one that has not connected its USB controllers — real hardware will tell.</div></div>
+</section>
+</section>
+
+<section class="chapter" id="ch14"><div class="ch-head"><span class="ch-kick">Chapter 14</span><h2 class="h-ch">Testing</h2></div>
+
+<section class="sec" id="ch14s1"><h3 class="h-sec">14.1 · pttool</h3>
+<p class="lead">The table code is tested on Linux against sfdisk and parted; the program is tested in QEMU. Every statement about behaviour comes from a run (P15, P22).</p>
+<p><code>tests/partmgr/pttool.c</code> is the table code compiled for Linux (with AddressSanitizer and UBSan) around an image file. It reads the table, runs commands on it in order, and prints the table in memory as <code>key=value</code> lines:</p>
+<pre class="code"><code>$ build/tests/pttool disk.img new gpt add primary 2048 204800 C12A7328-F81F-11D2-BA4B-00A0C93EC93B EFI write
+$ build/tests/pttool disk.img del 2 free
+$ build/tests/pttool disk.img backup table.bin
+$ build/tests/pttool disk.img -b 4096 size 1.5G</code></pre>
+<p>Commands: <code>new gpt|mbr|none</code>, <code>add primary|logical START SIZE TYPE NAME</code> (blocks; a hex byte or a GUID; <code>-</code> for no name), <code>del N</code>, <code>type N TYPE</code>, <code>name N NAME</code>, <code>active N on|off</code>, <code>free</code>, <code>write</code>, <code>reread</code>, <code>backup FILE</code>, <code>restore FILE</code>, <code>size TEXT</code>, and <code>wipe N [PASS CALL]</code>, which wipes partition N and, with PASS and CALL, stops when the progress function is called for the CALL-th time in pass PASS — as if Esc had been pressed. An error prints <code>error=MESSAGE</code> and exits with 1.</p>
+</section>
+
+<section class="sec" id="ch14s2"><h3 class="h-sec">14.2 · The table tests</h3>
+<p><code>tests/partmgr/run-tests.py</code>, run by <code>make test</code>:</p>
+<ul class="ul">
+<li><b>Reading.</b> Images built with <code>sfdisk</code> — GPT with 512- and 4096-byte blocks, gaps, entries out of order, accented names, attributes, a type without a name; MBR with primary, extended and logical partitions; empty tables — must read exactly as <code>sfdisk --json</code> reports them. Then damaged images must be read as well as possible and noted: nothing at all, a whole-disk FAT, a broken primary header or array, a broken backup, both broken, a wiped protective MBR, a hybrid MBR, an enlarged disk, a looping chain, a link to itself, a record without signature, a partition beyond the end, invalid entries.</li>
+<li><b>Sizes.</b> What <code>pm_parse_size</code> accepts, refuses and prints.</li>
+<li><b>Writing.</b> Every table partmgr writes is read back by <code>sfdisk</code> (which must find what was asked and nothing wrong with <code>--verify</code>) and by <code>parted</code>: new tables, logical partitions creating the extended one, changes to tables made by sfdisk (identifiers of untouched partitions unchanged), deleting and refilling the first logical partition, deleting the extended one, GPT to MBR and back, deleting a table, repairing, an enlarged disk, boot code kept or cleared, a hybrid MBR left alone, and the refusals.</li>
+<li><b>Independently of partmgr</b>, a Python function reads every MBR written byte by byte (CHS fields, the chain, the link sizes) — and agrees with the MBRs sfdisk writes.</li>
+<li><b>Backups</b> are restored over a changed disk, which must equal the original byte for byte; backups of another disk, damaged ones, and disks without a table are refused.</li>
+<li><b>Wipe.</b> Partitions hold known patterns; a wipe must leave its partition all zeros (also when its size is not a whole number of chunks, and with 4096-byte blocks), the neighbours, the table and — for a logical partition — the chain untouched, and call the progress function once per chunk in order. Stopped when pass 2 starts, the partition must hold random data everywhere; stopped after the first chunk, only that chunk may have changed. The extended partition and a table with changes are refused.</li>
+</ul>
+<div class="callout c-info"><div class="callout-i">i</div><div><b>Note.</b> Where <code>sfdisk</code> lacks <code>--sector-size</code> (util-linux 2.39, the version of Ubuntu 24.04 and of CI) the 4096-byte comparisons are skipped and the script says <code>SKIPPED</code>.</div></div>
+</section>
+
+<section class="sec" id="ch14s3"><h3 class="h-sec">14.3 · The drawing checks</h3>
+<p><code>build/tests/gfxtool check</code>, run by <code>make test</code> with AddressSanitizer and UBSan, checks the drawing on its own: the faces chosen for each size, kerning (<i>AV</i> narrower than <i>A</i> plus <i>V</i>), missing characters, text with opaque and smoothed pixels that stays in its line and returns its end, clipping, fills cut to the canvas, rounded rectangles (symmetric, bordered, smoothed corners, nothing outside), the hatching and frames, the pointer's arrow (at one and two times its size, cut by the edge), and the test picture at three sizes.</p>
+<p><code>gfxtool scene W H FILE [X Y]</code> writes the test picture of <code>tests/partmgr/gfxscene.c</code> — every primitive and every face, laid out like the window — as a PPM file, with the pointer at X, Y when given. <code>gfxdemo.efi</code> (<code>gfxdemo.c</code>) draws the same picture on the graphics screen in QEMU, then lets the pointer follow the mouse, and reports on the serial port; the QEMU test compares the two.</p>
+</section>
+
+<section class="sec" id="ch14s4"><h3 class="h-sec">14.4 · In QEMU</h3>
+<p><code>make qemu-test</code> runs <code>tests/partmgr/qemu-test.py</code>. It boots QEMU/OVMF from a virtual FAT disk holding <code>partmgr.efi</code> as <code>\EFI\BOOT\BOOTX64.EFI</code>, so the firmware starts it, attaches test disks made by sfdisk, and drives partmgr with <code>sendkey</code> through the QEMU monitor. Everything partmgr draws also reaches the serial console; the test strips the terminal sequences, makes every run of blanks one space (so dialog texts wrapped over two lines still match), and waits for the expected text after the previous match. The version the title bar must show is read from <code>partmgr.h</code>.</p>
+<ol class="ol">
+<li><b>Looking</b> (text screens, <code>-vga none</code>): the list with the boot disk marked (<code>blk0</code> or <code>blk1</code>, as the PCI slots fall), every row of both disks, the return to the firmware (its setup menu starts), and the disks identical byte for byte.</li>
+<li><b>Changing</b> (text screens): the boot disk refuses; on the GPT disk a new partition, a rename, a delete, <b>Esc</b> asking, Write answered first with <b>Enter</b> and <b>N</b> (nothing written), then with <b>Y</b>; a wipe with both passes, and a wipe of a bigger partition stopped with <b>Esc</b> (the GPT disk's writes are slowed to 60 MB/s with <code>throttling.bps-write</code>); on the MBR disk a logical partition, the active flag, a backup to a writable FAT disk, Write, delete the table, restore. Then, outside QEMU, sfdisk must find the GPT disk exactly as asked and the MBR disk exactly as before, and the data must be right (<code>verify_changes</code>).</li>
+<li><b>Drawing</b>: <code>gfxdemo.efi</code> draws the test picture at the firmware's resolution (1280 × 800 in OVMF) and at 1024 × 768; QEMU's <code>screendump</code> must be, pixel for pixel, the picture <code>gfxtool</code> draws at the same size.</li>
+<li><b>Pointing</b>: with QEMU's USB mouse on an xHCI controller <code>gfxdemo.efi</code> must report <i>firmware 0, partmgr's USB driver 1</i>; eleven <code>mouse_move</code> steps of (−40, −25) from the middle must give a click and a release at exactly that point and the arrow there on the screen, pixel for pixel; far past the corner the pointer stops at 0,0. A USB tablet and no USB device must find no pointer.</li>
+<li><b>The window</b>: partmgr with the video card and the USB mouse on fresh disks: from the description on the serial port, the disks, rows and buttons; on the screen the title bar and the selected row in their colours; keys (rows, Tab, disks, Page Up/Down, F5, an action key), clicks (a disk, a row, a block of the bar, a button, the highlighted button), Quit — the firmware goes on, the text cursor is back on, and the disks are unchanged byte for byte.</li>
+<li><b>Changing in the window</b>: the journey of part 2 again with the mouse, the keys and the window's dialogs: the boot disk refuses; new partition from the N button with a type from the list; rename; delete; quitting and changing disk with changes ask; Write asks, <b>Enter</b> does nothing, <b>N</b> cancels, a click on Yes writes; a wipe, and one stopped with Stop; on the MBR disk a logical partition whose type is clicked, the active flag, backup, Write, delete the table, restore. Then the same checks as part 2.</li>
+<li><b>Sizes</b>: the window at 640 × 480, 1024 × 768, 1920 × 1080 and 3200 × 1800: the font chosen by the height (16, 20, 26 and 40 pixels), the buttons inside the screen, the title bar's colour, a click on a disk. OVMF does not offer 3840 × 2160: the face of 52 pixels is not tried on a screen.</li>
+</ol>
+<div class="callout c-warn"><div class="callout-i">!</div><div><b>Warning.</b> <code>make qemu-test</code> takes about ten minutes and its disk images are big: run it with <code>TMPDIR=/var/tmp</code> when <code>/tmp</code> is small. Run it for anything the program does on the screen or on disks, before committing.</div></div>
+</section>
+
+<section class="sec" id="ch14s5"><h3 class="h-sec">14.5 · Testing the tests</h3>
+<p>The tests were checked by breaking the code on purpose (P15). When they were written, each of these breaks made them fail: logical numbering, sizes off by one, the boot flag, the backup GPT's CRC, the link sizes of the chain, the CHS heads, a wipe with one pass only or written one block off; in QEMU, the copy to the screen one row short (exactly one row of pixels different), the vertical movement of the mouse reversed, and <b>Enter</b> answering Yes in the window's question. A new test should be checked the same way: break the code it guards, see it fail, put the code back.</p>
+</section>
+</section>
+
+<section class="chapter" id="ch15"><div class="ch-head"><span class="ch-kick">Chapter 15</span><h2 class="h-ch">Conventions and extending partmgr</h2></div>
+
+<section class="sec" id="ch15s1"><h3 class="h-sec">15.1 · Conventions</h3>
+<ul class="ul">
+<li>C11 with GNU extensions, 4-space indentation, braces on the same line, <code>snake_case</code>; file-local functions and data are <code>static</code>. Comments explain <i>why</i>, in English, and are short; every file starts with a comment saying what it contains.</li>
+<li>Text is UTF-8; conversion to and from UCS-2 happens only at the firmware boundary.</li>
+<li>No code, headers or libraries from EDK2: protocol and structure definitions are written from the UEFI specification.</li>
+<li>Keep the build free of warnings and the tests green; add a test with every fix.</li>
+<li><i>Delete</i> a partition: remove it from the table. <i>Wipe</i>: destroy its contents. The code, the texts and the manuals never use one for the other.</li>
+<li>Blocks are written only in <code>ptwrite.c</code>, and only by <code>pt_write</code>, <code>pt_restore</code> and <code>pt_wipe</code>.</li>
+<li>Messages from the table code (<code>pt_add</code> and friends) are sentences without a capital or a full stop; the dialogs capitalise the first letter. Screens are terse (P16): one-line <i>(Y/N)</i> questions, fields with a label only, short messages — explanations belong in the user manual.</li>
+<li>A key that does not apply answers with a short message, never a greyed-out key (P10, P19).</li>
+<li>A feature is not done until the manuals describe it. Line counts in this manual are generated: run <code>make docs</code> after changing a file.</li>
+</ul>
+</section>
+
+<section class="sec" id="ch15s2"><h3 class="h-sec">15.2 · Adding a partition type</h3>
+<p>Add the GUID and name to <code>gpt_types</code>, or the byte and name to <code>mbr_types</code> before the last four entries, in <code>src/partmgr/ptable.c</code>. The order is the order of the list on the screen. Add the type to the tables of the <a href="PARTMGR_Manuale_Utente.html#types">user manual</a>, and a check in <code>run-tests.py</code> if its name matters. The colour in the window's bar comes from the type's name (<code>type_colour</code> in <code>gui.c</code>).</p>
+</section>
+
+<section class="sec" id="ch15s3"><h3 class="h-sec">15.3 · Adding an action</h3>
+<ol class="ol">
+<li>Put the change of the table in <code>ptedit.c</code>, as a function that returns <code>NULL</code> or a message and sets <code>changed</code>; test it through a new <code>pttool</code> command.</li>
+<li>In <code>diskview.c</code>, write the action: <code>may_change</code>, the dialogs (<code>draw</code> before each), the call, <code>pm_view_rows</code>, <code>pm_say</code>. Add its key to <code>pm_disk_action</code> and to the key bars in <code>draw</code>.</li>
+<li>Add its button to <code>buttons</code> in <code>gui.c</code>, in the same group and order as the key bar: the click sends the key to <code>pm_disk_action</code>.</li>
+<li>Anything that writes a disk must go through <code>confirm_destroy</code>.</li>
+<li>Extend <code>qemu-test.py</code> (text screens and window), and describe the key in the user manual.</li>
+</ol>
+</section>
+
+<section class="sec" id="ch15s4"><h3 class="h-sec">15.4 · Adding a note</h3>
+<p>Call <code>note(t, ...)</code> in <code>ptable.c</code> where the problem is found, add the damaged case to <code>run-tests.py</code> with <code>has_note</code>, and explain it in the table of notes of the <a href="PARTMGR_Manuale_Utente.html#notes">user manual</a>.</p>
+</section>
+</section>
+
+<section class="chapter" id="ch16"><div class="ch-head"><span class="ch-kick">Chapter 16</span><h2 class="h-ch">Releases and continuous integration</h2></div>
+
+<section class="sec" id="ch16s1"><h3 class="h-sec">16.1 · Continuous integration</h3>
+<p class="lead"><code>.github/workflows/ci.yml</code> builds and tests partmgr on every push to <code>main</code>, on pull requests and by hand; on a version tag it also publishes the release.</p>
+<ol class="ol">
+<li><b>build-test</b> (Ubuntu 24.04): installs qemu-system-x86, ovmf, dosfstools, fdisk, parted and python3, enables KVM, runs <code>make</code>, <code>make test</code> and <code>make qemu-test</code>, and keeps <code>build/partmgr.efi</code> as an artifact.</li>
+<li><b>release</b> (tags <code>v*</code> only, after build-test): writes <code>SHA256SUMS</code>, takes the annotation of the tag as the release notes — the tag must be annotated — and appends the download, Secure Boot and licence notes; then publishes <code>partmgr.efi</code>, <code>SHA256SUMS</code>, <code>LICENSE</code> and <code>NOTICE.md</code>. Tags <code>v0.*</code> are marked as pre-releases.</li>
+</ol>
+</section>
+
+<section class="sec" id="ch16s2"><h3 class="h-sec">16.2 · Making a release</h3>
+<ol class="ol">
+<li>Bump <code>PARTMGR_VERSION</code> in <code>src/partmgr/partmgr.h</code>, the version in both manuals, <code>docs/index.html</code> and the issue template.</li>
+<li>Take the screenshots again with <code>tools/screenshots.py</code> (after <code>make</code> and <code>make build/tests/partmgr-text.efi</code>): the title bar shows the version. The window is taken at 1024 × 768, the text screens as the 100 × 31 console of <code>partmgr-text.efi</code>.</li>
+<li>Run <code>make test</code> and <code>make qemu-test</code>, checking their exit status.</li>
+<li>Tag <code>vX.Y.Z</code> with an annotated tag; its message becomes the release notes.</li>
+</ol>
+<div class="callout c-warn"><div class="callout-i">!</div><div><b>Warning.</b> The owner decides whether a release is a pre-release or a full one: CI marks every <code>v0.*</code> as a pre-release, and 0.2.0 and 0.2.1 were made full releases afterwards by the owner's choice, although real hardware has not been tried yet. Ask before each release.</div></div>
+</section>
+
+<section class="sec" id="ch16s3"><h3 class="h-sec">16.3 · The documentation</h3>
+<p>The manuals live in <code>docs/</code> and are published with GitHub Pages; both are light only. This manual is checked by <code>make test</code>: <code>tools/gen-docs.py --check</code> fails when a count in Table 1.1 or in the source file map is out of date, when a source file has no row in the map, or when the map lists a file that does not exist. <code>make docs</code> rewrites the counts. The decisions and the history of the project are in <code>docs/decisions-and-history.md</code>.</p>
+</section>
+</section>
+
+<section class="chapter" id="ch17"><div class="ch-head"><span class="ch-kick">Chapter 17</span><h2 class="h-ch">Source file map</h2></div>
+
+<section class="sec" id="ch17s1"><h3 class="h-sec">17.1 · Every source file</h3>
+<p class="lead">Every header, C source, tool and test file, with its length in lines (counted by <code>make docs</code>) and its purpose. <code>make test</code> fails when a file is missing from this table.</p>
+<figure class="tbl-wrap"><table class="tbl"><thead><tr><th>File</th><th>Lines</th><th>Purpose</th></tr></thead><tbody>
+<tr><td><code>include/efi.h</code></td><td>744</td><td>Minimal UEFI definitions (UEFI Specification 2.10), written from the specification; no EDK2 code</td></tr>
+<tr><td><code>src/lib/crc32.c</code></td><td>29</td><td>CRC-32 (IEEE 802.3), the checksum of GPT headers and entry arrays</td></tr>
+<tr><td><code>src/lib/crc32.h</code></td><td>10</td><td>CRC-32 (IEEE 802.3)</td></tr>
+<tr><td><code>src/lib/fmt.c</code></td><td>192</td><td>vsnprintf for the EFI build: %d %i %u %x %X %o %c %s %p %%, flags, width/precision, length hh h l ll z j t</td></tr>
+<tr><td><code>src/lib/libc.c</code></td><td>320</td><td>Freestanding C library subset for the EFI build: memory and string functions, numbers, qsort, the heap</td></tr>
+<tr><td><code>src/lib/rt.h</code></td><td>115</td><td>Runtime: standard C subset + shared helpers</td></tr>
+<tr><td><code>src/lib/util.c</code></td><td>337</td><td>Allocation wrappers, string buffer, UTF-8 and UCS-2</td></tr>
+<tr><td><code>src/pal/efi_glue.h</code></td><td>38</td><td>Access to UEFI services for UEFI-only modules</td></tr>
+<tr><td><code>src/pal/pal.h</code></td><td>199</td><td>Platform layer: what the program needs from the machine</td></tr>
+<tr><td><code>src/pal/pal_common.c</code></td><td>25</td><td>Error names</td></tr>
+<tr><td><code>src/pal/pal_efi.c</code></td><td>1052</td><td>Platform layer for UEFI: entry point, console, keys, time, files, volumes, arguments</td></tr>
+<tr><td><code>src/pal/pal_gfx_efi.c</code></td><td>133</td><td>Platform layer for UEFI: the graphics screen (Graphics Output Protocol) and the serial port of the console</td></tr>
+<tr><td><code>src/pal/pal_mouse_efi.c</code></td><td>207</td><td>Platform layer for UEFI: the pointer, from the firmware's pointers and from partmgr's own driver for USB boot mice</td></tr>
+<tr><td><code>src/partmgr/disks.h</code></td><td>23</td><td>A disk as the table code sees it (name, kind, size, boot disk, read and write functions)</td></tr>
+<tr><td><code>src/partmgr/disks_efi.c</code></td><td>174</td><td>Finds the whole disks through block I/O, numbered by block device; recognises the disk partmgr was started from; random numbers from EFI_RNG_PROTOCOL</td></tr>
+<tr><td><code>src/partmgr/diskview.c</code></td><td>739</td><td>The screen of one disk in text and every action shared with the window: rows, keys, Write, backup and restore, the wipe and its progress</td></tr>
+<tr><td><code>src/partmgr/font_inter.S</code></td><td>10</td><td>Includes the glyphs of font_inter.bin as read-only data</td></tr>
+<tr><td><code>src/partmgr/gfx.c</code></td><td>314</td><td>Drawing on a canvas in memory: rectangles, frames, rounded rectangles, hatching, the pointer, text with the embedded glyphs and kerning</td></tr>
+<tr><td><code>src/partmgr/gfx.h</code></td><td>62</td><td>Canvases, colours, the drawing and text functions</td></tr>
+<tr><td><code>src/partmgr/gui.c</code></td><td>1313</td><td>The graphical window: layout from the screen and the font, the disks, the bar, the table, the buttons, keys and clicks, the pointer, the dialogs, the description for the tests</td></tr>
+<tr><td><code>src/partmgr/gui.h</code></td><td>11</td><td>pm_gui: the window, when there is a graphics screen</td></tr>
+<tr><td><code>src/partmgr/main.c</code></td><td>93</td><td>app_main and the list of disks</td></tr>
+<tr><td><code>src/partmgr/partmgr.h</code></td><td>17</td><td>What the screens share: version, table names, the disk screen</td></tr>
+<tr><td><code>src/partmgr/ptable.c</code></td><td>402</td><td>Reads GPT (both copies checked, the backup used when the primary is damaged) and MBR tables, extended and logical partitions included; partition type names and the list to choose from</td></tr>
+<tr><td><code>src/partmgr/ptable.h</code></td><td>145</td><td>The description of a disk's partition table and the functions that read, change and write it</td></tr>
+<tr><td><code>src/partmgr/ptedit.c</code></td><td>432</td><td>Changes to a table in memory (new table, add, delete, type, name, active flag) and the free areas, with the rules for logical partitions and their boot records</td></tr>
+<tr><td><code>src/partmgr/ptint.h</code></td><td>22</td><td>Internals: little-endian fields, extended partition types</td></tr>
+<tr><td><code>src/partmgr/ptwrite.c</code></td><td>469</td><td>Writing GPT (both copies, protective MBR) and MBR (chain of logical partitions, CHS fields), deleting a table, backup files and restore, wipe</td></tr>
+<tr><td><code>src/partmgr/ui.c</code></td><td>365</td><td>Drawing on the text console and the dialogs: messages, questions, text fields, menus, key bars</td></tr>
+<tr><td><code>src/partmgr/ui.h</code></td><td>59</td><td>The drawing and dialog functions, the EFI colours, the hook for the window's dialogs</td></tr>
+<tr><td><code>src/partmgr/units.c</code></td><td>106</td><td>Sizes as the user writes and reads them</td></tr>
+<tr><td><code>src/partmgr/units.h</code></td><td>20</td><td>Size parsing and formatting</td></tr>
+<tr><td><code>src/partmgr/view.c</code></td><td>86</td><td>A disk as the screens show it: reading its table, the rows in disk order, the selection, type names, the message line</td></tr>
+<tr><td><code>src/partmgr/view.h</code></td><td>57</td><td>View and Row, shared by the text screen and the window; PmScreen and pm_disk_action</td></tr>
+<tr><td><code>tools/efi.lds</code></td><td>26</td><td>Linker script: ELF image at base 0, page-aligned sections</td></tr>
+<tr><td><code>tools/elf2efi.py</code></td><td>172</td><td>Converts the ELF shared object into a PE32+ EFI application with native base relocations</td></tr>
+<tr><td><code>tools/gen-docs.py</code></td><td>92</td><td>Writes and checks the line counts of this manual</td></tr>
+<tr><td><code>tools/gen-font.py</code></td><td>161</td><td>Renders the Inter font into font_inter.bin: sizes, weights, 4-bit glyphs, kerning pairs; describes the format</td></tr>
+<tr><td><code>tools/screenshots.py</code></td><td>179</td><td>Takes the screenshots of the manuals again: partmgr in QEMU on test disks, keys through the monitor; the window at 1024 x 768, and the text screens with build/tests/partmgr-text.efi, a build without the window</td></tr>
+<tr><td><code>tools/setup-dev.sh</code></td><td>85</td><td>Checks (or installs) the packages a clone needs and sets the git identity of the working copy</td></tr>
+<tr><td><code>tests/partmgr/gfxdemo.c</code></td><td>89</td><td>gfxdemo.efi: the test picture on the graphics screen, then the pointer following the mouse; announced on the serial port</td></tr>
+<tr><td><code>tests/partmgr/gfxscene.c</code></td><td>120</td><td>The test picture: every drawing primitive and every face of the font, laid out like the window</td></tr>
+<tr><td><code>tests/partmgr/gfxtool.c</code></td><td>165</td><td>The drawing code on Linux: the checks, and the test picture as a PPM file</td></tr>
+<tr><td><code>tests/partmgr/pttool.c</code></td><td>257</td><td>Drives the table code on a disk image file: reads, changes, writes, backs up, restores, wipes, parses sizes (Linux only)</td></tr>
+<tr><td><code>tests/partmgr/qemu-test.py</code></td><td>789</td><td>partmgr.efi in QEMU/OVMF: started by the firmware, driven with keys and the USB mouse, checked on the serial console, on the screen and with sfdisk afterwards</td></tr>
+<tr><td><code>tests/partmgr/run-tests.py</code></td><td>779</td><td>The table tests: the reader and the writer compared with sfdisk and parted, damaged images, sizes, backups restored byte for byte, wipe</td></tr>
+</tbody></table><figcaption class="cap">Table 17.1 — The source file map</figcaption></figure>
+</section>
+</section>
+
+<section class="chapter" id="ch18"><div class="ch-head"><span class="ch-kick">Chapter 18</span><h2 class="h-ch">Appendix A — Data structures</h2></div>
+
+<section class="sec" id="ch18s1"><h3 class="h-sec">18.1 · Index of the data structures</h3>
+<p class="lead">The structures that cross the program, with the file that defines them and the chapter that explains them.</p>
+<figure class="tbl-wrap"><table class="tbl"><thead><tr><th>Structure</th><th>Defined in</th><th>Role</th><th>Ch.</th></tr></thead><tbody>
+<tr><td><code>PtDev</code></td><td>src/partmgr/ptable.h</td><td>A disk: read, write, random, block size, length.</td><td>5</td></tr>
+<tr><td><code>PtTable</code></td><td>src/partmgr/ptable.h</td><td>The description of a partition table.</td><td>5</td></tr>
+<tr><td><code>PtPart</code></td><td>src/partmgr/ptable.h</td><td>One partition, GPT or MBR.</td><td>5</td></tr>
+<tr><td><code>PtFree</code></td><td>src/partmgr/ptable.h</td><td>A free area, top level or inside the extended partition.</td><td>7</td></tr>
+<tr><td><code>PmDisk</code></td><td>src/partmgr/disks.h</td><td>A disk of the machine with its <code>PtDev</code>.</td><td>11</td></tr>
+<tr><td><code>View</code>, <code>Row</code></td><td>src/partmgr/view.h</td><td>A disk as the screens show it; one row of it.</td><td>2, 11</td></tr>
+<tr><td><code>PmScreen</code></td><td>src/partmgr/view.h</td><td>The window's redraw and wipe functions for the shared actions.</td><td>2, 12</td></tr>
+<tr><td><code>UiDialogs</code></td><td>src/partmgr/ui.h</td><td>The window's dialogs in place of the text ones.</td><td>2, 12</td></tr>
+<tr><td><code>UiKey</code>, <code>UiKeyBar</code></td><td>src/partmgr/ui.h</td><td>A key of a key bar; a bar with its group name.</td><td>11</td></tr>
+<tr><td><code>PalKey</code></td><td>src/pal/pal.h</td><td>A key: character, scan code, modifiers.</td><td>4</td></tr>
+<tr><td><code>PalPointer</code></td><td>src/pal/pal.h</td><td>The pointer's movement or position and its buttons.</td><td>13</td></tr>
+<tr><td><code>PalVolume</code></td><td>src/pal/pal.h</td><td>A file system: name, label, device path, read-only.</td><td>4</td></tr>
+<tr><td><code>GfxCanvas</code></td><td>src/partmgr/gfx.h</td><td>An image in memory with its clip rectangle.</td><td>12</td></tr>
+<tr><td><code>GfxFont</code></td><td>src/partmgr/gfx.c</td><td>A face of the embedded font.</td><td>12</td></tr>
+<tr><td><code>Layout</code>, <code>Gui</code></td><td>src/partmgr/gui.c</td><td>Every measure of the window; the state of the window.</td><td>12</td></tr>
+</tbody></table><figcaption class="cap">Table A.1 — Index of the data structures</figcaption></figure>
+</section>
+
+<section class="sec" id="ch18s2"><h3 class="h-sec">18.2 · PmDisk</h3>
+<figure class="tbl-wrap"><table class="tbl"><thead><tr><th>Field</th><th>Type</th><th>Description</th></tr></thead><tbody>
+<tr><td><code>name</code></td><td>char[16]</td><td><code>blkN</code>: N counts every block device, sorted by device path.</td></tr>
+<tr><td><code>kind</code></td><td>char[16]</td><td>NVMe, SATA, USB, SCSI, SD, disk… from the device path.</td></tr>
+<tr><td><code>devpath</code></td><td>char *</td><td>The device path as text.</td></tr>
+<tr><td><code>size</code></td><td>uint64_t</td><td>Bytes.</td></tr>
+<tr><td><code>removable</code>, <code>readonly</code></td><td>bool</td><td>From the Block I/O media; <code>readonly</code>: write-protected.</td></tr>
+<tr><td><code>boot</code></td><td>bool</td><td>partmgr was started from this disk: never written.</td></tr>
+<tr><td><code>dev</code></td><td>PtDev</td><td>Reads and writes this disk; <code>dev.write</code> is <code>NULL</code> when read-only or boot.</td></tr>
+</tbody></table><figcaption class="cap">Table A.2 — Fields of PmDisk</figcaption></figure>
+</section>
+
+<section class="sec" id="ch18s3"><h3 class="h-sec">18.3 · View and Row</h3>
+<figure class="tbl-wrap"><table class="tbl"><thead><tr><th>Field</th><th>Type</th><th>Description</th></tr></thead><tbody>
+<tr><td><code>View.d</code></td><td>PmDisk *</td><td>The disk shown.</td></tr>
+<tr><td><code>View.t</code>, <code>View.loaded</code></td><td>PtTable, bool</td><td>Its table in memory, and whether it could be read.</td></tr>
+<tr><td><code>View.rows</code>, <code>nrows</code></td><td>Row *, int</td><td>Partitions and free areas in disk order.</td></tr>
+<tr><td><code>View.sel</code>, <code>top</code></td><td>int</td><td>The selected row; the first row shown.</td></tr>
+<tr><td><code>View.msg</code>, <code>msg_err</code></td><td>char[240], bool</td><td>The message line, green or red.</td></tr>
+<tr><td><code>Row.free</code></td><td>bool</td><td>A free area (else a partition).</td></tr>
+<tr><td><code>Row.part</code>, <code>Row.f</code></td><td>int, PtFree</td><td>The partition's index in <code>t.parts</code>, or the free area.</td></tr>
+<tr><td><code>Row.start</code></td><td>uint64_t</td><td>First block, the sort key.</td></tr>
+</tbody></table><figcaption class="cap">Table A.3 — Fields of View and Row</figcaption></figure>
+</section>
+
+<section class="sec" id="ch18s4"><h3 class="h-sec">18.4 · The GPT header as written</h3>
+<figure class="tbl-wrap"><table class="tbl"><thead><tr><th>Offset</th><th>Size</th><th>Field</th><th>Value written by partmgr</th></tr></thead><tbody>
+<tr><td>0</td><td>8</td><td>Signature</td><td><code>EFI PART</code></td></tr>
+<tr><td>8</td><td>4</td><td>Revision</td><td>0x00010000 (1.0)</td></tr>
+<tr><td>12</td><td>4</td><td>Header size</td><td>92</td></tr>
+<tr><td>16</td><td>4</td><td>Header CRC-32</td><td>Over the 92 bytes, computed last</td></tr>
+<tr><td>24</td><td>8</td><td>MyLBA</td><td>1, or the last block for the backup</td></tr>
+<tr><td>32</td><td>8</td><td>AlternateLBA</td><td>The other copy's header</td></tr>
+<tr><td>40</td><td>8</td><td>FirstUsableLBA</td><td><code>first_usable</code></td></tr>
+<tr><td>48</td><td>8</td><td>LastUsableLBA</td><td>Recomputed from the disk size</td></tr>
+<tr><td>56</td><td>16</td><td>Disk GUID</td><td><code>disk_guid</code></td></tr>
+<tr><td>72</td><td>8</td><td>Entry array LBA</td><td>2, or the first block of the backup array</td></tr>
+<tr><td>80</td><td>4</td><td>Number of entries</td><td><code>max_entries</code></td></tr>
+<tr><td>84</td><td>4</td><td>Entry size</td><td><code>entry_size</code></td></tr>
+<tr><td>88</td><td>4</td><td>Entry array CRC-32</td><td>Over all the entries</td></tr>
+</tbody></table><figcaption class="cap">Table A.4 — The fields of a GPT header (<code>gpt_header</code>); an entry holds the type GUID (0), the partition GUID (16), the first (32) and last (40) block, the attributes (48) and 36 UTF-16 units of name (56)</figcaption></figure>
+</section>
+
+<section class="sec" id="ch18s5"><h3 class="h-sec">18.5 · An MBR entry as written</h3>
+<figure class="tbl-wrap"><table class="tbl"><thead><tr><th>Offset</th><th>Size</th><th>Field</th><th>Value written by partmgr</th></tr></thead><tbody>
+<tr><td>0</td><td>1</td><td>Status</td><td>0x80 when active, else 0</td></tr>
+<tr><td>1</td><td>3</td><td>CHS of the first block</td><td>255 heads, 63 sectors; <code>FE FF FF</code> beyond cylinder 1023</td></tr>
+<tr><td>4</td><td>1</td><td>Type</td><td><code>mbr_type</code>; <code>05</code> for the links of the chain</td></tr>
+<tr><td>5</td><td>3</td><td>CHS of the last block</td><td>As above</td></tr>
+<tr><td>8</td><td>4</td><td>First block</td><td>Absolute (block 0), relative to the record (logical), relative to the extended partition (link)</td></tr>
+<tr><td>12</td><td>4</td><td>Number of blocks</td><td>The size; for a link, from the next record to the end of the next logical partition</td></tr>
+</tbody></table><figcaption class="cap">Table A.5 — The 16 bytes of an MBR entry (<code>mbr_entry</code>); block 0 holds four at byte 446, the disk signature at 440 and 55 AA at 510</figcaption></figure>
+</section>
+
+<section class="sec" id="ch18s6"><h3 class="h-sec">18.6 · The error codes</h3>
+<figure class="tbl-wrap"><table class="tbl"><thead><tr><th>Value</th><th>Code</th><th>pal_strerror</th></tr></thead><tbody>
+<tr><td>0</td><td><code>PAL_OK</code></td><td>success</td></tr>
+<tr><td>−1</td><td><code>PAL_ENOENT</code></td><td>not found</td></tr>
+<tr><td>−2</td><td><code>PAL_EACCES</code></td><td>access denied</td></tr>
+<tr><td>−3</td><td><code>PAL_EEXIST</code></td><td>already exists</td></tr>
+<tr><td>−4</td><td><code>PAL_ENOTDIR</code></td><td>not a directory</td></tr>
+<tr><td>−5</td><td><code>PAL_EISDIR</code></td><td>is a directory</td></tr>
+<tr><td>−6</td><td><code>PAL_ENOSPC</code></td><td>volume full</td></tr>
+<tr><td>−7</td><td><code>PAL_EIO</code></td><td>I/O error</td></tr>
+<tr><td>−8</td><td><code>PAL_EINVAL</code></td><td>invalid parameter</td></tr>
+<tr><td>−9</td><td><code>PAL_ENOTSUP</code></td><td>not supported</td></tr>
+<tr><td>−10</td><td><code>PAL_ENOTEMPTY</code></td><td>directory not empty</td></tr>
+<tr><td>−11</td><td><code>PAL_ENOMEM</code></td><td>out of memory</td></tr>
+<tr><td>−12</td><td><code>PAL_EROFS</code></td><td>write protected</td></tr>
+<tr><td>−13</td><td><code>PAL_ENOMEDIA</code></td><td>no media</td></tr>
+<tr><td>−14</td><td><code>PAL_ESECURITY</code></td><td>security violation</td></tr>
+<tr><td>−15</td><td><code>PAL_EABORT</code></td><td>aborted</td></tr>
+</tbody></table><figcaption class="cap">Table A.6 — The platform error codes and their texts, as the screens show them</figcaption></figure>
+</section>
+
+<section class="sec" id="ch18s7"><h3 class="h-sec">18.7 · The glyph file</h3>
+<p><code>font_inter.bin</code>, all numbers little-endian (from the description in <code>tools/gen-font.py</code>):</p>
+<dl class="deflist">
+<dt>header</dt><dd><code>PMF1</code>, u16 faces, u16 glyphs, u32 offset of the code points.</dd>
+<dt>face (20 bytes)</dt><dd>u8 pixel size, u8 bold, u8 ascent, u8 descent, u8 line height, 3 bytes of padding, u32 offset of the glyphs, u32 offset of the kerning pairs, u32 number of pairs.</dd>
+<dt>points</dt><dd>u32 per glyph, ascending (the same for every face).</dd>
+<dt>glyph (12 bytes)</dt><dd>u16 advance in 1/64 pixel, i8 left, i8 top (from the baseline, negative above it), u8 width, u8 height, u16 padding, u32 offset of the pixels: rows of ceil(width / 2) bytes, the left pixel in the low 4 bits, 0 transparent, 15 opaque.</dd>
+<dt>pair (4 bytes)</dt><dd>u8 first, u8 second (ASCII), i16 adjustment in 1/64 pixel; sorted, searched by halves.</dd>
+</dl>
+</section>
+</section>
+
+<section class="chapter" id="ch19"><div class="ch-head"><span class="ch-kick">Chapter 19</span><h2 class="h-ch">Glossary</h2></div>
+
+<section class="sec" id="ch19s1"><h3 class="h-sec">19.1 · Terms A–L</h3>
+<dl class="deflist">
+<dt>Block I/O</dt><dd>The UEFI protocol that reads and writes the blocks of a disk or partition. See Ch. 11.</dd>
+<dt>Boot disk</dt><dd>The disk partmgr was started from: shown, backed up, never written. See Ch. 11.</dd>
+<dt>Boot protocol</dt><dd>The simple report format of USB keyboards and mice (for a mouse: buttons, x, y) that firmware can use without a report parser. See Ch. 13.</dd>
+<dt>Canvas</dt><dd>An image in memory that the window is drawn on before it is copied to the screen. See Ch. 12.</dd>
+<dt>CHS</dt><dd>Cylinder/head/sector addresses of old BIOSes, still stored in MBR entries next to the block numbers. See Ch. 8.</dd>
+<dt>Delete / wipe</dt><dd>To delete a partition removes it from the table; to wipe it destroys its contents. Never one for the other.</dd>
+<dt>EBR</dt><dd>Extended boot record: the one-block table in front of each logical partition, chained to the next. See Ch. 6.</dd>
+<dt>Extent</dt><dd>A run of blocks saved in a backup file, with its position. See Ch. 9.</dd>
+<dt>GOP</dt><dd>Graphics Output Protocol: the UEFI graphics screen. See Ch. 4.</dd>
+<dt>Hybrid MBR</dt><dd>A GPT disk whose block 0 also lists some partitions for BIOS systems; partmgr reads it as GPT and leaves block 0 alone. See Ch. 6 and 8.</dd>
+<dt>Logical partition</dt><dd>A partition inside the extended partition of an MBR, described by its own EBR, numbered from 5. See Ch. 6.</dd>
+</dl>
+</section>
+
+<section class="sec" id="ch19s2"><h3 class="h-sec">19.2 · Terms M–Z</h3>
+<dl class="deflist">
+<dt>Note</dt><dd>A sentence the reader adds to a table about something unusual it found. See Ch. 6.</dd>
+<dt>OVMF</dt><dd>The UEFI firmware for QEMU that the tests run on. It has no mouse driver. See Ch. 14.</dd>
+<dt>PAL</dt><dd>The platform abstraction layer, <code>src/pal</code>. See Ch. 4.</dd>
+<dt>Protective MBR</dt><dd>Block 0 of a GPT disk: one entry of type EE over the disk. See Ch. 8.</dd>
+<dt>PtDev</dt><dd>The table code's view of a disk: a read, a write and a random function. See Ch. 5.</dd>
+<dt>Row</dt><dd>A partition or a free area as the screens list it, in disk order. See Ch. 5.</dd>
+<dt>Span</dt><dd>In ptedit.c, a run of blocks in use; free areas are the gaps between spans. See Ch. 7.</dd>
+<dt>Superfloppy</dt><dd>A disk formatted with a file system over the whole disk, without a partition table. See Ch. 6.</dd>
+<dt>TPL</dt><dd>Task priority level: raising it to <code>TPL_NOTIFY</code> keeps the mouse's callback out while its sums are read. See Ch. 13.</dd>
+<dt>xoshiro256**</dt><dd>The fast pseudo-random generator of the wipe's first pass. See Ch. 10.</dd>
+</dl>
+</section>
+</section>
+</main>
+  </div>
+  <footer class="doc-foot">EFI Partition Manager · Technical Manual v0.2.1 · September 2026 · Apache 2.0 with the Commons Clause · See also the <a href="PARTMGR_Manuale_Utente.html">user manual</a></footer>
+</div></body></html>

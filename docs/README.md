@@ -7,11 +7,11 @@ in a repository. Read the manuals in one of these two ways.
 
 | Document | Link |
 |---|---|
-| User manual | https://nic-fio.github.io/EFI_PARTITION_MANAGER/partmgr-user-manual.html |
-| Technical manual | https://nic-fio.github.io/EFI_PARTITION_MANAGER/partmgr-developer-manual.html |
+| User manual | https://nic-fio.github.io/EFI_PARTITION_MANAGER/PARTMGR_Manuale_Utente.html |
+| Technical manual | https://nic-fio.github.io/EFI_PARTITION_MANAGER/PARTMGR_Manuale_Tecnico.html |
 | Start page | https://nic-fio.github.io/EFI_PARTITION_MANAGER/ |
 
-**Offline**: clone the repository and open `docs/partmgr-user-manual.html` in a
+**Offline**: clone the repository and open `docs/PARTMGR_Manuale_Utente.html` in a
 browser. Everything the pages need (style, scripts, diagrams) is in
 `docs/assets`, so they work without an internet connection.
 
