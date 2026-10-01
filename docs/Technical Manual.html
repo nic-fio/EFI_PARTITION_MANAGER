@@ -133,7 +133,8 @@ kbd{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:.
 .cover-w .cover-meta b{color:#0b2a5b}
 /* ---- Stile comune: pulsante Copy sui blocchi di comandi ---- */
 .code-w{position:relative;margin:14px 0}
-.code-w>.code{margin:0;padding-right:78px}
+.code-w>.code{margin:0;padding-top:38px}
+pre{tab-size:4;-moz-tab-size:4}
 .copy{position:absolute;top:9px;right:9px;font:600 11px/1 Outfit,-apple-system,Segoe UI,Roboto,Arial,sans-serif;letter-spacing:.04em;color:#cbd5e1;background:#1e293b;border:1px solid #334155;border-radius:6px;padding:5px 9px;cursor:pointer}
 .copy:after{content:attr(data-l)}
 .copy:hover,.copy:focus-visible{color:#fff;border-color:#64748b;outline:none}
@@ -147,7 +148,7 @@ kbd{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:.
  .cover-w .cover-meta{margin-top:22px;gap:28px}
  .doc-foot{padding:18px 16px}
 }
-@media print{ .copy{display:none} .code-w>.code{padding-right:18px} }
+@media print{ .copy{display:none} .code-w>.code{padding-top:14px} }
 
 /* Solo per EFI Partition Manager: schermate */
 .fig img{display:block;max-width:100%;height:auto;margin:0 auto;border:1px solid #e5e7eb;border-radius:8px}
@@ -1323,8 +1324,9 @@ $ build/tests/pttool disk.img -b 4096 size 1.5G</code></pre>
     q.select();
   });
 })();
-/* Pulsante Copy sui blocchi di comandi: copia le righe che iniziano con il
-   prompt "$ ", senza il prompt. L'etichetta sta in CSS (data-l), cosi' non
+/* Pulsante Copy sui blocchi di comandi: copia le righe che iniziano con un
+   prompt, senza il prompt. Prompt riconosciuti: "$ ", "utente@macchina:percorso$ "
+   (e "#" di root in quella forma), "fs0:\> " e "Shell> " di UEFI. L'etichetta sta in CSS (data-l), cosi' non
    entra nel testo della pagina ne' nella ricerca. */
 (function () {
   "use strict";
@@ -1332,7 +1334,7 @@ $ build/tests/pttool disk.img -b 4096 size 1.5G</code></pre>
   for (var i = 0; i < pres.length; i++) (function (pre) {
     var lines = pre.textContent.replace(/\s+$/, "").split("\n"), cmds = [];
     for (var k = 0; k < lines.length; k++) {
-      var m = /^\$ (.*)$/.exec(lines[k]);
+      var m = /^(?:\$|[\w.-]+@[\w.-]+:[^\s$#]*[$#]|fs\d+:[^>\s]*>|Shell>) (.*)$/.exec(lines[k]);
       if (m) cmds.push(m[1]);
     }
     if (!cmds.length) return;              // non e' un blocco di comandi
