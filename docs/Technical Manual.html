@@ -1326,7 +1326,9 @@ $ build/tests/pttool disk.img -b 4096 size 1.5G</code></pre>
 })();
 /* Pulsante Copy sui blocchi di comandi: copia le righe che iniziano con un
    prompt, senza il prompt. Prompt riconosciuti: "$ ", "utente@macchina:percorso$ "
-   (e "#" di root in quella forma), "fs0:\> " e "Shell> " di UEFI. L'etichetta sta in CSS (data-l), cosi' non
+   (e "#" di root in quella forma), "fs0:\> " e "Shell> " di UEFI. Un prompt senza
+   comando non conta; le righe che continuano un comando ("\" in fondo, o "... "
+   del BASIC di NESH) si copiano con lui. L'etichetta sta in CSS (data-l), cosi' non
    entra nel testo della pagina ne' nella ricerca. */
 (function () {
   "use strict";
@@ -1334,8 +1336,17 @@ $ build/tests/pttool disk.img -b 4096 size 1.5G</code></pre>
   for (var i = 0; i < pres.length; i++) (function (pre) {
     var lines = pre.textContent.replace(/\s+$/, "").split("\n"), cmds = [];
     for (var k = 0; k < lines.length; k++) {
-      var m = /^(?:\$|[\w.-]+@[\w.-]+:[^\s$#]*[$#]|fs\d+:[^>\s]*>|Shell>) (.*)$/.exec(lines[k]);
-      if (m) cmds.push(m[1]);
+      var m = /^(?:\$|[\w.-]+@[\w.-]+:[^\s$#]*[$#]|fs\d+:[^>\s]*>|Shell>) (.*\S.*)$/.exec(lines[k]);
+      if (!m) continue;
+      var cmd = m[1];
+      // Il comando continua: riga che finisce con "\" (shell) o righe "... " (BASIC di NESH)
+      while (k + 1 < lines.length) {
+        if (/\\\s*$/.test(cmd)) { cmd += "\n" + lines[++k]; continue; }
+        var c = /^\.\.\. ?(.*)$/.exec(lines[k + 1]);
+        if (c) { cmd += "\n" + c[1]; k++; continue; }
+        break;
+      }
+      cmds.push(cmd);
     }
     if (!cmds.length) return;              // non e' un blocco di comandi
     var text = cmds.join("\n");
