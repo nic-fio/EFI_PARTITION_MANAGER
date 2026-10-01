@@ -12,8 +12,10 @@ in a repository. Read the manuals in one of these two ways.
 | Start page | https://nic-fio.github.io/EFI_PARTITION_MANAGER/ |
 
 **Offline**: clone the repository and open `docs/User Manual.html` in a
-browser. Everything the pages need (style, scripts, diagrams) is in
-`docs/assets`, so they work without an internet connection.
+browser. Each manual is one file with its style (the common style of the
+manuals of the seven projects, identical in all of them), script (search and
+Copy button), logo and diagrams embedded; the screenshots are in `docs/assets`.
+So they work without an internet connection.
 
 [Design decisions and history](decisions-and-history.md) is Markdown, so GitHub
 shows it formatted here.

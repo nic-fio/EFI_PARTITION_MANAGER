@@ -1,7 +1,8 @@
 <!doctype html><html lang="en"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1"><title>User Manual — EFI Partition Manager</title>
 <meta name="description" content="User manual of EFI Partition Manager (partmgr.efi) 0.2.1, a partition manager for UEFI firmware: GPT and MBR partition tables, changes shown before they are written, backup and restore, wipe.">
-<style>
+<style>/* Stile comune dei manuali dei 7 progetti (nic-fio). Uguale byte per byte in tutti i manuali: non modificare in un solo progetto. */
+/* Base: style.css di AMS */
 *{box-sizing:border-box} html{-webkit-print-color-adjust:exact;print-color-adjust:exact}
 body{margin:0;background:#e9edf2;color:#111827;font-family:Outfit,-apple-system,Segoe UI,Roboto,Arial,sans-serif;font-size:15px;line-height:1.62}
 .doc{max-width:1320px;margin:0 auto;background:#fff;box-shadow:0 1px 30px rgba(15,23,42,.10)}
@@ -72,46 +73,99 @@ code{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:
  a{color:inherit}
 }
 
-/* User manual: interface labels and procedures */
+/* Aggiunte comuni */
+/* Manuale utente: etichette dell'interfaccia e procedure */
 .ui{font-weight:600;color:#003a90;background:#eff6ff;border:1px solid #bfdbfe;border-radius:5px;padding:.02em .4em;font-size:.93em;white-space:nowrap}
 .steps{counter-reset:st;list-style:none;margin:14px 0;padding:0}
 .steps>li{counter-increment:st;position:relative;padding:8px 0 8px 44px;margin:0;border-left:2px solid #dbeafe;margin-left:15px}
 .steps>li:before{content:counter(st);position:absolute;left:-16px;top:6px;width:30px;height:30px;border-radius:50%;background:#0050C0;color:#fff;font-weight:800;text-align:center;line-height:30px;font-size:14px}
 .steps>li:last-child{border-left-color:transparent}
 
-/* Keys, screenshots, long on-screen messages, narrow screens */
-kbd{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:.84em;font-weight:600;color:#0f172a;background:#fff;border:1px solid #cbd5e1;border-bottom-width:2px;border-radius:5px;padding:.02em .4em;white-space:nowrap}
-.ui.long{white-space:normal}
-.fig img{display:block;max-width:100%;height:auto;margin:0 auto;border:1px solid #e5e7eb;border-radius:8px;box-shadow:0 1px 8px rgba(15,23,42,.08)}
-.toc-foot{margin:18px 0 0;padding-top:12px;border-top:1px solid #e5e7eb;font-size:13px;font-weight:600}
+/* tasti, etichette, codice */
+kbd{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:.82em;background:#fff;border:1px solid #cbd5e1;border-bottom-width:2px;border-radius:5px;padding:.05em .4em;color:#0f172a;white-space:nowrap}
+.code .p{color:#64748b;user-select:none}
+.badge{display:inline-block;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#fff;background:#16a34a;border-radius:4px;padding:1px 7px;margin-right:6px}
+.deflist .dt-t{font-family:Outfit,-apple-system,Segoe UI,Roboto,Arial,sans-serif;font-size:15px}
+.deflist dt[id]{scroll-margin-top:16px} .sec{scroll-margin-top:12px}
+/* ricerca nella barra laterale */
+.srch{margin:0 0 26px}
+.srch .toc-head{display:block}
+.srch-q{width:100%;font:inherit;font-size:14px;padding:8px 11px;border:1px solid #cbd5e1;border-radius:8px;background:#fff;color:#0f172a;outline:none}
+.srch-q:focus{border-color:#0050C0;box-shadow:0 0 0 3px #dbeafe}
+.srch-info{font-size:12px;color:#64748b;margin:6px 2px 0;min-height:1em}
+.srch-res{list-style:none;margin:8px 0 0;padding:0}
+.srch-res li{margin:0}
+.srch-res a{display:block;padding:7px 9px;border-radius:7px;border-left:3px solid transparent;color:#334155}
+.srch-res a:hover,.srch-res a.on{background:#eff6ff;border-left-color:#0050C0}
+.srch-res .r-t{display:flex;gap:8px;font-weight:700;font-size:13px;color:#0f172a}
+.srch-res .r-t .toc-n{flex:0 0 auto}
+.srch-res .r-s{display:block;font-size:12px;color:#64748b;line-height:1.45;margin-top:2px}
+.srch-res mark,mark.hit{background:#fde68a;color:inherit;border-radius:2px;padding:0 1px}
+.toc-list.filtering li{opacity:.35} .toc-list.filtering li.toc-hit{opacity:1}
+.toc-list.filtering li.toc-hit a{color:#0050C0}
+.sec.flash{animation:flash 1.6s ease-out}
+@keyframes flash{0%{background:#eff6ff}100%{background:transparent}}
+/* indice analitico */
+.idx{columns:2 300px;column-gap:40px;margin-top:18px}
+.idx-g{break-inside:avoid;margin:0 0 18px}
+.idx-l{font-size:14px;text-transform:uppercase;letter-spacing:.14em;color:#003a90;font-weight:800;margin:0 0 6px;padding-bottom:4px;border-bottom:2px solid #0050C0}
+.idx-ul{list-style:none;margin:0;padding:0}
+.idx-ul li{margin:3px 0;font-size:14px;color:#334155;break-inside:avoid}
+.idx-t{font-weight:700;color:#0f172a}
+.idx-t code{font-weight:600}
+.idx-ul a{font-size:13px;white-space:nowrap}
+/* schermi stretti */
 @media (max-width:900px){
  .with-side{display:block} .side{width:auto;border-right:0;border-bottom:1px solid #e5e7eb}
  .side-inner{position:static;max-height:none;padding:24px 16px}
  .main{padding:28px 16px}
- .cover{padding:40px 16px;min-height:auto} .cover-title{font-size:40px} .cover-sub{font-size:17px;margin-bottom:28px}
- .cover-meta{flex-wrap:wrap;gap:16px 28px}
- .h-ch{font-size:28px} .tbl-wrap{overflow-x:auto} .tbl code{word-break:break-all}
- .doc-foot{padding:20px 16px}
+ .tbl-wrap{overflow-x:auto}
 }
-@media print{.toc-foot{display:none}}
+@media print{ .srch{display:none} mark.hit{background:none} .idx{columns:2} }
+
+/* ---- Stile comune dei manuali: copertina (variante 3) ---- */
+.cover.cover-w{background:#fff;color:#0b2a5b;border-bottom:4px solid #0050C0;padding:44px 56px 46px;min-height:auto}
+.cover-w .cover-logo{margin-bottom:30px}
+.cover-w .cover-logo img{height:76px;width:auto;display:block}
+.cover-w .cover-title{color:#003a90}
+.cover-w .cover-meta{margin-top:30px}
+.cover-w .cover-meta span{color:#5a6f93}
+.cover-w .cover-meta b{color:#0b2a5b}
+/* ---- Stile comune: pulsante Copy sui blocchi di comandi ---- */
+.code-w{position:relative;margin:14px 0}
+.code-w>.code{margin:0;padding-right:78px}
+.copy{position:absolute;top:9px;right:9px;font:600 11px/1 Outfit,-apple-system,Segoe UI,Roboto,Arial,sans-serif;letter-spacing:.04em;color:#cbd5e1;background:#1e293b;border:1px solid #334155;border-radius:6px;padding:5px 9px;cursor:pointer}
+.copy:after{content:attr(data-l)}
+.copy:hover,.copy:focus-visible{color:#fff;border-color:#64748b;outline:none}
+.copy.ok{color:#86efac;border-color:#16a34a}
+/* ---- Stile comune: schermi stretti ---- */
+@media (max-width:900px){
+ .cover.cover-w{padding:32px 16px 34px}
+ .cover-w .cover-logo{margin-bottom:22px}
+ .cover-w .cover-logo img{height:60px}
+ .cover-w .cover-title{font-size:42px}
+ .cover-w .cover-meta{margin-top:22px;gap:28px}
+ .doc-foot{padding:18px 16px}
+}
+@media print{ .copy{display:none} .code-w>.code{padding-right:18px} }
+
+/* Solo per EFI Partition Manager: schermate, etichette lunghe, collegamento sotto l'indice */
+.fig img{display:block;max-width:100%;height:auto;margin:0 auto;border:1px solid #e5e7eb;border-radius:8px}
+.ui.long{white-space:normal}
+.toc-foot{margin:18px 0 0;padding-top:12px;border-top:1px solid #e5e7eb;font-size:13px;font-weight:600}
 </style></head>
 <body>
 <div class="doc">
-  <section class="cover">
-    <div class="cover-logo"><svg viewBox="0 0 600 100" width="312" height="52" xmlns="http://www.w3.org/2000/svg" aria-label="EFI Partition Manager"><rect x="4" y="30" width="112" height="40" rx="7" fill="none" stroke="#ffffff" stroke-width="4"/><rect x="12" y="38" width="26" height="24" rx="3" fill="#ffffff"/><rect x="42" y="38" width="40" height="24" rx="3" fill="#cfe0ff"/><rect x="86" y="38" width="22" height="24" rx="3" fill="#8fb6ff"/><text x="136" y="64" font-size="38" font-weight="800" fill="#ffffff">EFI Partition<tspan font-weight="500" fill="#cfe0ff"> Manager</tspan></text></svg></div>
-    <div class="cover-kicker">User documentation</div>
+  <section class="cover cover-w">
+    <div class="cover-logo"><img src="data:image/png;base64,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" alt="EFI Partition Manager"></div>
     <h1 class="cover-title">User Manual</h1>
-    <div class="cover-sub">EFI Partition Manager · Partition tables from the UEFI firmware: the window, every action, backup, restore and wipe</div>
     <div class="cover-meta">
       <div><span>Version</span><b>0.2.1</b></div>
       <div><span>Date</span><b>September 2026</b></div>
-      <div><span>Platform</span><b>UEFI x86-64</b></div>
-      <div><span>File</span><b>partmgr.efi</b></div>
     </div>
-    <div class="cover-swoosh"></div>
   </section>
   <div class="with-side">
-    <aside class="side"><div class="side-inner"><h2 class="toc-head">Contents</h2><ul class="toc-list"><li class="toc-ch"><a href="#introduction"><span class="toc-n">1</span><span class="toc-t">Welcome</span></a></li><li class="toc-se"><a href="#what-is-partmgr"><span class="toc-n">1.1</span><span class="toc-t">What partmgr is</span></a></li><li class="toc-se"><a href="#what-it-does-not"><span class="toc-n">1.2</span><span class="toc-t">What partmgr does not do</span></a></li><li class="toc-se"><a href="#audience"><span class="toc-n">1.3</span><span class="toc-t">Who this manual is for</span></a></li><li class="toc-se"><a href="#conventions"><span class="toc-n">1.4</span><span class="toc-t">Conventions</span></a></li><li class="toc-ch"><a href="#getting-started"><span class="toc-n">2</span><span class="toc-t">Installation and first start</span></a></li><li class="toc-se"><a href="#requirements"><span class="toc-n">2.1</span><span class="toc-t">Requirements</span></a></li><li class="toc-se"><a href="#getting"><span class="toc-n">2.2</span><span class="toc-t">Getting partmgr.efi</span></a></li><li class="toc-se"><a href="#installing"><span class="toc-n">2.3</span><span class="toc-t">Putting it on a stick</span></a></li><li class="toc-se"><a href="#starting"><span class="toc-n">2.4</span><span class="toc-t">Starting and leaving partmgr</span></a></li><li class="toc-se"><a href="#secure-boot"><span class="toc-n">2.5</span><span class="toc-t">Secure Boot</span></a></li><li class="toc-ch"><a href="#screens"><span class="toc-n">3</span><span class="toc-t">The window in brief</span></a></li><li class="toc-se"><a href="#window"><span class="toc-n">3.1</span><span class="toc-t">The parts of the window</span></a></li><li class="toc-se"><a href="#mouse-keys"><span class="toc-n">3.2</span><span class="toc-t">Mouse and keys</span></a></li><li class="toc-se"><a href="#disk-screen"><span class="toc-n">3.3</span><span class="toc-t">The table of a disk</span></a></li><li class="toc-se"><a href="#dialogs"><span class="toc-n">3.4</span><span class="toc-t">Dialogs</span></a></li><li class="toc-se"><a href="#screen-sizes"><span class="toc-n">3.5</span><span class="toc-t">Screen sizes</span></a></li><li class="toc-se"><a href="#text-screens"><span class="toc-n">3.6</span><span class="toc-t">The text screens</span></a></li><li class="toc-ch"><a href="#first-steps"><span class="toc-n">4</span><span class="toc-t">First steps</span></a></li><li class="toc-se"><a href="#the-path"><span class="toc-n">4.1</span><span class="toc-t">The path</span></a></li><li class="toc-se"><a href="#first-disk"><span class="toc-n">4.2</span><span class="toc-t">Preparing a new stick</span></a></li><li class="toc-se"><a href="#changed-mind"><span class="toc-n">4.3</span><span class="toc-t">Changing your mind</span></a></li><li class="toc-ch"><a href="#concepts"><span class="toc-n">5</span><span class="toc-t">Partition tables in brief</span></a></li><li class="toc-se"><a href="#gpt"><span class="toc-n">5.1</span><span class="toc-t">GPT</span></a></li><li class="toc-se"><a href="#mbr"><span class="toc-n">5.2</span><span class="toc-t">MBR</span></a></li><li class="toc-se"><a href="#alignment"><span class="toc-n">5.3</span><span class="toc-t">Alignment</span></a></li><li class="toc-ch"><a href="#changing"><span class="toc-n">6</span><span class="toc-t">Changing a disk</span></a></li><li class="toc-se"><a href="#new-partition"><span class="toc-n">6.1</span><span class="toc-t">New partition</span></a></li><li class="toc-se"><a href="#delete-partition"><span class="toc-n">6.2</span><span class="toc-t">Delete a partition</span></a></li><li class="toc-se"><a href="#change-type"><span class="toc-n">6.3</span><span class="toc-t">Change the type</span></a></li><li class="toc-se"><a href="#rename"><span class="toc-n">6.4</span><span class="toc-t">Rename (GPT)</span></a></li><li class="toc-se"><a href="#active"><span class="toc-n">6.5</span><span class="toc-t">Active flag (MBR)</span></a></li><li class="toc-se"><a href="#new-table"><span class="toc-n">6.6</span><span class="toc-t">New partition table</span></a></li><li class="toc-se"><a href="#delete-table"><span class="toc-n">6.7</span><span class="toc-t">Delete the partition table</span></a></li><li class="toc-ch"><a href="#writing"><span class="toc-n">7</span><span class="toc-t">Writing the changes</span></a></li><li class="toc-se"><a href="#write"><span class="toc-n">7.1</span><span class="toc-t">Write</span></a></li><li class="toc-se"><a href="#what-write-does"><span class="toc-n">7.2</span><span class="toc-t">What Write writes</span></a></li><li class="toc-se"><a href="#leaving"><span class="toc-n">7.3</span><span class="toc-t">Leaving without writing</span></a></li><li class="toc-ch"><a href="#backup-restore"><span class="toc-n">8</span><span class="toc-t">Backup and restore</span></a></li><li class="toc-se"><a href="#backup"><span class="toc-n">8.1</span><span class="toc-t">Backup</span></a></li><li class="toc-se"><a href="#restore"><span class="toc-n">8.2</span><span class="toc-t">Restore</span></a></li><li class="toc-se"><a href="#safe-routine"><span class="toc-n">8.3</span><span class="toc-t">A safe routine</span></a></li><li class="toc-ch"><a href="#wipe"><span class="toc-n">9</span><span class="toc-t">Wiping a partition</span></a></li><li class="toc-se"><a href="#wipe-how"><span class="toc-n">9.1</span><span class="toc-t">Wipe</span></a></li><li class="toc-se"><a href="#wipe-progress"><span class="toc-n">9.2</span><span class="toc-t">Progress, and stopping</span></a></li><li class="toc-se"><a href="#wipe-rules"><span class="toc-n">9.3</span><span class="toc-t">What can be wiped</span></a></li><li class="toc-se"><a href="#wipe-flash"><span class="toc-n">9.4</span><span class="toc-t">SSDs, NVMe drives and USB sticks</span></a></li><li class="toc-ch"><a href="#safety"><span class="toc-n">10</span><span class="toc-t">Safety and limits</span></a></li><li class="toc-se"><a href="#read-only-disks"><span class="toc-n">10.1</span><span class="toc-t">Disks that are only shown</span></a></li><li class="toc-se"><a href="#limits"><span class="toc-n">10.2</span><span class="toc-t">Limits</span></a></li><li class="toc-se"><a href="#notes"><span class="toc-n">10.3</span><span class="toc-t">What the notes mean</span></a></li><li class="toc-ch"><a href="#troubleshooting"><span class="toc-n">11</span><span class="toc-t">Troubleshooting</span></a></li><li class="toc-se"><a href="#messages"><span class="toc-n">11.1</span><span class="toc-t">Messages when adding a partition</span></a></li><li class="toc-se"><a href="#other-messages"><span class="toc-n">11.2</span><span class="toc-t">Messages of the other actions</span></a></li><li class="toc-se"><a href="#problems"><span class="toc-n">11.3</span><span class="toc-t">Frequent problems</span></a></li><li class="toc-se"><a href="#reporting"><span class="toc-n">11.4</span><span class="toc-t">Reporting how partmgr behaved</span></a></li><li class="toc-ch"><a href="#reference"><span class="toc-n">12</span><span class="toc-t">Reference</span></a></li><li class="toc-se"><a href="#keys"><span class="toc-n">12.1</span><span class="toc-t">Keys</span></a></li><li class="toc-se"><a href="#sizes"><span class="toc-n">12.2</span><span class="toc-t">Writing sizes</span></a></li><li class="toc-se"><a href="#types"><span class="toc-n">12.3</span><span class="toc-t">Partition types</span></a></li><li class="toc-ch"><a href="#glossary"><span class="toc-n">13</span><span class="toc-t">Glossary</span></a></li><li class="toc-se"><a href="#terms"><span class="toc-n">13.1</span><span class="toc-t">Terms</span></a></li></ul><p class="toc-foot"><a href="Technical%20Manual.html">Technical manual &rarr;</a></p></div></aside>
+    <aside class="side"><div class="side-inner"><div class="srch" id="srch" hidden><label class="toc-head" for="srch-q">Search</label><input type="search" id="srch-q" class="srch-q" placeholder="A word, a key…  ( / )" autocomplete="off" spellcheck="false"><div class="srch-info" id="srch-info" aria-live="polite"></div><ol class="srch-res" id="srch-res"></ol></div><h2 class="toc-head">Contents</h2><ul class="toc-list" id="toc"><li class="toc-ch"><a href="#introduction"><span class="toc-n">1</span><span class="toc-t">Welcome</span></a></li><li class="toc-se"><a href="#what-is-partmgr"><span class="toc-n">1.1</span><span class="toc-t">What partmgr is</span></a></li><li class="toc-se"><a href="#what-it-does-not"><span class="toc-n">1.2</span><span class="toc-t">What partmgr does not do</span></a></li><li class="toc-se"><a href="#audience"><span class="toc-n">1.3</span><span class="toc-t">Who this manual is for</span></a></li><li class="toc-se"><a href="#conventions"><span class="toc-n">1.4</span><span class="toc-t">Conventions</span></a></li><li class="toc-ch"><a href="#getting-started"><span class="toc-n">2</span><span class="toc-t">Installation and first start</span></a></li><li class="toc-se"><a href="#requirements"><span class="toc-n">2.1</span><span class="toc-t">Requirements</span></a></li><li class="toc-se"><a href="#getting"><span class="toc-n">2.2</span><span class="toc-t">Getting partmgr.efi</span></a></li><li class="toc-se"><a href="#installing"><span class="toc-n">2.3</span><span class="toc-t">Putting it on a stick</span></a></li><li class="toc-se"><a href="#starting"><span class="toc-n">2.4</span><span class="toc-t">Starting and leaving partmgr</span></a></li><li class="toc-se"><a href="#secure-boot"><span class="toc-n">2.5</span><span class="toc-t">Secure Boot</span></a></li><li class="toc-ch"><a href="#screens"><span class="toc-n">3</span><span class="toc-t">The window in brief</span></a></li><li class="toc-se"><a href="#window"><span class="toc-n">3.1</span><span class="toc-t">The parts of the window</span></a></li><li class="toc-se"><a href="#mouse-keys"><span class="toc-n">3.2</span><span class="toc-t">Mouse and keys</span></a></li><li class="toc-se"><a href="#disk-screen"><span class="toc-n">3.3</span><span class="toc-t">The table of a disk</span></a></li><li class="toc-se"><a href="#dialogs"><span class="toc-n">3.4</span><span class="toc-t">Dialogs</span></a></li><li class="toc-se"><a href="#screen-sizes"><span class="toc-n">3.5</span><span class="toc-t">Screen sizes</span></a></li><li class="toc-se"><a href="#text-screens"><span class="toc-n">3.6</span><span class="toc-t">The text screens</span></a></li><li class="toc-ch"><a href="#first-steps"><span class="toc-n">4</span><span class="toc-t">First steps</span></a></li><li class="toc-se"><a href="#the-path"><span class="toc-n">4.1</span><span class="toc-t">The path</span></a></li><li class="toc-se"><a href="#first-disk"><span class="toc-n">4.2</span><span class="toc-t">Preparing a new stick</span></a></li><li class="toc-se"><a href="#changed-mind"><span class="toc-n">4.3</span><span class="toc-t">Changing your mind</span></a></li><li class="toc-ch"><a href="#concepts"><span class="toc-n">5</span><span class="toc-t">Partition tables in brief</span></a></li><li class="toc-se"><a href="#gpt"><span class="toc-n">5.1</span><span class="toc-t">GPT</span></a></li><li class="toc-se"><a href="#mbr"><span class="toc-n">5.2</span><span class="toc-t">MBR</span></a></li><li class="toc-se"><a href="#alignment"><span class="toc-n">5.3</span><span class="toc-t">Alignment</span></a></li><li class="toc-ch"><a href="#changing"><span class="toc-n">6</span><span class="toc-t">Changing a disk</span></a></li><li class="toc-se"><a href="#new-partition"><span class="toc-n">6.1</span><span class="toc-t">New partition</span></a></li><li class="toc-se"><a href="#delete-partition"><span class="toc-n">6.2</span><span class="toc-t">Delete a partition</span></a></li><li class="toc-se"><a href="#change-type"><span class="toc-n">6.3</span><span class="toc-t">Change the type</span></a></li><li class="toc-se"><a href="#rename"><span class="toc-n">6.4</span><span class="toc-t">Rename (GPT)</span></a></li><li class="toc-se"><a href="#active"><span class="toc-n">6.5</span><span class="toc-t">Active flag (MBR)</span></a></li><li class="toc-se"><a href="#new-table"><span class="toc-n">6.6</span><span class="toc-t">New partition table</span></a></li><li class="toc-se"><a href="#delete-table"><span class="toc-n">6.7</span><span class="toc-t">Delete the partition table</span></a></li><li class="toc-ch"><a href="#writing"><span class="toc-n">7</span><span class="toc-t">Writing the changes</span></a></li><li class="toc-se"><a href="#write"><span class="toc-n">7.1</span><span class="toc-t">Write</span></a></li><li class="toc-se"><a href="#what-write-does"><span class="toc-n">7.2</span><span class="toc-t">What Write writes</span></a></li><li class="toc-se"><a href="#leaving"><span class="toc-n">7.3</span><span class="toc-t">Leaving without writing</span></a></li><li class="toc-ch"><a href="#backup-restore"><span class="toc-n">8</span><span class="toc-t">Backup and restore</span></a></li><li class="toc-se"><a href="#backup"><span class="toc-n">8.1</span><span class="toc-t">Backup</span></a></li><li class="toc-se"><a href="#restore"><span class="toc-n">8.2</span><span class="toc-t">Restore</span></a></li><li class="toc-se"><a href="#safe-routine"><span class="toc-n">8.3</span><span class="toc-t">A safe routine</span></a></li><li class="toc-ch"><a href="#wipe"><span class="toc-n">9</span><span class="toc-t">Wiping a partition</span></a></li><li class="toc-se"><a href="#wipe-how"><span class="toc-n">9.1</span><span class="toc-t">Wipe</span></a></li><li class="toc-se"><a href="#wipe-progress"><span class="toc-n">9.2</span><span class="toc-t">Progress, and stopping</span></a></li><li class="toc-se"><a href="#wipe-rules"><span class="toc-n">9.3</span><span class="toc-t">What can be wiped</span></a></li><li class="toc-se"><a href="#wipe-flash"><span class="toc-n">9.4</span><span class="toc-t">SSDs, NVMe drives and USB sticks</span></a></li><li class="toc-ch"><a href="#safety"><span class="toc-n">10</span><span class="toc-t">Safety and limits</span></a></li><li class="toc-se"><a href="#read-only-disks"><span class="toc-n">10.1</span><span class="toc-t">Disks that are only shown</span></a></li><li class="toc-se"><a href="#limits"><span class="toc-n">10.2</span><span class="toc-t">Limits</span></a></li><li class="toc-se"><a href="#notes"><span class="toc-n">10.3</span><span class="toc-t">What the notes mean</span></a></li><li class="toc-ch"><a href="#troubleshooting"><span class="toc-n">11</span><span class="toc-t">Troubleshooting</span></a></li><li class="toc-se"><a href="#messages"><span class="toc-n">11.1</span><span class="toc-t">Messages when adding a partition</span></a></li><li class="toc-se"><a href="#other-messages"><span class="toc-n">11.2</span><span class="toc-t">Messages of the other actions</span></a></li><li class="toc-se"><a href="#problems"><span class="toc-n">11.3</span><span class="toc-t">Frequent problems</span></a></li><li class="toc-se"><a href="#reporting"><span class="toc-n">11.4</span><span class="toc-t">Reporting how partmgr behaved</span></a></li><li class="toc-ch"><a href="#reference"><span class="toc-n">12</span><span class="toc-t">Reference</span></a></li><li class="toc-se"><a href="#keys"><span class="toc-n">12.1</span><span class="toc-t">Keys</span></a></li><li class="toc-se"><a href="#sizes"><span class="toc-n">12.2</span><span class="toc-t">Writing sizes</span></a></li><li class="toc-se"><a href="#types"><span class="toc-n">12.3</span><span class="toc-t">Partition types</span></a></li><li class="toc-ch"><a href="#glossary"><span class="toc-n">13</span><span class="toc-t">Glossary</span></a></li><li class="toc-se"><a href="#terms"><span class="toc-n">13.1</span><span class="toc-t">Terms</span></a></li></ul><p class="toc-foot"><a href="Technical%20Manual.html">Technical manual &rarr;</a></p></div></aside>
     <main class="main">
 <section class="chapter" id="introduction"><div class="ch-head"><span class="ch-kick">Chapter 1</span><h2 class="h-ch">Welcome</h2></div>
 
@@ -710,5 +764,323 @@ qemu-system-x86_64 -machine q35 -bios OVMF.fd ... -device qemu-xhci -device usb-
 
     </main>
   </div>
-  <footer class="doc-foot">EFI Partition Manager · User Manual v0.2.1 · September 2026 · See also the <a href="Technical%20Manual.html">technical manual</a> · Copyright (c) 2026 nic-fio, <a href="https://github.com/nic-fio/EFI_PARTITION_MANAGER/blob/main/LICENSE">Apache 2.0 with the Commons Clause</a>: free to use and to share, selling it needs a commercial licence</footer>
-</div></body></html>
+  <footer class="doc-foot">EFI Partition Manager · User Manual · Version 0.2.1 · September 2026 · © 2026 Nicola Fiorillo · Licence: Apache 2.0 with the Commons Clause</footer>
+</div>
+<script>window.MANUAL_CODE_TERMS=[];</script>
+<script>
+/* Script comune dei manuali dei 7 progetti: ricerca, indice analitico, pulsante Copy. Uguale in tutti i manuali. */
+/* Ricerca nella barra laterale e indice analitico. Senza dipendenze; senza
+   JavaScript il manuale resta completo (la casella di ricerca resta nascosta). */
+(function () {
+  "use strict";
+  var main = document.querySelector(".main");
+  if (!main) return;
+
+  // Minuscole e senza accenti, carattere per carattere: la lunghezza resta
+  // uguale, così le posizioni trovate valgono anche sul testo originale.
+  function fold(s) {
+    var o = "";
+    for (var i = 0; i < s.length; i++) {
+      var c = s.charAt(i);
+      var f = c.normalize ? c.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase() : c.toLowerCase();
+      o += f.length === 1 ? f : c;
+    }
+    return o;
+  }
+  function esc(s) {
+    return s.replace(/[&<>"]/g, function (c) {
+      return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c];
+    });
+  }
+  function secTitle(sec) {
+    var h = sec && sec.querySelector("h3.h-sec, h2.h-ch");
+    return h ? h.textContent.replace(/\s+/g, " ").trim() : "";
+  }
+  function splitTitle(t) { // "5.3 · Interruzioni e ripresa" -> ["5.3", "Interruzioni e ripresa"]
+    var m = /^([\d.]+) · (.*)$/.exec(t);
+    return m ? [m[1], m[2]] : ["", t];
+  }
+
+  /* ---------------- indice analitico ---------------- */
+  var list = document.getElementById("index-list");
+  if (list) {
+    var terms = {};
+    var els = main.querySelectorAll("[data-index]");
+    for (var i = 0; i < els.length; i++) {
+      var el = els[i];
+      var target = el.id ? el : el.closest("[id]");
+      if (!target || target.id === "index") continue;
+      var sec = el.closest(".sec") || el.closest(".chapter");
+      var label = splitTitle(secTitle(sec));
+      var names = el.getAttribute("data-index").split(";");
+      for (var j = 0; j < names.length; j++) {
+        var name = names[j].trim();
+        if (!name) continue;
+        var key = fold(name);
+        var t = terms[key] || (terms[key] = { name: name, refs: [], seen: {} });
+        if (t.seen[target.id]) continue;
+        t.seen[target.id] = true;
+        t.refs.push({ id: target.id, n: label[0], title: label[1] });
+      }
+    }
+    var sortKey = function (k) { return k.replace(/^[-.]+/, ""); };
+    var keys = Object.keys(terms).sort(function (a, b) {
+      return sortKey(a).localeCompare(sortKey(b), "en") || a.localeCompare(b, "en");
+    });
+    var groups = [], cur = null;
+    keys.forEach(function (k) {
+      var ch = sortKey(k).charAt(0).toUpperCase();
+      if (!/[A-Z]/.test(ch)) ch = "#";
+      if (!cur || cur.ch !== ch) { cur = { ch: ch, items: [] }; groups.push(cur); }
+      cur.items.push(terms[k]);
+    });
+    var out = "";
+    groups.forEach(function (g) {
+      out += '<div class="idx-g"><h3 class="idx-l">' + g.ch + '</h3><ul class="idx-ul">';
+      g.items.forEach(function (t) {
+        // Voci da mostrare come codice: nomi di file e opzioni, piu' le parole
+        // che il manuale elenca in window.MANUAL_CODE_TERMS (prima di questo script).
+        var isCode = /^[-.]|_|\.(txt|sh|example|conf|toml|json|md|py|efi|nsb)$/.test(t.name) ||
+          (window.MANUAL_CODE_TERMS || []).indexOf(t.name) >= 0;
+        var nm = isCode ? "<code>" + esc(t.name) + "</code>" : esc(t.name);
+        out += '<li><span class="idx-t">' + nm + "</span> — " + t.refs.map(function (r) {
+          return '<a href="' + '#' + r.id + '" title="' + esc(r.title) + '">' + (r.n ? r.n + " " : "") + esc(r.title) + "</a>";
+        }).join(", ") + "</li>";
+      });
+      out += "</ul></div>";
+    });
+    list.innerHTML = out;
+  }
+
+  /* ---------------- ricerca ---------------- */
+  var box = document.getElementById("srch");
+  var q = document.getElementById("srch-q");
+  var info = document.getElementById("srch-info");
+  var res = document.getElementById("srch-res");
+  var toc = document.getElementById("toc");
+  if (!box || !q) return;
+  box.hidden = false;
+
+  var secs = [];
+  var nodes = main.querySelectorAll(".sec");
+  for (var k = 0; k < nodes.length; k++) {
+    var s = nodes[k];
+    if (s.closest("#index")) continue;
+    var parts = [], w = document.createTreeWalker(s, NodeFilter.SHOW_TEXT, null), tn;
+    while ((tn = w.nextNode())) if (!tn.parentNode.closest("h3.h-sec")) parts.push(tn.data);
+    var txt = parts.join(" ").replace(/\s+/g, " ").replace(/ ([,.;:)!?»])/g, "$1").replace(/([(«]) /g, "$1").trim();
+    var tt = secTitle(s);
+    secs.push({ el: s, id: s.id, title: tt, ftitle: fold(tt), text: txt, ftext: fold(txt) });
+  }
+  var tocLinks = {};
+  if (toc) {
+    var as = toc.querySelectorAll("a");
+    for (var a = 0; a < as.length; a++) tocLinks[as[a].getAttribute("href").slice(1)] = as[a].parentNode;
+  }
+
+  function count(hay, w) {
+    var n = 0, p = hay.indexOf(w);
+    while (p >= 0) { n++; p = hay.indexOf(w, p + w.length); }
+    return n;
+  }
+  function markWords(s, fs, words) { // testo -> HTML con <mark> sulle parole cercate
+    var ranges = [];
+    words.forEach(function (w) {
+      var p = fs.indexOf(w);
+      while (p >= 0) { ranges.push([p, p + w.length]); p = fs.indexOf(w, p + w.length); }
+    });
+    ranges.sort(function (x, y) { return x[0] - y[0]; });
+    var o = "", last = 0;
+    ranges.forEach(function (r) {
+      if (r[0] < last) return;
+      o += esc(s.slice(last, r[0])) + "<mark>" + esc(s.slice(r[0], r[1])) + "</mark>";
+      last = r[1];
+    });
+    return o + esc(s.slice(last));
+  }
+
+  function clearMarks() {
+    var ms = main.querySelectorAll("mark.hit");
+    for (var i = 0; i < ms.length; i++) {
+      var m = ms[i], p = m.parentNode;
+      p.replaceChild(document.createTextNode(m.textContent), m);
+      p.normalize();
+    }
+  }
+  function highlight(root, words) {
+    var walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, {
+      acceptNode: function (n) {
+        return n.parentNode.closest("svg, script, style, mark") ? NodeFilter.FILTER_REJECT : NodeFilter.FILTER_ACCEPT;
+      }
+    });
+    var list = [], n;
+    while ((n = walker.nextNode())) list.push(n);
+    var first = null;
+    list.forEach(function (node) {
+      var s = node.data, fs = fold(s), ranges = [];
+      words.forEach(function (w) {
+        var p = fs.indexOf(w);
+        while (p >= 0) { ranges.push([p, p + w.length]); p = fs.indexOf(w, p + w.length); }
+      });
+      if (!ranges.length) return;
+      ranges.sort(function (x, y) { return x[0] - y[0]; });
+      var frag = document.createDocumentFragment(), last = 0;
+      ranges.forEach(function (r) {
+        if (r[0] < last) return;
+        if (r[0] > last) frag.appendChild(document.createTextNode(s.slice(last, r[0])));
+        var m = document.createElement("mark");
+        m.className = "hit";
+        m.textContent = s.slice(r[0], r[1]);
+        frag.appendChild(m);
+        if (!first) first = m;
+        last = r[1];
+      });
+      if (last < s.length) frag.appendChild(document.createTextNode(s.slice(last)));
+      node.parentNode.replaceChild(frag, node);
+    });
+    return first;
+  }
+
+  var found = [], sel = -1, words = [];
+  function search() {
+    var v = fold(q.value.trim());
+    words = v.split(/\s+/).filter(function (w) { return w.length > 0; });
+    found = [];
+    sel = -1;
+    Object.keys(tocLinks).forEach(function (id) { tocLinks[id].classList.remove("toc-hit"); });
+    if (v.length < 2) {
+      res.innerHTML = "";
+      info.textContent = v.length ? "Type at least two letters." : "";
+      if (toc) toc.classList.remove("filtering");
+      clearMarks();
+      return;
+    }
+    secs.forEach(function (s) {
+      var score = 0;
+      for (var i = 0; i < words.length; i++) {
+        var c = count(s.ftext, words[i]);
+        var inTitle = s.ftitle.indexOf(words[i]) >= 0;
+        if (!c && !inTitle) return;
+        score += c + (inTitle ? 20 : 0);
+      }
+      found.push({ s: s, score: score });
+    });
+    found.sort(function (x, y) { return y.score - x.score; });
+    info.textContent = found.length
+      ? (found.length === 1 ? "1 section found" : found.length + " sections found") + " · Enter to open the first"
+      : "No results.";
+    var html = "";
+    found.slice(0, 15).forEach(function (f, i) {
+      var s = f.s, p = Math.max(0, s.ftext.indexOf(words[0]));
+      var a = Math.max(0, p - 50), b = Math.min(s.text.length, p + words[0].length + 70);
+      var snip = (a > 0 ? "…" : "") + markWords(s.text.slice(a, b), s.ftext.slice(a, b), words) + (b < s.text.length ? "…" : "");
+      var t = splitTitle(s.title);
+      html += '<li><a href="' + '#' + s.id + '" data-i="' + i + '"><span class="r-t"><span class="toc-n">' + t[0] +
+        "</span><span>" + esc(t[1]) + '</span></span><span class="r-s">' + snip + "</span></a></li>";
+    });
+    res.innerHTML = html;
+    if (toc) {
+      toc.classList.add("filtering");
+      found.forEach(function (f) {
+        var li = tocLinks[f.s.id];
+        if (li) li.classList.add("toc-hit");
+        var ch = f.s.el.closest(".chapter");
+        if (ch && tocLinks[ch.id]) tocLinks[ch.id].classList.add("toc-hit");
+      });
+    }
+  }
+  function go(i) {
+    var f = found[i];
+    if (!f) return;
+    clearMarks();
+    var first = highlight(f.s.el, words);
+    if (history.replaceState) history.replaceState(null, "", "#" + f.s.id);
+    (first || f.s.el).scrollIntoView({ block: first ? "center" : "start" });
+    f.s.el.classList.remove("flash");
+    void f.s.el.offsetWidth;
+    f.s.el.classList.add("flash");
+  }
+  function setSel(i) {
+    var links = res.querySelectorAll("a");
+    if (!links.length) return;
+    sel = (i + links.length) % links.length;
+    for (var k = 0; k < links.length; k++) links[k].classList.toggle("on", k === sel);
+    links[sel].scrollIntoView({ block: "nearest" });
+  }
+
+  var timer = null;
+  q.addEventListener("input", function () {
+    clearTimeout(timer);
+    timer = setTimeout(search, 120);
+  });
+  q.addEventListener("keydown", function (e) {
+    if (e.key === "Enter") { e.preventDefault(); clearTimeout(timer); search(); go(sel >= 0 ? sel : 0); }
+    else if (e.key === "ArrowDown") { e.preventDefault(); setSel(sel + 1); }
+    else if (e.key === "ArrowUp") { e.preventDefault(); setSel(sel - 1); }
+    else if (e.key === "Escape") { q.value = ""; search(); q.blur(); }
+  });
+  res.addEventListener("click", function (e) {
+    var a = e.target.closest("a[data-i]");
+    if (!a) return;
+    e.preventDefault();
+    go(+a.getAttribute("data-i"));
+  });
+  document.addEventListener("keydown", function (e) {
+    if (e.key !== "/" || e.ctrlKey || e.metaKey || e.altKey) return;
+    var t = e.target;
+    if (t && (t.tagName === "INPUT" || t.tagName === "TEXTAREA" || t.isContentEditable)) return;
+    e.preventDefault();
+    q.focus();
+    q.select();
+  });
+})();
+/* Pulsante Copy sui blocchi di comandi: copia le righe che iniziano con il
+   prompt "$ ", senza il prompt. L'etichetta sta in CSS (data-l), cosi' non
+   entra nel testo della pagina ne' nella ricerca. */
+(function () {
+  "use strict";
+  var pres = document.querySelectorAll(".main pre.code");
+  for (var i = 0; i < pres.length; i++) (function (pre) {
+    var lines = pre.textContent.replace(/\s+$/, "").split("\n"), cmds = [];
+    for (var k = 0; k < lines.length; k++) {
+      var m = /^\$ (.*)$/.exec(lines[k]);
+      if (m) cmds.push(m[1]);
+    }
+    if (!cmds.length) return;              // non e' un blocco di comandi
+    var text = cmds.join("\n");
+    var wrap = document.createElement("div");
+    wrap.className = "code-w";
+    pre.parentNode.insertBefore(wrap, pre);
+    wrap.appendChild(pre);
+    var btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "copy";
+    btn.setAttribute("data-l", "Copy");
+    btn.setAttribute("aria-label", "Copy the command" + (cmds.length > 1 ? "s" : ""));
+    btn.title = "Copy the command" + (cmds.length > 1 ? "s" : "");
+    var t = null;
+    function done() {
+      btn.setAttribute("data-l", "Copied");
+      btn.classList.add("ok");
+      clearTimeout(t);
+      t = setTimeout(function () { btn.setAttribute("data-l", "Copy"); btn.classList.remove("ok"); }, 1400);
+    }
+    function fallback() {
+      var ta = document.createElement("textarea");
+      ta.value = text;
+      ta.setAttribute("readonly", "");
+      ta.style.position = "fixed"; ta.style.top = "-1000px"; ta.style.opacity = "0";
+      document.body.appendChild(ta);
+      ta.select();
+      try { if (document.execCommand("copy")) done(); } catch (e) {}
+      document.body.removeChild(ta);
+    }
+    btn.addEventListener("click", function () {
+      if (navigator.clipboard && window.isSecureContext) navigator.clipboard.writeText(text).then(done, fallback);
+      else fallback();
+    });
+    wrap.appendChild(btn);
+  })(pres[i]);
+})();
+</script>
+</body></html>

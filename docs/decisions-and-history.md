@@ -344,6 +344,7 @@ The work took place on 2026-09-23 (phases 1–9) and 2026-09-24 (phase 10).
 | **10. A graphical interface, designed** | 2026-09-24. The graphical interface was designed (P18–P25): the graphics screen, the pointer and screen captures were checked in QEMU/OVMF first, which showed that OVMF has no mouse driver; partmgr will carry its own (P21). A mockup, drawn with four fonts, was approved with Inter. |
 | **11. The graphical interface, built** | 2026-09-24. Six stages, each tested in QEMU/OVMF and pushed: the drawing and the Inter font; partmgr's own USB mouse driver; the window; the actions with graphical dialogs; every screen size, with faces of 40 and 52 pixels for very large screens; the manuals. Release 0.2.0. |
 | **12. The first try of 0.2.0** | 2026-09-25. The owner tried 0.2.0 in QEMU. The pointer "appeared, then disappeared": not a defect - QEMU's default mouse is PS/2 (P21: not supported), so partmgr had no pointer, and the arrow seen was the desktop's, hidden when QEMU captured the mouse; the manual and the README now say how to give QEMU a USB mouse. The shell's text cursor did not come back after the window: fixed. Release 0.2.1, a full release. |
+| **13. The common style of the manuals** | 2026-10-01. The owner approved one style for the manuals of the seven projects. The manuals now embed the common CSS and script (search, Copy button) byte for byte, a white cover with the logo from `logos/`, and a one-line footer with the author, Nicola Fiorillo, and the licence. The text did not change; the manuals gained the search box. |
 
 ---
 

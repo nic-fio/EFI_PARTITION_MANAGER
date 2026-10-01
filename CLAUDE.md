@@ -42,6 +42,7 @@ The reasoning for each is in [docs/decisions-and-history.md](docs/decisions-and-
 | **No EDK2 code** | Own UEFI definitions, runtime, platform layer and build tools. |
 | **Apache 2.0 + Commons Clause** | Free to use and share, selling needs a commercial licence, asked for by opening an issue. |
 | **Light documentation only** | No dark themes in the manuals. |
+| **The common style of the manuals** | The style shared by the manuals of the seven projects, approved by the owner on 2026-10-01: the canon is embedded in each manual and identical in all of them, byte for byte. The `<style>` starts with the common CSS (`manual.css`, first comment «Stile comune dei manuali dei 7 progetti»); the last `<script>` is the common script (`manual.js`: search, index, Copy button), after `window.MANUAL_CODE_TERMS`. Never change them in one project only: a change is for all seven. Rules for elements that exist only here (screenshots, long labels, the link under the contents) go after the canon, in the `/* Solo per EFI Partition Manager */` block. Cover: logo (a reduced copy of `logos/efi-partition-manager-logo.png`, embedded), «User Manual»/«Technical Manual», Version and Date; footer `EFI Partition Manager · User Manual · Version X · Month YYYY · © 2026 Nicola Fiorillo · Licence: Apache 2.0 with the Commons Clause`. |
 | **Graphics, text as the fallback** | Graphics screen when the firmware offers one; the text screens otherwise, with the rules above. |
 | **Designed for the mouse** | Every command also on the keyboard, with the keys of 0.1.2. |
 | **One window** | Disks left; disk bar to scale and table right; two button rows. Esc quits, F5 rescans. Mockup: `docs/assets/gui-mockup.png`. |
@@ -58,7 +59,7 @@ The reasoning for each is in [docs/decisions-and-history.md](docs/decisions-and-
 | `tools/` | `elf2efi.py` (ELF → PE32+), `efi.lds`, `gen-docs.py`, `gen-font.py`, `screenshots.py`, `setup-dev.sh`, `backup.sh`. |
 | `tests/partmgr` | `pttool.c` (the table code on disk images), `run-tests.py`, `qemu-test.py`. |
 | `docs/` | The user and technical manuals, the decisions log, the assets. Published with GitHub Pages. |
-| `logos/` | `efi-partition-manager-logo.png`, the logo (PNG, 2172×724, transparent background). Not used by the manuals. |
+| `logos/` | `efi-partition-manager-logo.png`, the logo (PNG, 2172×724, transparent background). The covers of the manuals embed a reduced copy (700 px, 256 colours). |
 | `build/` | Products only, never committed. |
 
 The repository follows the standard layout shared by the seven projects (AMS,
@@ -79,7 +80,7 @@ EFI_PARTITION_MANAGER, HOSTER, MTERM, NESH, PHONESTRA, SCRAPER): `src/`,
 4. Commits use the repository-local identity set by `tools/setup-dev.sh`.
 
 Releases: bump `PARTMGR_VERSION` in `src/partmgr/partmgr.h`, the version in
-both manuals, `docs/index.html` and the issue template, and take the
+both manuals (cover and footer), `docs/index.html` and the issue template, and take the
 screenshots again with `tools/screenshots.py` (the title bar shows the
 version); then tag `vX.Y.Z`. The
 annotated tag message becomes the release notes (up to 0.2.0 CI published the
