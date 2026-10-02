@@ -58,7 +58,8 @@ The reasoning for each is in [docs/decisions-and-history.md](docs/decisions-and-
 | `src/pal`, `src/lib`, `include` | Platform layer, runtime and UEFI definitions. |
 | `tools/` | `elf2efi.py` (ELF → PE32+), `efi.lds`, `gen-docs.py`, `gen-font.py`, `screenshots.py`, `setup-dev.sh`, `backup.sh`. |
 | `tests/partmgr` | `pttool.c` (the table code on disk images), `run-tests.py`, `qemu-test.py`. |
-| `docs/` | The user and technical manuals, the decisions log, the assets. Published with GitHub Pages. |
+| `docs/` | The user and technical manuals, the decisions log, the assets. Published on the website by `site/publish.sh` (GitHub Pages switched off on 2 October 2026, P26). |
+| `site/` | The website, `https://efipm.nicfio.it`, on the owner's VPS. `landing/index.html`: the landing page (mockup 14 «Mesh», chosen on 2 October 2026), with its preview and brief. `publish.sh` builds `site/public/` (landing, manuals and their pictures, `licence.html` from `LICENSE` by `licence-page.py`, `download/` with the release file and checksum, `og.jpg`, `robots.txt`, `sitemap.xml`; `seo-head.py` adds titles and link previews) and copies it to the VPS as user `progetti`; `--build` only builds. The 20 mockups stay in `site/mockups/`, outside git. |
 | `logos/` | `efi-partition-manager-logo.png`, the logo (PNG, 2172×724, transparent background). The covers of the manuals embed a reduced copy (700 px, 256 colours). |
 | `build/` | Products only, never committed. |
 

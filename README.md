@@ -2,7 +2,7 @@
 
 [![CI](https://github.com/nic-fio/EFI_PARTITION_MANAGER/actions/workflows/ci.yml/badge.svg)](https://github.com/nic-fio/EFI_PARTITION_MANAGER/actions/workflows/ci.yml)
 [![Licence: freeware](https://img.shields.io/badge/licence-freeware-blue)](LICENSE)
-[Documentation](https://nic-fio.github.io/EFI_PARTITION_MANAGER/) · [Download](https://github.com/nic-fio/EFI_PARTITION_MANAGER/releases/latest)
+[Website, documentation and download](https://efipm.nicfio.it/)
 
 A partition manager for UEFI firmware, with a window used with the mouse or
 the keyboard. One file, `partmgr.efi`: start it from the firmware boot menu or
@@ -42,8 +42,8 @@ from a UEFI shell, and prepare disks before any operating system is there.
 
 | Document | For |
 |---|---|
-| [User manual](https://nic-fio.github.io/EFI_PARTITION_MANAGER/User%20Manual.html) | Using partmgr: the screens, every key, backups, wipe, the notes about damaged tables. |
-| [Technical manual](https://nic-fio.github.io/EFI_PARTITION_MANAGER/Technical%20Manual.html) | How partmgr reads, changes and writes tables, the backup format, the tests, how to extend it. |
+| [User manual](https://efipm.nicfio.it/User%20Manual.html) | Using partmgr: the screens, every key, backups, wipe, the notes about damaged tables. |
+| [Technical manual](https://efipm.nicfio.it/Technical%20Manual.html) | How partmgr reads, changes and writes tables, the backup format, the tests, how to extend it. |
 | [Design decisions and history](docs/decisions-and-history.md) | Why partmgr is the way it is. |
 | [Logo](logos/efi-partition-manager-logo.png) | The EFI Partition Manager logo (PNG, 2172×724, transparent background). |
 

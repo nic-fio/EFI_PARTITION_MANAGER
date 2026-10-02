@@ -3,13 +3,13 @@
 GitHub shows `.html` files as source code: it does not display web pages stored
 in a repository. Read the manuals in one of these two ways.
 
-**Online** (GitHub Pages, always the current `main`):
+**Online**, on the website (published by `site/publish.sh`):
 
 | Document | Link |
 |---|---|
-| User manual | https://nic-fio.github.io/EFI_PARTITION_MANAGER/User%20Manual.html |
-| Technical manual | https://nic-fio.github.io/EFI_PARTITION_MANAGER/Technical%20Manual.html |
-| Start page | https://nic-fio.github.io/EFI_PARTITION_MANAGER/ |
+| User manual | https://efipm.nicfio.it/User%20Manual.html |
+| Technical manual | https://efipm.nicfio.it/Technical%20Manual.html |
+| Start page | https://efipm.nicfio.it/ |
 
 **Offline**: clone the repository and open `docs/User Manual.html` in a
 browser. Each manual is one file with its style (the common style of the
