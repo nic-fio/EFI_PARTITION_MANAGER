@@ -324,6 +324,28 @@ real code is tested instead.
   the manuals, which are light only.
 - The mockup was approved with it (owner: "si, approvo").
 
+### P26. Freeware, a website on nicfio.it, a closed repository
+
+- **Context.** On 2 October 2026 the owner bought the domain `nicfio.it` and
+  hosts the sites of his projects on his own server, one subdomain each.
+- **Decisions of the owner, the same day.**
+  - **Site:** `https://efipm.nicfio.it`; GitHub Pages goes away once the site
+    is online, and the manuals become part of the site.
+  - **Landing page:** chosen among 20 mockups with the same content and twenty
+    visual directions, as for the owner's other sites.
+  - **Licence:** freeware, the EFI Partition Manager Freeware Licence
+    (`LICENSE`), from the first version released after 0.2.1: free use, also
+    as a tool in paid work; free redistribution of the unchanged file and in
+    free collections; Secure Boot signing allowed; no sale, no inclusion in
+    commercial products or services, no modification, no decompilation beyond
+    what the law allows. Commercial licences or the sale of the project through
+    `efipm@nicfio.it`. Versions up to 0.2.1 keep Apache 2.0 + Commons Clause
+    (`LICENSE-0.2.1-and-earlier`), which cannot be withdrawn.
+  - **Hardware reports and licence requests** by e-mail to `efipm@nicfio.it`.
+  - **Closed source:** the repository becomes private once the site is online.
+- **Consequence.** The manuals and `docs/index.html` still name the old licence
+  in their footer: they describe 0.2.1, and change with the next release.
+
 ---
 
 ## 3. History

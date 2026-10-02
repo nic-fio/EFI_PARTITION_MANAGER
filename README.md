@@ -1,7 +1,7 @@
 # EFI Partition Manager
 
 [![CI](https://github.com/nic-fio/EFI_PARTITION_MANAGER/actions/workflows/ci.yml/badge.svg)](https://github.com/nic-fio/EFI_PARTITION_MANAGER/actions/workflows/ci.yml)
-[![Licence: Apache 2.0 with the Commons Clause](https://img.shields.io/badge/licence-Apache%202.0%20with%20Commons%20Clause-blue)](LICENSE)
+[![Licence: freeware](https://img.shields.io/badge/licence-freeware-blue)](LICENSE)
 [Documentation](https://nic-fio.github.io/EFI_PARTITION_MANAGER/) · [Download](https://github.com/nic-fio/EFI_PARTITION_MANAGER/releases/latest)
 
 A partition manager for UEFI firmware, with a window used with the mouse or
@@ -14,8 +14,7 @@ from a UEFI shell, and prepare disks before any operating system is there.
 > firmware and on disk images checked by `sfdisk` and `parted`, but it has not
 > been tried on real hardware yet. Until it has, use it on disks whose contents
 > you can afford to lose, and make a backup (key **B**) first.
-> [Reports](https://github.com/nic-fio/EFI_PARTITION_MANAGER/issues/new?template=hardware-report.yml)
-> are very welcome.
+> Reports, to **efipm@nicfio.it**, are very welcome.
 
 ## Highlights
 
@@ -89,14 +88,15 @@ qemu-system-x86_64 -machine q35 -accel kvm -bios OVMF.fd -device qemu-xhci -devi
 
 ## Licence
 
-Copyright (c) 2026 nic-fio. EFI Partition Manager is released under the
-**Apache License 2.0 with the [Commons Clause](LICENSE)**: use it for anything,
-at home or at work, free of charge; copy it, modify it and share it, keeping the
-notices and saying what you changed. What you may not do is **sell** it, or sell
-a product or service whose value comes substantially from it — that needs a
-commercial licence ([open an issue](https://github.com/nic-fio/EFI_PARTITION_MANAGER/issues)
-to ask for one).
+Copyright (c) 2026 Nicola Fiorillo. EFI Partition Manager is **freeware**,
+released under the [EFI Partition Manager Freeware Licence](LICENSE): use it
+for anything, at home or at work, free of charge, also as a tool in paid work;
+copy it and give it away unchanged; sign it for Secure Boot. What you may not
+do is **sell** it, include it in a product or service that is sold, modify it,
+or decompile it beyond what the law allows — that needs a written licence:
+write to **efipm@nicfio.it**. [NOTICE.md](NOTICE.md) has the summary and the
+third-party components (the Inter font, SIL Open Font License 1.1).
 
-The Commons Clause means the project is not "open source" by the OSI
-definition. Third-party components keep their own licences, listed in
-[NOTICE.md](NOTICE.md).
+Versions up to and including 0.2.1 were released under the Apache License 2.0
+with the Commons Clause ([LICENSE-0.2.1-and-earlier](LICENSE-0.2.1-and-earlier)),
+and copies of those versions keep that licence.

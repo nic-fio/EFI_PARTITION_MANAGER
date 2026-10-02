@@ -90,11 +90,12 @@ jobs:
           **Secure Boot:** the file is not signed. Sign it with your own key or
           disable Secure Boot (see the user manual).
 
-          **Licence:** Apache 2.0 with the Commons Clause, attached here as
-          \`LICENSE\` and \`NOTICE.md\`: free to use, to copy and to modify,
-          not to sell. Source-available, not OSI open source.
+          **Licence:** freeware, the EFI Partition Manager Freeware Licence,
+          attached here as \`LICENSE\` and \`NOTICE.md\`: free to use and to
+          give away unchanged, not to sell, modify or include in commercial
+          products.
 
-          Documentation: https://nic-fio.github.io/EFI_PARTITION_MANAGER/
+          Documentation: https://efipm.nicfio.it/
           EOF
           # 0.x versions are published as pre-releases; the owner decides whether a
           # release becomes a full one afterwards (0.2.0 did, see CLAUDE.md)

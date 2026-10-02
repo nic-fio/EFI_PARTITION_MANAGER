@@ -1,33 +1,26 @@
 # Copyright and third-party notices
 
 EFI Partition Manager
-Copyright (c) 2026 nic-fio
+Copyright (c) 2026 Nicola Fiorillo. All rights reserved.
 
-Licensed under the **Apache License 2.0 with the "Commons Clause" License
-Condition v1.0**. See [LICENSE](LICENSE).
+EFI Partition Manager is **freeware**, released under the **EFI Partition
+Manager Freeware Licence**. See [LICENSE](LICENSE).
 
 ## In short
 
-| You may | You may not |
+| You may, free of charge | You may not, without a written licence |
 |---|---|
-| Use EFI Partition Manager for anything, privately or at work, in a company or at home, free of charge | **Sell** it, or sell a product or service whose value comes, entirely or substantially, from it |
-| Copy it and give it to anyone, unchanged, free of charge | Charge a fee for it, or for hosting, support or consulting that is substantially about it |
-| Modify it for your own use | Remove the copyright, licence and Commons Clause notices |
-| Share your modified version, free of charge, keeping the notices and stating what you changed | |
+| Use it for anything, at home or at work, also as a tool in paid work (repairing a computer, preparing disks for customers) | **Sell** it, or charge a fee for it |
+| Copy it and give it to anyone, unchanged, with the licence | **Include** it in a product or service that is sold or offered as part of a business |
+| Sign `partmgr.efi` with your own Secure Boot keys, rename it, put it on any disk | **Modify** it, or decompile it beyond what the law allows |
+| Put it in a collection of tools given away free of charge, unchanged and with the licence | Remove the copyright and licence notices, or use the name to suggest an endorsement |
 
-Using EFI Partition Manager as a tool while doing paid work (repairing a
-computer, preparing disks for customers) is allowed: what is forbidden is making
-money **from EFI Partition Manager itself**.
+**Want to include it in a product, or buy the project?** Write to
+**efipm@nicfio.it**.
 
-**Want to sell it, or include it in a product you sell?** That needs a separate,
-commercial licence: open an issue at
-https://github.com/nic-fio/EFI_PARTITION_MANAGER/issues and ask.
-
-Suggested attribution for a modified version:
-
-> Based on EFI Partition Manager by nic-fio
-> (https://github.com/nic-fio/EFI_PARTITION_MANAGER), Apache 2.0 with Commons
-> Clause. Changes were made.
+Versions up to and including 0.2.1 were released under the Apache License 2.0
+with the Commons Clause (`LICENSE-0.2.1-and-earlier`); copies of those versions
+keep that licence.
 
 ## Third-party components in this repository
 
