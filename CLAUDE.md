@@ -114,7 +114,7 @@ Posted to find testers on real hardware; check them for replies and reports.
 
 | Where | When | Link |
 |---|---|---|
-| OSDev forum, Announcements | 2026-09-24 | https://forum.osdev.org/viewtopic.php?t=58355 |
-| Win-Raid, BIOS Modding/Flashing Tools | 2026-09-24 | https://winraid.level1techs.com/t/119473 |
+| OSDev forum, Announcements | 2026-09-24 | https://forum.osdev.org/viewtopic.php?t=58355 — no replies. **Deleted by the owner on 2026-10-02** (it promoted the Apache licence and the public source, P26). |
+| Win-Raid, BIOS Modding/Flashing Tools | 2026-09-24 | https://winraid.level1techs.com/t/119473 — one reply (no hardware report). The author cannot delete it any more: **withdrawn on 2026-10-02**, title «[Withdrawn] EFI Partition Manager» and a one-line notice (P26). The old text is still in the edit history. |
 
 Claude never types forum passwords: the user logs in.
