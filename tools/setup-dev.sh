@@ -71,6 +71,8 @@ if git rev-parse --git-dir >/dev/null 2>&1; then
     else
         echo "  already set: $(git config --local --get user.name) <$(git config --local --get user.email)>"
     fi
+    git config --local core.hooksPath .githooks
+    echo "  pre-commit hook enabled: checks the manuals before every commit"
 else
     echo "  not a git working copy, skipped"
 fi

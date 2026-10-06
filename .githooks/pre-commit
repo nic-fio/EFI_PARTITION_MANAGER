@@ -1,0 +1,9 @@
+#!/bin/sh
+# Before every commit, check that the manuals match the sources, as the CI
+# does: a stale manual made it fail on GitHub, with an error email on every
+# push. Enabled by tools/setup-dev.sh (core.hooksPath).
+# Skip it once: git commit --no-verify
+make -s docs-check && exit 0
+echo >&2
+echo "commit stopped: the manuals do not match the sources; run «make docs» and add them to the commit" >&2
+exit 1
