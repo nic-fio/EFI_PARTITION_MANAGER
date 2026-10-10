@@ -364,6 +364,7 @@ real code is tested instead.
     file written for the project starts with the copyright line and
     `SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0`.
   - **Commercial licences** by e-mail to `efipm@nicfio.it`.
+  - **Repository public again (10 October 2026):** decision of the owner, after the change of licence; the history (working notes included) is public.
   - **Earlier versions:** up to 0.2.1, Apache 2.0 + Commons Clause, which
     cannot be withdrawn.
 
