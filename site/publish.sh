@@ -31,6 +31,10 @@ for f in $(grep -oh 'src="assets/[^"]*"' "$ROOT"/docs/*Manual.html | sort -u | s
     cp "$ROOT/docs/assets/$f" "$OUT/assets/"
 done
 python3 "$ROOT/site/licence-page.py" "$ROOT/LICENSE.md" > "$OUT/licence.html"
+# the earlier licences, linked from licence.html: their versions may still be
+# used under them, at the user's choice
+mkdir -p "$OUT/licences"
+cp "$ROOT/LICENSE-0.2.1-and-earlier" "$OUT/licences/LICENSE-0.2.1-and-earlier.txt"
 
 SEO=$ROOT/site/seo-head.py
 python3 "$SEO" "$OUT/User Manual.html" "$URL/User%20Manual.html" \
@@ -43,12 +47,10 @@ python3 "$SEO" "$OUT/licence.html" "$URL/licence.html" \
     "EFI Partition Manager licence: PolyForm Noncommercial 1.0.0" \
     "EFI Partition Manager is free for any noncommercial use, under the PolyForm Noncommercial License 1.0.0; commercial use needs a licence from the author."
 
-# downloads of the current release (published with the release's own licence)
+# downloads of the current release
 DL=$OUT/download
 if [ "${PARTMGR_FROM_BUILD:-}" = 1 ]; then
     cp "$ROOT/build/partmgr.efi" "$DL/"
-    sed 's/$/\r/' "$ROOT/LICENSE.md" > "$DL/LICENSE.txt"
-    sed 's/$/\r/' "$ROOT/NOTICE.md" > "$DL/NOTICE.txt"
 else
     CACHE=$ROOT/build/release-v$VERSION
     if [ ! -f "$CACHE/partmgr.efi" ]; then
@@ -57,10 +59,11 @@ else
     fi
     (cd "$CACHE" && sha256sum -c SHA256SUMS)
     cp "$CACHE/partmgr.efi" "$DL/"
-    LIC=$CACHE/LICENSE.md; [ -f "$LIC" ] || LIC=$CACHE/LICENSE
-    sed 's/$/\r/' "$LIC" > "$DL/LICENSE.txt"
-    sed 's/$/\r/' "$CACHE/NOTICE.md" > "$DL/NOTICE.txt"
 fi
+# the licence of the download: the current one, which covers the published
+# version too (decision of 10 October 2026)
+sed 's/$/\r/' "$ROOT/LICENSE.md" > "$DL/LICENSE.txt"
+sed 's/$/\r/' "$ROOT/NOTICE.md" > "$DL/NOTICE.txt"
 (cd "$DL" && sha256sum partmgr.efi > SHA256SUMS)
 
 cp "$ROOT/site/og.jpg" "$OUT/og.jpg"

@@ -104,8 +104,9 @@ and writes tables, the backup format, the tests. Licence (`licence.html`).
 public bodies; the source code is published under the PolyForm Noncommercial License 1.0.0.
 Commercial use, including use at work inside a company, needs a written licence: write to
 efipm@nicfio.it.
-Small print: «Version 0.2.1 was released under the Apache License 2.0 with the Commons
-Clause, and keeps it; the PolyForm Noncommercial License applies from the next version.»
+Small print: «The PolyForm Noncommercial License covers version 0.2.1 too. Version 0.2.1 was
+released under the Apache License 2.0 with the Commons Clause: whoever has a copy may use it
+under that licence or under the PolyForm Noncommercial License, at their choice.»
 No prices, no «Buy», no «Pro».
 
 ## Sections (in this order, adapt the layout)
