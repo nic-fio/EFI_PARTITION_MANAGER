@@ -3,12 +3,16 @@
 Required Notice: Copyright (c) 2026 Nicola Fiorillo (https://nicfio.it)
 
 EFI Partition Manager is released under the **PolyForm Noncommercial License
-1.0.0**. See [LICENSE.md](LICENSE.md). It is free for any noncommercial use;
-for commercial use write to **efipm@nicfio.it**.
+1.0.0**, the current version 0.2.1 included. See [LICENSE.md](LICENSE.md). It is
+free for any noncommercial use; for commercial use write to
+**efipm@nicfio.it**.
 
-Versions up to and including 0.2.1 were released under the Apache License 2.0
-with the Commons Clause (`LICENSE-0.2.1-and-earlier`); copies of those versions
-keep that licence.
+Whoever has a copy of version 0.2.1 or of an earlier version may use it, at
+their choice, under the licence it was released with or under the PolyForm
+Noncommercial License 1.0.0. The earlier licences:
+
+- versions 0.1.0 to 0.2.1: Apache License 2.0 with the Commons Clause
+  ([LICENSE-0.2.1-and-earlier](LICENSE-0.2.1-and-earlier)).
 
 ## Third-party components in this repository
 

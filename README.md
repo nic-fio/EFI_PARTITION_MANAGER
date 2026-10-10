@@ -97,6 +97,10 @@ including use at work inside a company, write to **efipm@nicfio.it**.
 [NOTICE.md](NOTICE.md) has the required notice and the third-party components
 (the Inter font, SIL Open Font License 1.1), which keep their own licences.
 
-Versions up to and including 0.2.1 were released under the Apache License 2.0
-with the Commons Clause ([LICENSE-0.2.1-and-earlier](LICENSE-0.2.1-and-earlier)),
-and copies of those versions keep that licence.
+The PolyForm Noncommercial License covers the current version, 0.2.1, too.
+Whoever has a copy of version 0.2.1 or of an earlier version may use it, at
+their choice, under the licence it was released with or under the PolyForm
+Noncommercial License 1.0.0. The earlier licences:
+
+- versions 0.1.0 to 0.2.1: Apache License 2.0 with the Commons Clause
+  ([LICENSE-0.2.1-and-earlier](LICENSE-0.2.1-and-earlier)).
