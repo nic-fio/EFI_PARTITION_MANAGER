@@ -1,4 +1,6 @@
 #!/usr/bin/env python3
+# Copyright (c) 2026 Nicola Fiorillo
+# SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
 """Convert an x86_64 ELF shared object (linked with tools/efi.lds) into a
 PE32+ EFI application with native base relocations.
 

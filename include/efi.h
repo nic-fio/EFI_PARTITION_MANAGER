@@ -1,3 +1,6 @@
+/* Copyright (c) 2026 Nicola Fiorillo
+ * SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0 */
+
 /* Minimal UEFI definitions (UEFI Specification 2.10), written for EFI
  * Partition Manager from the specification. No EDK2 code. */
 #ifndef PARTMGR_EFI_H

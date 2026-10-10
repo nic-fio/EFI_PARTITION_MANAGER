@@ -1,3 +1,6 @@
+/* Copyright (c) 2026 Nicola Fiorillo
+ * SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0 */
+
 /* partmgr: one disk as the screens show it - its table in memory, the rows
  * (partitions and free areas in disk order), the selection and the message
  * line. The text screen (diskview.c) and the graphical window (gui.c)

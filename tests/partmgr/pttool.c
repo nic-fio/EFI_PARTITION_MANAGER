@@ -1,3 +1,6 @@
+/* Copyright (c) 2026 Nicola Fiorillo
+ * SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0 */
+
 /* pttool: drives partmgr's partition table code on a disk image file, so
  * that tests/partmgr/run-tests.py can check it against sfdisk and parted.
  * Linux only. The commands run in order on the table read from the image;

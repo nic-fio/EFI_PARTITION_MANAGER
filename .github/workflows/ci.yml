@@ -90,10 +90,9 @@ jobs:
           **Secure Boot:** the file is not signed. Sign it with your own key or
           disable Secure Boot (see the user manual).
 
-          **Licence:** freeware, the EFI Partition Manager Freeware Licence,
-          attached here as \`LICENSE\` and \`NOTICE.md\`: free to use and to
-          give away unchanged, not to sell, modify or include in commercial
-          products.
+          **Licence:** PolyForm Noncommercial License 1.0.0, attached here as
+          \`LICENSE.md\` and \`NOTICE.md\`: free for any noncommercial use;
+          for commercial use write to efipm@nicfio.it.
 
           Documentation: https://efipm.nicfio.it/
           EOF
@@ -102,5 +101,5 @@ jobs:
           pre=""
           case "$GITHUB_REF_NAME" in v0.*) pre="--prerelease" ;; esac
           gh release create "$GITHUB_REF_NAME" dist/partmgr.efi dist/SHA256SUMS \
-            LICENSE NOTICE.md $pre \
+            LICENSE.md NOTICE.md $pre \
             --title "EFI Partition Manager $GITHUB_REF_NAME" --notes-file notes.md --verify-tag

@@ -1,3 +1,6 @@
+/* Copyright (c) 2026 Nicola Fiorillo
+ * SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0 */
+
 /* partmgr: sizes as the user writes and reads them. Units are binary
  * (1K = 1024 bytes, 1M = 1024K...); a number without a unit is in MiB. */
 #ifndef PARTMGR_UNITS_H

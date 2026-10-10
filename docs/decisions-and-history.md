@@ -346,6 +346,27 @@ real code is tested instead.
 - **Consequence.** The manuals and `docs/index.html` still name the old licence
   in their footer: they describe 0.2.1, and change with the next release.
 
+### P27. PolyForm Noncommercial License 1.0.0
+
+- **Context.** On 10 October 2026 the owner chose one licence for the source
+  code of his projects, the PolyForm Noncommercial License 1.0.0, to publish
+  the source while forbidding commercial use.
+- **Decisions of the owner.**
+  - **Licence:** `LICENSE.md` holds the official text, unchanged, taken from
+    `github.com/polyformproject/polyform-licenses`. It replaces the freeware
+    licence of P26, which no release ever used (the last release is 0.2.1).
+  - **What changes from P26:** use at work inside a company is no longer
+    granted, and modifying the program for noncommercial purposes is now
+    allowed. The owner accepted both.
+  - **Notices:** `NOTICE.md` starts with
+    `Required Notice: Copyright (c) 2026 Nicola Fiorillo (https://nicfio.it)`;
+    the third-party notices (the Inter font) stay as they were. Every source
+    file written for the project starts with the copyright line and
+    `SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0`.
+  - **Commercial licences** by e-mail to `efipm@nicfio.it`.
+  - **Earlier versions:** up to 0.2.1, Apache 2.0 + Commons Clause, which
+    cannot be withdrawn.
+
 ---
 
 ## 3. History

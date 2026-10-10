@@ -1,3 +1,6 @@
+/* Copyright (c) 2026 Nicola Fiorillo
+ * SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0 */
+
 /* The glyphs of the graphical interface (tools/gen-font.py), linked in as
  * read-only data; gfx.c reads them. */
     .section .rodata

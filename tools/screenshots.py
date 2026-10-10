@@ -1,4 +1,6 @@
 #!/usr/bin/env python3
+# Copyright (c) 2026 Nicola Fiorillo
+# SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
 """Take the screenshots of the manuals again: boot partmgr.efi in QEMU/OVMF on
 test disks, type the keys of each scene through the QEMU monitor and save the
 screen as a PNG - the whole window at 1024 x 768, or, for the text screens,

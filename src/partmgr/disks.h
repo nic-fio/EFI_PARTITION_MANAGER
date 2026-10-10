@@ -1,3 +1,6 @@
+/* Copyright (c) 2026 Nicola Fiorillo
+ * SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0 */
+
 /* partmgr: the disks of the machine, as the partition table code sees them.
  * disks_efi.c finds them through the firmware's block devices. */
 #ifndef PARTMGR_DISKS_H

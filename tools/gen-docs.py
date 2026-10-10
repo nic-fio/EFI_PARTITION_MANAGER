@@ -1,4 +1,6 @@
 #!/usr/bin/env python3
+# Copyright (c) 2026 Nicola Fiorillo
+# SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
 """Keeps the technical manual in step with the sources: the line counts of its
 source file map and of its area table are counted from the files themselves,
 so that they cannot drift away from the tree.

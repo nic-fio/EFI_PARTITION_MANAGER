@@ -1,3 +1,6 @@
+/* Copyright (c) 2026 Nicola Fiorillo
+ * SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0 */
+
 /* partmgr: drawing on a canvas in memory, and text with the glyphs of
  * font_inter.bin (its format is described in tools/gen-font.py). Integer
  * arithmetic only. */

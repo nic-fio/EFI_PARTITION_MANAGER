@@ -100,12 +100,12 @@ and writes tables, the backup format, the tests. Licence (`licence.html`).
 
 ## Licence (free)
 
-**Freeware.** Free to use, also at work and as a tool in paid work; copy it and give it
-away unchanged, also in free collections of tools; sign it for Secure Boot. Not allowed
-without a written licence: selling it, including it in a product or service that is sold,
-modifying it, decompiling it beyond what the law allows — write to `efipm@nicfio.it`.
+**Free for noncommercial use.** Personal use, study, hobby projects, schools, charities and
+public bodies; the source code is published under the PolyForm Noncommercial License 1.0.0.
+Commercial use, including use at work inside a company, needs a written licence: write to
+efipm@nicfio.it.
 Small print: «Version 0.2.1 was released under the Apache License 2.0 with the Commons
-Clause, and keeps it; the freeware licence applies from the next version.»
+Clause, and keeps it; the PolyForm Noncommercial License applies from the next version.»
 No prices, no «Buy», no «Pro».
 
 ## Sections (in this order, adapt the layout)

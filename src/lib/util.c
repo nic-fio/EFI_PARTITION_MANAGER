@@ -1,3 +1,6 @@
+/* Copyright (c) 2026 Nicola Fiorillo
+ * SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0 */
+
 /* Shared helpers: allocation wrappers, string buffer, UTF-8, globbing. */
 #include "rt.h"
 

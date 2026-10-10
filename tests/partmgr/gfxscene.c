@@ -1,3 +1,6 @@
+/* Copyright (c) 2026 Nicola Fiorillo
+ * SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0 */
+
 /* A test picture for the drawing code: every primitive of gfx.c and every
  * face of the font, laid out like the window of the graphical interface.
  * gfxtool draws it on Linux and gfxdemo.efi on the screen in QEMU; the test

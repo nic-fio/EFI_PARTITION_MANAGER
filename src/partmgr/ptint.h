@@ -1,3 +1,6 @@
+/* Copyright (c) 2026 Nicola Fiorillo
+ * SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0 */
+
 /* partmgr internals shared by ptable.c, ptedit.c and ptwrite.c: little-endian
  * fields and the MBR type rules. */
 #ifndef PARTMGR_PTINT_H

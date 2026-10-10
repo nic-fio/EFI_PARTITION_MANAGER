@@ -1,3 +1,6 @@
+/* Copyright (c) 2026 Nicola Fiorillo
+ * SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0 */
+
 /* partmgr: drawing for the graphical interface (decisions P18-P25). A canvas
  * is an image in memory; the platform layer copies it to the screen
  * (pal_gfx_show). Portable: the tests draw the same canvases on Linux.

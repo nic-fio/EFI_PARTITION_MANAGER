@@ -1,3 +1,6 @@
+/* Copyright (c) 2026 Nicola Fiorillo
+ * SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0 */
+
 /* partmgr.efi: what the screens share. */
 #ifndef PARTMGR_H
 #define PARTMGR_H

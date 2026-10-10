@@ -1,3 +1,6 @@
+/* Copyright (c) 2026 Nicola Fiorillo
+ * SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0 */
+
 /* The drawing code on Linux: draws the test picture of gfxscene.c into a PPM
  * file, and checks the primitives and the font on their own.
  *

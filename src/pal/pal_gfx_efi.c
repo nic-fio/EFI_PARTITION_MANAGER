@@ -1,3 +1,6 @@
+/* Copyright (c) 2026 Nicola Fiorillo
+ * SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0 */
+
 /* Platform layer for UEFI: the graphics screen (Graphics Output Protocol)
  * and the serial port of the console, where the graphical interface writes
  * what it shows for the tests. */

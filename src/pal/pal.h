@@ -1,3 +1,6 @@
+/* Copyright (c) 2026 Nicola Fiorillo
+ * SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0 */
+
 /* Platform abstraction layer: everything the portable core needs from the
  * machine. Implemented by pal_efi.c (UEFI) and pal_host.c (Linux, tests).
  *

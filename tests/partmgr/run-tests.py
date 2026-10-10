@@ -1,4 +1,6 @@
 #!/usr/bin/env python3
+# Copyright (c) 2026 Nicola Fiorillo
+# SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
 """Tests of partmgr's partition table code (src/partmgr), on disk image files.
 
 Reading: images are built with sfdisk (util-linux) and read by

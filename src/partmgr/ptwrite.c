@@ -1,3 +1,6 @@
+/* Copyright (c) 2026 Nicola Fiorillo
+ * SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0 */
+
 /* partmgr: writing partition tables, backups and restores.
  *
  * GPT: the protective MBR in block 0 (boot code as read, none for a new

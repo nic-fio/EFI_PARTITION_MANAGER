@@ -1,3 +1,6 @@
+/* Copyright (c) 2026 Nicola Fiorillo
+ * SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0 */
+
 /* partmgr: drawing on the text console and the dialogs (messages, questions,
  * text fields, menus). Colours are the EFI palette. */
 #ifndef PARTMGR_UI_H

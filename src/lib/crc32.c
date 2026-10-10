@@ -1,3 +1,6 @@
+/* Copyright (c) 2026 Nicola Fiorillo
+ * SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0 */
+
 /* CRC-32 (IEEE 802.3, the one of GPT headers, ZIP and PNG). Reflected
  * polynomial 0xEDB88320, initial value and final XOR 0xFFFFFFFF; the table is
  * built on first use. */

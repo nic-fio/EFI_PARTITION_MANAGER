@@ -1,4 +1,6 @@
 #!/usr/bin/env python3
+# Copyright (c) 2026 Nicola Fiorillo
+# SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
 """Renders the Inter font into src/partmgr/font_inter.bin, the glyphs partmgr
 draws its graphical interface with (decision P24).
 

@@ -1,7 +1,7 @@
 # EFI Partition Manager
 
 [![CI](https://github.com/nic-fio/EFI_PARTITION_MANAGER/actions/workflows/ci.yml/badge.svg)](https://github.com/nic-fio/EFI_PARTITION_MANAGER/actions/workflows/ci.yml)
-[![Licence: freeware](https://img.shields.io/badge/licence-freeware-blue)](LICENSE)
+[![Licence: PolyForm Noncommercial 1.0.0](https://img.shields.io/badge/licence-PolyForm%20Noncommercial%201.0.0-blue)](LICENSE.md)
 [Website, documentation and download](https://efipm.nicfio.it/)
 
 A partition manager for UEFI firmware, with a window used with the mouse or
@@ -88,14 +88,14 @@ qemu-system-x86_64 -machine q35 -accel kvm -bios OVMF.fd -device qemu-xhci -devi
 
 ## Licence
 
-Copyright (c) 2026 Nicola Fiorillo. EFI Partition Manager is **freeware**,
-released under the [EFI Partition Manager Freeware Licence](LICENSE): use it
-for anything, at home or at work, free of charge, also as a tool in paid work;
-copy it and give it away unchanged; sign it for Secure Boot. What you may not
-do is **sell** it, include it in a product or service that is sold, modify it,
-or decompile it beyond what the law allows — that needs a written licence:
-write to **efipm@nicfio.it**. [NOTICE.md](NOTICE.md) has the summary and the
-third-party components (the Inter font, SIL Open Font License 1.1).
+Copyright (c) 2026 Nicola Fiorillo. EFI Partition Manager is **free for any
+noncommercial use**: personal use, study, hobby projects, and use by
+noncommercial organisations such as schools, charities and public bodies. Its
+source code is published under the
+[PolyForm Noncommercial License 1.0.0](LICENSE.md). For **commercial use**,
+including use at work inside a company, write to **efipm@nicfio.it**.
+[NOTICE.md](NOTICE.md) has the required notice and the third-party components
+(the Inter font, SIL Open Font License 1.1), which keep their own licences.
 
 Versions up to and including 0.2.1 were released under the Apache License 2.0
 with the Commons Clause ([LICENSE-0.2.1-and-earlier](LICENSE-0.2.1-and-earlier)),

@@ -1,4 +1,6 @@
 #!/usr/bin/env python3
+# Copyright (c) 2026 Nicola Fiorillo
+# SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
 r"""partmgr.efi inside QEMU/OVMF: the program as firmware runs it.
 
 Boots partmgr.efi from a virtual FAT disk (as \EFI\BOOT\BOOTX64.EFI, so the

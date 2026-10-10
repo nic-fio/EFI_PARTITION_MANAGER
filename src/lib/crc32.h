@@ -1,3 +1,6 @@
+/* Copyright (c) 2026 Nicola Fiorillo
+ * SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0 */
+
 /* CRC-32 (IEEE 802.3, the one of GPT headers, ZIP and PNG). */
 #ifndef PARTMGR_CRC32_H
 #define PARTMGR_CRC32_H

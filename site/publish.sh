@@ -1,4 +1,6 @@
 #!/usr/bin/env bash
+# Copyright (c) 2026 Nicola Fiorillo
+# SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
 # publish.sh - builds the site of EFI Partition Manager in site/public/ and
 # publishes it to https://efipm.nicfio.it (the owner's VPS, user "progetti",
 # /srv/www/efipm.nicfio.it).
@@ -28,7 +30,7 @@ cp "$ROOT/docs/User Manual.html" "$ROOT/docs/Technical Manual.html" "$OUT/"
 for f in $(grep -oh 'src="assets/[^"]*"' "$ROOT"/docs/*Manual.html | sort -u | sed 's/src="assets\/\(.*\)"/\1/'); do
     cp "$ROOT/docs/assets/$f" "$OUT/assets/"
 done
-python3 "$ROOT/site/licence-page.py" "$ROOT/LICENSE" > "$OUT/licence.html"
+python3 "$ROOT/site/licence-page.py" "$ROOT/LICENSE.md" > "$OUT/licence.html"
 
 SEO=$ROOT/site/seo-head.py
 python3 "$SEO" "$OUT/User Manual.html" "$URL/User%20Manual.html" \
@@ -38,14 +40,14 @@ python3 "$SEO" "$OUT/Technical Manual.html" "$URL/Technical%20Manual.html" \
     "EFI Partition Manager Technical Manual — how a UEFI partition manager works" \
     "How EFI Partition Manager reads, changes and writes GPT and MBR tables in UEFI firmware, its backup format, and how it is tested."
 python3 "$SEO" "$OUT/licence.html" "$URL/licence.html" \
-    "EFI Partition Manager Freeware Licence" \
-    "EFI Partition Manager is freeware: free to use, also at work, and to give away unchanged; not to sell, modify or include in commercial products."
+    "EFI Partition Manager licence: PolyForm Noncommercial 1.0.0" \
+    "EFI Partition Manager is free for any noncommercial use, under the PolyForm Noncommercial License 1.0.0; commercial use needs a licence from the author."
 
 # downloads of the current release (published with the release's own licence)
 DL=$OUT/download
 if [ "${PARTMGR_FROM_BUILD:-}" = 1 ]; then
     cp "$ROOT/build/partmgr.efi" "$DL/"
-    sed 's/$/\r/' "$ROOT/LICENSE" > "$DL/LICENSE.txt"
+    sed 's/$/\r/' "$ROOT/LICENSE.md" > "$DL/LICENSE.txt"
     sed 's/$/\r/' "$ROOT/NOTICE.md" > "$DL/NOTICE.txt"
 else
     CACHE=$ROOT/build/release-v$VERSION
@@ -55,7 +57,8 @@ else
     fi
     (cd "$CACHE" && sha256sum -c SHA256SUMS)
     cp "$CACHE/partmgr.efi" "$DL/"
-    sed 's/$/\r/' "$CACHE/LICENSE" > "$DL/LICENSE.txt"
+    LIC=$CACHE/LICENSE.md; [ -f "$LIC" ] || LIC=$CACHE/LICENSE
+    sed 's/$/\r/' "$LIC" > "$DL/LICENSE.txt"
     sed 's/$/\r/' "$CACHE/NOTICE.md" > "$DL/NOTICE.txt"
 fi
 (cd "$DL" && sha256sum partmgr.efi > SHA256SUMS)

@@ -1,3 +1,6 @@
+/* Copyright (c) 2026 Nicola Fiorillo
+ * SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0 */
+
 /* Platform layer for UEFI: the pointer (decision P21). Two kinds of devices
  * are read together:
  *

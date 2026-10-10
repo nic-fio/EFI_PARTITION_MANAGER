@@ -1,3 +1,6 @@
+/* Copyright (c) 2026 Nicola Fiorillo
+ * SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0 */
+
 /* vsnprintf for the EFI build: %d %i %u %x %X %o %c %s %p %%,
  * flags '-' '0' '+' ' ', width/precision (also '*'), length hh h l ll z j t. */
 #include "rt.h"

@@ -1,22 +1,10 @@
 # Copyright and third-party notices
 
-EFI Partition Manager
-Copyright (c) 2026 Nicola Fiorillo. All rights reserved.
+Required Notice: Copyright (c) 2026 Nicola Fiorillo (https://nicfio.it)
 
-EFI Partition Manager is **freeware**, released under the **EFI Partition
-Manager Freeware Licence**. See [LICENSE](LICENSE).
-
-## In short
-
-| You may, free of charge | You may not, without a written licence |
-|---|---|
-| Use it for anything, at home or at work, also as a tool in paid work (repairing a computer, preparing disks for customers) | **Sell** it, or charge a fee for it |
-| Copy it and give it to anyone, unchanged, with the licence | **Include** it in a product or service that is sold or offered as part of a business |
-| Sign `partmgr.efi` with your own Secure Boot keys, rename it, put it on any disk | **Modify** it, or decompile it beyond what the law allows |
-| Put it in a collection of tools given away free of charge, unchanged and with the licence | Remove the copyright and licence notices, or use the name to suggest an endorsement |
-
-**Want to include it in a product, or buy the project?** Write to
-**efipm@nicfio.it**.
+EFI Partition Manager is released under the **PolyForm Noncommercial License
+1.0.0**. See [LICENSE.md](LICENSE.md). It is free for any noncommercial use;
+for commercial use write to **efipm@nicfio.it**.
 
 Versions up to and including 0.2.1 were released under the Apache License 2.0
 with the Commons Clause (`LICENSE-0.2.1-and-earlier`); copies of those versions

@@ -1,3 +1,6 @@
+/* Copyright (c) 2026 Nicola Fiorillo
+ * SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0 */
+
 /* partmgr: drawing on the text console and the dialogs. Texts are UTF-8;
  * widths are counted in characters. A dialog is a box in the middle of the
  * screen: title bar, text (lines split at '\n' and wrapped), and for

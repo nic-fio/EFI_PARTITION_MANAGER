@@ -1,3 +1,6 @@
+/* Copyright (c) 2026 Nicola Fiorillo
+ * SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0 */
+
 /* partmgr: the screen of one disk. It shows the partitions and the free
  * areas in disk order, and every change - new partition, delete, type,
  * name, active flag, new table, delete table - is made on the table in

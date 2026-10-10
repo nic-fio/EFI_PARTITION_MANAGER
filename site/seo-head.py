@@ -1,4 +1,6 @@
 #!/usr/bin/env python3
+# Copyright (c) 2026 Nicola Fiorillo
+# SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
 """Adds what search engines and link previews need to a page of the site,
 just after its <title>: canonical URL, Open Graph and Twitter card tags, and
 optionally a new title. The manuals in docs/ stay untouched: publish.sh runs

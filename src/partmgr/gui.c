@@ -1,3 +1,6 @@
+/* Copyright (c) 2026 Nicola Fiorillo
+ * SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0 */
+
 /* partmgr: the graphical window (decisions P18-P25; the approved mockup is
  * docs/assets/gui-mockup.png). One window: the disks on the left; on the
  * right the selected disk as a bar to scale above the table of its rows;

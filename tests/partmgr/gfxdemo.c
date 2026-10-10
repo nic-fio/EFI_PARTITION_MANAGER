@@ -1,3 +1,6 @@
+/* Copyright (c) 2026 Nicola Fiorillo
+ * SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0 */
+
 /* gfxdemo.efi: the test picture of gfxscene.c on the graphics screen, for
  * qemu-test.py, which compares QEMU's screen with gfxtool's picture. Then
  * the mouse pointer, when there is a pointing device, follows it, drawn over the picture

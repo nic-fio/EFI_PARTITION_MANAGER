@@ -1,3 +1,6 @@
+/* Copyright (c) 2026 Nicola Fiorillo
+ * SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0 */
+
 /* partmgr.efi: EFI Partition Manager, a full-screen partition manager for
  * UEFI firmware. With a graphics screen the window of gui.c runs; without
  * one, the text screens: this one lists the disks, diskview.c shows one disk

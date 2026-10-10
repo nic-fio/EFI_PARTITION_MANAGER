@@ -1,3 +1,6 @@
+/* Copyright (c) 2026 Nicola Fiorillo
+ * SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0 */
+
 /* Partition tables of partmgr: GPT and MBR (extended and logical partitions
  * included) read into one description of the disk, changed in memory, and
  * written back. Portable: the disk is reached through read and write

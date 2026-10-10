@@ -1,3 +1,6 @@
+/* Copyright (c) 2026 Nicola Fiorillo
+ * SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0 */
+
 /* Platform layer for UEFI: console, keys,
  * time, files and volumes, arguments, and the entry point efi_main, which
  * runs app_main on a private 1 MiB stack. */

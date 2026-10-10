@@ -1,3 +1,6 @@
+/* Copyright (c) 2026 Nicola Fiorillo
+ * SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0 */
+
 /* Runtime: standard C subset + shared helpers.
  * The EFI build uses the freestanding implementation in libc.c/fmt.c;
  * the Linux test tool (PARTMGR_HOST) uses the system C library. */

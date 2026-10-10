@@ -1,3 +1,6 @@
+/* Copyright (c) 2026 Nicola Fiorillo
+ * SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0 */
+
 /* Freestanding C library subset for the EFI build. */
 #include "rt.h"
 #include "../pal/pal.h"

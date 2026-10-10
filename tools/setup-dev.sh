@@ -1,4 +1,6 @@
 #!/bin/sh
+# Copyright (c) 2026 Nicola Fiorillo
+# SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
 # Prepare a freshly cloned working copy on a Debian or Ubuntu machine.
 #
 # A clone carries the sources, the tests, the documentation and the whole
